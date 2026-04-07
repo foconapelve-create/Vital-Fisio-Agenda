@@ -14,6 +14,7 @@ import PatientHistory from "@/pages/patient-history";
 import Therapists from "@/pages/therapists";
 import Agenda from "@/pages/agenda";
 import Reports from "@/pages/reports";
+import Financial from "@/pages/financial";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({

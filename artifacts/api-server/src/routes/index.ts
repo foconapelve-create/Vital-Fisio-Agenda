@@ -6,6 +6,8 @@ import therapistsRouter from "./therapists";
 import appointmentsRouter from "./appointments";
 import dashboardRouter from "./dashboard";
 import reportsRouter from "./reports";
+import evolutionsRouter from "./evolutions";
+import financialRouter from "./financial";
 
 const router: IRouter = Router();
 
@@ -16,5 +18,7 @@ router.use(therapistsRouter);
 router.use(appointmentsRouter);
 router.use(dashboardRouter);
 router.use(reportsRouter);
+router.use(evolutionsRouter);
+router.use(financialRouter);
 
 export default router;
