@@ -1,0 +1,346 @@
+import { Router, type IRouter } from "express";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { db, appointmentsTable, patientsTable, therapistsTable } from "@workspace/db";
+import {
+  CreateAppointmentBody,
+  UpdateAppointmentBody,
+  GetAppointmentParams,
+  UpdateAppointmentParams,
+  DeleteAppointmentParams,
+  UpdateAppointmentStatusParams,
+  UpdateAppointmentStatusBody,
+  RescheduleAppointmentParams,
+  RescheduleAppointmentBody,
+  ListAppointmentsQueryParams,
+} from "@workspace/api-zod";
+
+const router: IRouter = Router();
+
+function buildAppointmentSelect() {
+  return {
+    id: appointmentsTable.id,
+    patientId: appointmentsTable.patientId,
+    therapistId: appointmentsTable.therapistId,
+    date: appointmentsTable.date,
+    time: appointmentsTable.time,
+    status: appointmentsTable.status,
+    notes: appointmentsTable.notes,
+    originalAppointmentId: appointmentsTable.originalAppointmentId,
+    createdAt: appointmentsTable.createdAt,
+    updatedAt: appointmentsTable.updatedAt,
+    patientName: patientsTable.name,
+    patientPhone: patientsTable.phone,
+    therapistName: therapistsTable.name,
+    therapistSpecialty: therapistsTable.specialty,
+  };
+}
+
+router.get("/appointments", async (req, res): Promise<void> => {
+  const query = ListAppointmentsQueryParams.safeParse(req.query);
+  const filters = query.success ? query.data : {};
+
+  let conditions = [];
+
+  if (filters.date) {
+    conditions.push(eq(appointmentsTable.date, filters.date));
+  }
+
+  if (filters.weekStart) {
+    const weekStart = filters.weekStart;
+    const startDate = new Date(weekStart);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6);
+    const endStr = endDate.toISOString().split("T")[0];
+    conditions.push(gte(appointmentsTable.date, weekStart));
+    conditions.push(lte(appointmentsTable.date, endStr));
+  }
+
+  if (filters.therapistId) {
+    conditions.push(eq(appointmentsTable.therapistId, Number(filters.therapistId)));
+  }
+
+  if (filters.status) {
+    conditions.push(eq(appointmentsTable.status, filters.status));
+  }
+
+  if (filters.patientId) {
+    conditions.push(eq(appointmentsTable.patientId, Number(filters.patientId)));
+  }
+
+  const baseQuery = db
+    .select(buildAppointmentSelect())
+    .from(appointmentsTable)
+    .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
+    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id));
+
+  const appointments = conditions.length > 0
+    ? await baseQuery.where(and(...conditions)).orderBy(appointmentsTable.date, appointmentsTable.time)
+    : await baseQuery.orderBy(appointmentsTable.date, appointmentsTable.time);
+
+  res.json(appointments);
+});
+
+router.post("/appointments", async (req, res): Promise<void> => {
+  const parsed = CreateAppointmentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { patientId, therapistId, date, time, status, notes } = parsed.data;
+
+  const existing = await db
+    .select({ id: appointmentsTable.id })
+    .from(appointmentsTable)
+    .where(
+      and(
+        eq(appointmentsTable.therapistId, therapistId),
+        eq(appointmentsTable.date, date),
+        eq(appointmentsTable.time, time),
+        sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`
+      )
+    );
+
+  if (existing.length > 0) {
+    res.status(409).json({ error: "Conflito de horário: fisioterapeuta já possui agendamento neste horário" });
+    return;
+  }
+
+  const [appointment] = await db
+    .insert(appointmentsTable)
+    .values({
+      patientId,
+      therapistId,
+      date,
+      time,
+      status: status ?? "agendado",
+      notes: notes ?? null,
+    })
+    .returning();
+
+  const [withDetails] = await db
+    .select(buildAppointmentSelect())
+    .from(appointmentsTable)
+    .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
+    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+    .where(eq(appointmentsTable.id, appointment.id));
+
+  res.status(201).json(withDetails);
+});
+
+router.get("/appointments/:id", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = GetAppointmentParams.safeParse({ id: parseInt(rawId, 10) });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [appointment] = await db
+    .select(buildAppointmentSelect())
+    .from(appointmentsTable)
+    .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
+    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+    .where(eq(appointmentsTable.id, params.data.id));
+
+  if (!appointment) {
+    res.status(404).json({ error: "Agendamento não encontrado" });
+    return;
+  }
+
+  res.json(appointment);
+});
+
+router.patch("/appointments/:id", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = UpdateAppointmentParams.safeParse({ id: parseInt(rawId, 10) });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const parsed = UpdateAppointmentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const updateData: Record<string, unknown> = {};
+  const d = parsed.data;
+  if (d.patientId !== undefined) updateData.patientId = d.patientId;
+  if (d.therapistId !== undefined) updateData.therapistId = d.therapistId;
+  if (d.date !== undefined) updateData.date = d.date;
+  if (d.time !== undefined) updateData.time = d.time;
+  if (d.status !== undefined) updateData.status = d.status;
+  if (d.notes !== undefined) updateData.notes = d.notes;
+
+  await db
+    .update(appointmentsTable)
+    .set(updateData)
+    .where(eq(appointmentsTable.id, params.data.id));
+
+  const [appointment] = await db
+    .select(buildAppointmentSelect())
+    .from(appointmentsTable)
+    .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
+    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+    .where(eq(appointmentsTable.id, params.data.id));
+
+  if (!appointment) {
+    res.status(404).json({ error: "Agendamento não encontrado" });
+    return;
+  }
+
+  res.json(appointment);
+});
+
+router.delete("/appointments/:id", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = DeleteAppointmentParams.safeParse({ id: parseInt(rawId, 10) });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [appointment] = await db
+    .delete(appointmentsTable)
+    .where(eq(appointmentsTable.id, params.data.id))
+    .returning();
+
+  if (!appointment) {
+    res.status(404).json({ error: "Agendamento não encontrado" });
+    return;
+  }
+
+  res.sendStatus(204);
+});
+
+router.patch("/appointments/:id/status", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = UpdateAppointmentStatusParams.safeParse({ id: parseInt(rawId, 10) });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const parsed = UpdateAppointmentStatusBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { status } = parsed.data;
+
+  const [current] = await db
+    .select()
+    .from(appointmentsTable)
+    .where(eq(appointmentsTable.id, params.data.id));
+
+  if (!current) {
+    res.status(404).json({ error: "Agendamento não encontrado" });
+    return;
+  }
+
+  const prevStatus = current.status;
+
+  await db
+    .update(appointmentsTable)
+    .set({ status })
+    .where(eq(appointmentsTable.id, params.data.id));
+
+  if (status === "presente" && prevStatus !== "presente") {
+    await db
+      .update(patientsTable)
+      .set({ remainingSessions: sql`${patientsTable.remainingSessions} - 1` })
+      .where(and(eq(patientsTable.id, current.patientId), sql`${patientsTable.remainingSessions} > 0`));
+  } else if (prevStatus === "presente" && status !== "presente") {
+    await db
+      .update(patientsTable)
+      .set({ remainingSessions: sql`${patientsTable.remainingSessions} + 1` })
+      .where(eq(patientsTable.id, current.patientId));
+  }
+
+  const [appointment] = await db
+    .select(buildAppointmentSelect())
+    .from(appointmentsTable)
+    .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
+    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+    .where(eq(appointmentsTable.id, params.data.id));
+
+  res.json(appointment);
+});
+
+router.post("/appointments/:id/reschedule", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = RescheduleAppointmentParams.safeParse({ id: parseInt(rawId, 10) });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const parsed = RescheduleAppointmentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { date, time, therapistId } = parsed.data;
+
+  const [original] = await db
+    .select()
+    .from(appointmentsTable)
+    .where(eq(appointmentsTable.id, params.data.id));
+
+  if (!original) {
+    res.status(404).json({ error: "Agendamento não encontrado" });
+    return;
+  }
+
+  const targetTherapistId = therapistId ?? original.therapistId;
+
+  const conflict = await db
+    .select({ id: appointmentsTable.id })
+    .from(appointmentsTable)
+    .where(
+      and(
+        eq(appointmentsTable.therapistId, targetTherapistId),
+        eq(appointmentsTable.date, date),
+        eq(appointmentsTable.time, time),
+        sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`
+      )
+    );
+
+  if (conflict.length > 0) {
+    res.status(409).json({ error: "Conflito de horário: fisioterapeuta já possui agendamento neste horário" });
+    return;
+  }
+
+  await db
+    .update(appointmentsTable)
+    .set({ status: "remarcado" })
+    .where(eq(appointmentsTable.id, params.data.id));
+
+  const [newAppointment] = await db
+    .insert(appointmentsTable)
+    .values({
+      patientId: original.patientId,
+      therapistId: targetTherapistId,
+      date,
+      time,
+      status: "agendado",
+      notes: original.notes,
+      originalAppointmentId: params.data.id,
+    })
+    .returning();
+
+  const [withDetails] = await db
+    .select(buildAppointmentSelect())
+    .from(appointmentsTable)
+    .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
+    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+    .where(eq(appointmentsTable.id, newAppointment.id));
+
+  res.json(withDetails);
+});
+
+export default router;

@@ -3,13 +3,26 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: VitalFisio Clinic Management API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: patients
+    description: Patient management
+  - name: therapists
+    description: Therapist management
+  - name: appointments
+    description: Appointment scheduling
+  - name: dashboard
+    description: Dashboard summaries
+  - name: reports
+    description: Reports and analytics
+
 paths:
   /healthz:
     get:
@@ -24,6 +37,577 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /patients:
+    get:
+      operationId: listPatients
+      tags: [patients]
+      summary: List all patients
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of patients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Patient"
+    post:
+      operationId: createPatient
+      tags: [patients]
+      summary: Create a patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePatientBody"
+      responses:
+        "201":
+          description: Created patient
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+
+  /patients/{id}:
+    get:
+      operationId: getPatient
+      tags: [patients]
+      summary: Get a patient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Patient
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updatePatient
+      tags: [patients]
+      summary: Update a patient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePatientBody"
+      responses:
+        "200":
+          description: Updated patient
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deletePatient
+      tags: [patients]
+      summary: Delete a patient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /patients/{id}/history:
+    get:
+      operationId: getPatientHistory
+      tags: [patients]
+      summary: Get patient appointment history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Patient appointment history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppointmentWithDetails"
+
+  /therapists:
+    get:
+      operationId: listTherapists
+      tags: [therapists]
+      summary: List all therapists
+      responses:
+        "200":
+          description: List of therapists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Therapist"
+    post:
+      operationId: createTherapist
+      tags: [therapists]
+      summary: Create a therapist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTherapistBody"
+      responses:
+        "201":
+          description: Created therapist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Therapist"
+
+  /therapists/{id}:
+    get:
+      operationId: getTherapist
+      tags: [therapists]
+      summary: Get a therapist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Therapist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Therapist"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateTherapist
+      tags: [therapists]
+      summary: Update a therapist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTherapistBody"
+      responses:
+        "200":
+          description: Updated therapist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Therapist"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteTherapist
+      tags: [therapists]
+      summary: Delete a therapist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /appointments:
+    get:
+      operationId: listAppointments
+      tags: [appointments]
+      summary: List appointments
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+        - name: weekStart
+          in: query
+          schema:
+            type: string
+        - name: therapistId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: patientId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppointmentWithDetails"
+    post:
+      operationId: createAppointment
+      tags: [appointments]
+      summary: Create an appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppointmentBody"
+      responses:
+        "201":
+          description: Created appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentWithDetails"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /appointments/{id}:
+    get:
+      operationId: getAppointment
+      tags: [appointments]
+      summary: Get an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentWithDetails"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateAppointment
+      tags: [appointments]
+      summary: Update an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAppointmentBody"
+      responses:
+        "200":
+          description: Updated appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentWithDetails"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAppointment
+      tags: [appointments]
+      summary: Delete an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /appointments/{id}/status:
+    patch:
+      operationId: updateAppointmentStatus
+      tags: [appointments]
+      summary: Update appointment status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStatusBody"
+      responses:
+        "200":
+          description: Updated appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentWithDetails"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /appointments/{id}/reschedule:
+    post:
+      operationId: rescheduleAppointment
+      tags: [appointments]
+      summary: Reschedule an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RescheduleBody"
+      responses:
+        "200":
+          description: Rescheduled appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentWithDetails"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get today's dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/upcoming:
+    get:
+      operationId: getUpcomingAppointments
+      tags: [dashboard]
+      summary: Get upcoming appointments
+      responses:
+        "200":
+          description: Upcoming appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppointmentWithDetails"
+
+  /reports/daily:
+    get:
+      operationId: getDailyReport
+      tags: [reports]
+      summary: Get daily appointment counts
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Daily report
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyReportItem"
+
+  /reports/absences:
+    get:
+      operationId: getAbsenceReport
+      tags: [reports]
+      summary: Get absences by period
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Absence report
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AbsenceReportItem"
+
+  /reports/sessions:
+    get:
+      operationId: getSessionsReport
+      tags: [reports]
+      summary: Get remaining sessions per patient
+      responses:
+        "200":
+          description: Sessions report
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionsReportItem"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +618,405 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    LoginBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+      required:
+        - id
+        - username
+        - name
+        - role
+
+    Patient:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        birthDate:
+          type: ["string", "null"]
+        insuranceType:
+          type: string
+          enum: [particular, convenio]
+        insuranceName:
+          type: ["string", "null"]
+        totalSessions:
+          type: integer
+        remainingSessions:
+          type: integer
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - phone
+        - insuranceType
+        - totalSessions
+        - remainingSessions
+        - createdAt
+        - updatedAt
+
+    CreatePatientBody:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        birthDate:
+          type: ["string", "null"]
+        insuranceType:
+          type: string
+          enum: [particular, convenio]
+        insuranceName:
+          type: ["string", "null"]
+        totalSessions:
+          type: integer
+        notes:
+          type: ["string", "null"]
+      required:
+        - name
+        - phone
+        - insuranceType
+        - totalSessions
+
+    UpdatePatientBody:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        birthDate:
+          type: ["string", "null"]
+        insuranceType:
+          type: string
+          enum: [particular, convenio]
+        insuranceName:
+          type: ["string", "null"]
+        totalSessions:
+          type: integer
+        remainingSessions:
+          type: integer
+        notes:
+          type: ["string", "null"]
+
+    Therapist:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        specialty:
+          type: string
+        phone:
+          type: string
+        availableHours:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - specialty
+        - phone
+        - createdAt
+        - updatedAt
+
+    CreateTherapistBody:
+      type: object
+      properties:
+        name:
+          type: string
+        specialty:
+          type: string
+        phone:
+          type: string
+        availableHours:
+          type: ["string", "null"]
+      required:
+        - name
+        - specialty
+        - phone
+
+    UpdateTherapistBody:
+      type: object
+      properties:
+        name:
+          type: string
+        specialty:
+          type: string
+        phone:
+          type: string
+        availableHours:
+          type: ["string", "null"]
+
+    AppointmentStatus:
+      type: string
+      enum:
+        - agendado
+        - confirmado
+        - presente
+        - falta
+        - cancelado
+        - remarcado
+        - encaixe
+
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        patientId:
+          type: integer
+        therapistId:
+          type: integer
+        date:
+          type: string
+        time:
+          type: string
+        status:
+          $ref: "#/components/schemas/AppointmentStatus"
+        notes:
+          type: ["string", "null"]
+        originalAppointmentId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - patientId
+        - therapistId
+        - date
+        - time
+        - status
+        - createdAt
+        - updatedAt
+
+    AppointmentWithDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        patientId:
+          type: integer
+        therapistId:
+          type: integer
+        date:
+          type: string
+        time:
+          type: string
+        status:
+          $ref: "#/components/schemas/AppointmentStatus"
+        notes:
+          type: ["string", "null"]
+        originalAppointmentId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        patientName:
+          type: string
+        patientPhone:
+          type: string
+        therapistName:
+          type: string
+        therapistSpecialty:
+          type: string
+      required:
+        - id
+        - patientId
+        - therapistId
+        - date
+        - time
+        - status
+        - createdAt
+        - updatedAt
+        - patientName
+        - patientPhone
+        - therapistName
+        - therapistSpecialty
+
+    CreateAppointmentBody:
+      type: object
+      properties:
+        patientId:
+          type: integer
+        therapistId:
+          type: integer
+        date:
+          type: string
+        time:
+          type: string
+        status:
+          $ref: "#/components/schemas/AppointmentStatus"
+        notes:
+          type: ["string", "null"]
+      required:
+        - patientId
+        - therapistId
+        - date
+        - time
+        - status
+
+    UpdateAppointmentBody:
+      type: object
+      properties:
+        patientId:
+          type: integer
+        therapistId:
+          type: integer
+        date:
+          type: string
+        time:
+          type: string
+        status:
+          $ref: "#/components/schemas/AppointmentStatus"
+        notes:
+          type: ["string", "null"]
+
+    UpdateStatusBody:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/AppointmentStatus"
+      required:
+        - status
+
+    RescheduleBody:
+      type: object
+      properties:
+        date:
+          type: string
+        time:
+          type: string
+        therapistId:
+          type: ["integer", "null"]
+      required:
+        - date
+        - time
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalToday:
+          type: integer
+        totalAbsences:
+          type: integer
+        totalCompleted:
+          type: integer
+        totalScheduled:
+          type: integer
+        totalCancelled:
+          type: integer
+      required:
+        - totalToday
+        - totalAbsences
+        - totalCompleted
+        - totalScheduled
+        - totalCancelled
+
+    DailyReportItem:
+      type: object
+      properties:
+        date:
+          type: string
+        total:
+          type: integer
+        completed:
+          type: integer
+        absent:
+          type: integer
+        cancelled:
+          type: integer
+      required:
+        - date
+        - total
+        - completed
+        - absent
+        - cancelled
+
+    AbsenceReportItem:
+      type: object
+      properties:
+        date:
+          type: string
+        patientName:
+          type: string
+        therapistName:
+          type: string
+        time:
+          type: string
+      required:
+        - date
+        - patientName
+        - therapistName
+        - time
+
+    SessionsReportItem:
+      type: object
+      properties:
+        patientId:
+          type: integer
+        patientName:
+          type: string
+        totalSessions:
+          type: integer
+        remainingSessions:
+          type: integer
+        usedSessions:
+          type: integer
+      required:
+        - patientId
+        - patientName
+        - totalSessions
+        - remainingSessions
+        - usedSessions
