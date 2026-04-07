@@ -94,7 +94,7 @@ router.post("/appointments", async (req, res): Promise<void> => {
     .from(appointmentsTable)
     .where(
       and(
-        eq(appointmentsTable.therapistId, therapistId),
+        eq(appointmentsTable.patientId, patientId),
         eq(appointmentsTable.date, date),
         eq(appointmentsTable.time, time),
         sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`
@@ -102,7 +102,7 @@ router.post("/appointments", async (req, res): Promise<void> => {
     );
 
   if (existing.length > 0) {
-    res.status(409).json({ error: "Conflito de horário: fisioterapeuta já possui agendamento neste horário" });
+    res.status(409).json({ error: "Conflito de horário: paciente já possui agendamento neste horário" });
     return;
   }
 
@@ -303,7 +303,7 @@ router.post("/appointments/:id/reschedule", async (req, res): Promise<void> => {
     .from(appointmentsTable)
     .where(
       and(
-        eq(appointmentsTable.therapistId, targetTherapistId),
+        eq(appointmentsTable.patientId, original.patientId),
         eq(appointmentsTable.date, date),
         eq(appointmentsTable.time, time),
         sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`
@@ -311,7 +311,7 @@ router.post("/appointments/:id/reschedule", async (req, res): Promise<void> => {
     );
 
   if (conflict.length > 0) {
-    res.status(409).json({ error: "Conflito de horário: fisioterapeuta já possui agendamento neste horário" });
+    res.status(409).json({ error: "Conflito de horário: paciente já possui agendamento neste horário" });
     return;
   }
 
