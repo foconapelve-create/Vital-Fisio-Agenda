@@ -1,171 +1,142 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, sql } from "drizzle-orm";
 import { db, patientsTable, appointmentsTable, therapistsTable } from "@workspace/db";
-import {
-  CreatePatientBody,
-  UpdatePatientBody,
-  GetPatientParams,
-  UpdatePatientParams,
-  DeletePatientParams,
-  GetPatientHistoryParams,
-  ListPatientsQueryParams,
-} from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-router.get("/patients", async (req, res): Promise<void> => {
-  const query = ListPatientsQueryParams.safeParse(req.query);
-  const search = query.success ? query.data.search : undefined;
+function requireAuth(req: any, res: any, next: any) {
+  if (!(req.session as any)?.userId) {
+    res.status(401).json({ error: "Não autenticado" });
+    return;
+  }
+  next();
+}
 
+router.get("/patients", requireAuth, async (req, res): Promise<void> => {
+  const search = req.query.search as string | undefined;
   let patients;
   if (search) {
-    patients = await db
-      .select()
-      .from(patientsTable)
-      .where(ilike(patientsTable.name, `%${search}%`))
-      .orderBy(patientsTable.name);
+    patients = await db.select().from(patientsTable).where(ilike(patientsTable.name, `%${search}%`)).orderBy(patientsTable.name);
   } else {
     patients = await db.select().from(patientsTable).orderBy(patientsTable.name);
   }
-
   res.json(patients);
 });
 
-router.post("/patients", async (req, res): Promise<void> => {
-  const parsed = CreatePatientBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+router.post("/patients", requireAuth, async (req, res): Promise<void> => {
+  const { name, phone, email, birthDate, insuranceType, insuranceName, paymentMethod,
+    totalSessions, zipCode, addressStreet, addressNumber, addressComplement,
+    neighborhood, city, state, notes } = req.body;
+
+  if (!name || !phone) {
+    res.status(400).json({ error: "Nome e telefone são obrigatórios" });
     return;
   }
 
-  const data = parsed.data;
-  const [patient] = await db
-    .insert(patientsTable)
-    .values({
-      name: data.name,
-      phone: data.phone,
-      birthDate: data.birthDate ?? null,
-      insuranceType: data.insuranceType,
-      insuranceName: data.insuranceName ?? null,
-      totalSessions: data.totalSessions,
-      remainingSessions: data.totalSessions,
-      notes: data.notes ?? null,
-    })
-    .returning();
+  const sessions = parseInt(totalSessions) || 0;
+
+  const [patient] = await db.insert(patientsTable).values({
+    name, phone,
+    email: email || null,
+    birthDate: birthDate || null,
+    insuranceType: insuranceType || "particular",
+    insuranceName: insuranceName || null,
+    paymentMethod: paymentMethod || null,
+    totalSessions: sessions,
+    remainingSessions: sessions,
+    zipCode: zipCode || null,
+    addressStreet: addressStreet || null,
+    addressNumber: addressNumber || null,
+    addressComplement: addressComplement || null,
+    neighborhood: neighborhood || null,
+    city: city || null,
+    state: state || null,
+    notes: notes || null,
+  }).returning();
 
   res.status(201).json(patient);
 });
 
-router.get("/patients/:id", async (req, res): Promise<void> => {
-  const params = GetPatientParams.safeParse({ id: parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10) });
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+router.get("/patients/:id", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-  const [patient] = await db
-    .select()
-    .from(patientsTable)
-    .where(eq(patientsTable.id, params.data.id));
-
-  if (!patient) {
-    res.status(404).json({ error: "Paciente não encontrado" });
-    return;
-  }
+  const [patient] = await db.select().from(patientsTable).where(eq(patientsTable.id, id));
+  if (!patient) { res.status(404).json({ error: "Paciente não encontrado" }); return; }
 
   res.json(patient);
 });
 
-router.patch("/patients/:id", async (req, res): Promise<void> => {
-  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const params = UpdatePatientParams.safeParse({ id: parseInt(rawId, 10) });
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+router.patch("/patients/:id", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-  const parsed = UpdatePatientBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+  const { name, phone, email, birthDate, insuranceType, insuranceName, paymentMethod,
+    totalSessions, remainingSessions, zipCode, addressStreet, addressNumber, addressComplement,
+    neighborhood, city, state, notes } = req.body;
 
-  const updateData: Record<string, unknown> = {};
-  const d = parsed.data;
-  if (d.name !== undefined) updateData.name = d.name;
-  if (d.phone !== undefined) updateData.phone = d.phone;
-  if (d.birthDate !== undefined) updateData.birthDate = d.birthDate;
-  if (d.insuranceType !== undefined) updateData.insuranceType = d.insuranceType;
-  if (d.insuranceName !== undefined) updateData.insuranceName = d.insuranceName;
-  if (d.totalSessions !== undefined) updateData.totalSessions = d.totalSessions;
-  if (d.remainingSessions !== undefined) updateData.remainingSessions = d.remainingSessions;
-  if (d.notes !== undefined) updateData.notes = d.notes;
+  const update: Record<string, unknown> = {};
+  if (name !== undefined) update.name = name;
+  if (phone !== undefined) update.phone = phone;
+  if (email !== undefined) update.email = email || null;
+  if (birthDate !== undefined) update.birthDate = birthDate || null;
+  if (insuranceType !== undefined) update.insuranceType = insuranceType;
+  if (insuranceName !== undefined) update.insuranceName = insuranceName || null;
+  if (paymentMethod !== undefined) update.paymentMethod = paymentMethod || null;
+  if (totalSessions !== undefined) update.totalSessions = parseInt(totalSessions) || 0;
+  if (remainingSessions !== undefined) update.remainingSessions = parseInt(remainingSessions) || 0;
+  if (zipCode !== undefined) update.zipCode = zipCode || null;
+  if (addressStreet !== undefined) update.addressStreet = addressStreet || null;
+  if (addressNumber !== undefined) update.addressNumber = addressNumber || null;
+  if (addressComplement !== undefined) update.addressComplement = addressComplement || null;
+  if (neighborhood !== undefined) update.neighborhood = neighborhood || null;
+  if (city !== undefined) update.city = city || null;
+  if (state !== undefined) update.state = state || null;
+  if (notes !== undefined) update.notes = notes || null;
 
-  const [patient] = await db
-    .update(patientsTable)
-    .set(updateData)
-    .where(eq(patientsTable.id, params.data.id))
-    .returning();
-
-  if (!patient) {
-    res.status(404).json({ error: "Paciente não encontrado" });
-    return;
-  }
+  const [patient] = await db.update(patientsTable).set(update).where(eq(patientsTable.id, id)).returning();
+  if (!patient) { res.status(404).json({ error: "Paciente não encontrado" }); return; }
 
   res.json(patient);
 });
 
-router.delete("/patients/:id", async (req, res): Promise<void> => {
-  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const params = DeletePatientParams.safeParse({ id: parseInt(rawId, 10) });
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+router.delete("/patients/:id", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-  const [patient] = await db
-    .delete(patientsTable)
-    .where(eq(patientsTable.id, params.data.id))
-    .returning();
-
-  if (!patient) {
-    res.status(404).json({ error: "Paciente não encontrado" });
-    return;
-  }
+  await db.delete(appointmentsTable).where(eq(appointmentsTable.patientId, id));
+  const [patient] = await db.delete(patientsTable).where(eq(patientsTable.id, id)).returning();
+  if (!patient) { res.status(404).json({ error: "Paciente não encontrado" }); return; }
 
   res.sendStatus(204);
 });
 
-router.get("/patients/:id/history", async (req, res): Promise<void> => {
-  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const params = GetPatientHistoryParams.safeParse({ id: parseInt(rawId, 10) });
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+router.get("/patients/:id/history", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-  const appointments = await db
-    .select({
-      id: appointmentsTable.id,
-      patientId: appointmentsTable.patientId,
-      therapistId: appointmentsTable.therapistId,
-      date: appointmentsTable.date,
-      time: appointmentsTable.time,
-      status: appointmentsTable.status,
-      notes: appointmentsTable.notes,
-      originalAppointmentId: appointmentsTable.originalAppointmentId,
-      createdAt: appointmentsTable.createdAt,
-      updatedAt: appointmentsTable.updatedAt,
-      patientName: patientsTable.name,
-      patientPhone: patientsTable.phone,
-      therapistName: therapistsTable.name,
-      therapistSpecialty: therapistsTable.specialty,
-    })
-    .from(appointmentsTable)
-    .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
-    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
-    .where(eq(appointmentsTable.patientId, params.data.id))
-    .orderBy(sql`${appointmentsTable.date} DESC, ${appointmentsTable.time} DESC`);
+  const appointments = await db.select({
+    id: appointmentsTable.id,
+    patientId: appointmentsTable.patientId,
+    therapistId: appointmentsTable.therapistId,
+    date: appointmentsTable.date,
+    time: appointmentsTable.time,
+    status: appointmentsTable.status,
+    notes: appointmentsTable.notes,
+    originalAppointmentId: appointmentsTable.originalAppointmentId,
+    recurringGroupId: appointmentsTable.recurringGroupId,
+    createdAt: appointmentsTable.createdAt,
+    updatedAt: appointmentsTable.updatedAt,
+    patientName: patientsTable.name,
+    patientPhone: patientsTable.phone,
+    therapistName: therapistsTable.name,
+    therapistSpecialty: therapistsTable.specialty,
+  })
+  .from(appointmentsTable)
+  .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
+  .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+  .where(eq(appointmentsTable.patientId, id))
+  .orderBy(sql`${appointmentsTable.date} DESC, ${appointmentsTable.time} DESC`);
 
   res.json(appointments);
 });

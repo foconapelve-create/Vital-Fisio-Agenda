@@ -8,6 +8,7 @@ export const financialTable = pgTable("financial", {
   amount: real("amount").notNull(),
   paymentStatus: text("payment_status").notNull().default("pendente"),
   category: text("category"),
+  supplier: text("supplier"),
   dueDate: text("due_date"),
   paymentDate: text("payment_date"),
   patientId: integer("patient_id").references(() => patientsTable.id),

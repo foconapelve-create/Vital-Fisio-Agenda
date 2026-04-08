@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
@@ -8,33 +7,57 @@ import {
   Users,
   UserRound,
   FileBarChart,
+  Wallet,
+  FileText,
+  Settings,
   LogOut,
-  Menu,
-  X
+  X,
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
+const adminItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/therapists", label: "Fisioterapeutas", icon: UserRound },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
+  { href: "/financial", label: "Financeiro", icon: Wallet },
+  { href: "/relatorio", label: "Rel. Fisioterapêutico", icon: FileText },
 ];
+
+const fisioterapeutaItems = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/agenda", label: "Agenda", icon: CalendarDays },
+  { href: "/patients", label: "Pacientes", icon: Users },
+  { href: "/reports", label: "Relatórios", icon: FileBarChart },
+  { href: "/relatorio", label: "Rel. Fisioterapêutico", icon: FileText },
+];
+
+const financeiroItems = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/financial", label: "Financeiro", icon: Wallet },
+  { href: "/patients", label: "Pacientes", icon: Users },
+  { href: "/reports", label: "Relatórios", icon: FileBarChart },
+];
+
+const roleLabels: Record<string, string> = {
+  admin: "Administrador",
+  fisioterapeuta: "Fisioterapeuta",
+  financeiro: "Financeiro",
+};
 
 export function Sidebar({ isMobileOpen, setMobileOpen }: { isMobileOpen: boolean; setMobileOpen: (v: boolean) => void }) {
   const [location] = useLocation();
   const { data: user } = useGetMe();
   const logout = useLogout();
-  const [loc, setLoc] = useLocation();
+  const [, setLoc] = useLocation();
+
+  const role = (user as any)?.role || "admin";
+  const navItems = role === "fisioterapeuta" ? fisioterapeutaItems : role === "financeiro" ? financeiroItems : adminItems;
 
   const handleLogout = () => {
-    logout.mutate(undefined, {
-      onSuccess: () => {
-        setLoc("/login");
-      }
-    });
+    logout.mutate(undefined, { onSuccess: () => setLoc("/login") });
   };
 
   const SidebarContent = (
@@ -51,20 +74,18 @@ export function Sidebar({ isMobileOpen, setMobileOpen }: { isMobileOpen: boolean
         </Button>
       </div>
 
-      <div className="flex-1 px-4 py-4 space-y-1">
+      <div className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
           return (
             <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
-              <div
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors cursor-pointer",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
+              <div className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                isActive
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              )}>
+                <item.icon className="h-5 w-5 shrink-0" />
                 {item.label}
               </div>
             </Link>
@@ -75,15 +96,15 @@ export function Sidebar({ isMobileOpen, setMobileOpen }: { isMobileOpen: boolean
       <div className="p-4 border-t border-sidebar-border mt-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center font-bold text-sidebar-foreground">
-              {user?.name?.[0]?.toUpperCase() || 'U'}
+            <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center font-bold text-sidebar-foreground shrink-0">
+              {user?.name?.[0]?.toUpperCase() || "U"}
             </div>
             <div className="overflow-hidden">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name || 'Usuário'}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.role || 'Admin'}</p>
+              <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name || "Usuário"}</p>
+              <p className="text-xs text-muted-foreground truncate">{roleLabels[role] || role}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive shrink-0">
             <LogOut className="h-5 w-5" />
           </Button>
         </div>
@@ -93,26 +114,18 @@ export function Sidebar({ isMobileOpen, setMobileOpen }: { isMobileOpen: boolean
 
   return (
     <>
-      {/* Desktop */}
       <div className="hidden md:flex w-64 h-screen fixed top-0 left-0 z-40">
         {SidebarContent}
       </div>
 
-      {/* Mobile overlay */}
       {isMobileOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
-          onClick={() => setMobileOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Mobile drawer */}
-      <div 
-        className={cn(
-          "fixed top-0 left-0 h-screen w-64 z-50 md:hidden transition-transform duration-300 ease-in-out transform",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
+      <div className={cn(
+        "fixed top-0 left-0 h-screen w-64 z-50 md:hidden transition-transform duration-300 ease-in-out transform",
+        isMobileOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
         {SidebarContent}
       </div>
     </>

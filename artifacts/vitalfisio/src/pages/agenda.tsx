@@ -1,64 +1,32 @@
 import { useState, useMemo } from "react";
 import {
-  useListAppointments,
-  useListTherapists,
-  useCreateAppointment,
-  useUpdateAppointmentStatus,
-  useRescheduleAppointment,
-  useDeleteAppointment,
-  getListAppointmentsQueryKey,
-  getGetDashboardSummaryQueryKey,
+  useListAppointments, useListTherapists, useCreateAppointment,
+  useUpdateAppointmentStatus, useRescheduleAppointment, useDeleteAppointment,
+  getListAppointmentsQueryKey, getGetDashboardSummaryQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useListPatients } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useListPatients } from "@workspace/api-client-react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  CalendarDays,
-  X,
-} from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChevronLeft, ChevronRight, Plus, X, RefreshCw, MessageCircle } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const STATUS_LABELS: Record<string, string> = {
-  agendado: "Agendado",
-  confirmado: "Confirmado",
-  presente: "Presente",
-  falta: "Falta",
-  cancelado: "Cancelado",
-  remarcado: "Remarcado",
-  encaixe: "Encaixe",
+  agendado: "Agendado", confirmado: "Confirmado", presente: "Presente",
+  falta: "Falta", cancelado: "Cancelado", remarcado: "Remarcado", encaixe: "Encaixe",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -85,43 +53,27 @@ const MORNING_SLOTS = ["08:00", "08:40", "09:20", "10:00", "10:40", "11:20"];
 const AFTERNOON_SLOTS = ["13:30", "14:10", "14:50", "15:30", "16:10", "16:50"];
 const ALL_SLOTS = [...MORNING_SLOTS, ...AFTERNOON_SLOTS];
 
+const WEEK_DAYS = [
+  { value: 1, label: "Seg" }, { value: 2, label: "Ter" }, { value: 3, label: "Qua" },
+  { value: 4, label: "Qui" }, { value: 5, label: "Sex" }, { value: 6, label: "Sáb" },
+];
+
 type AppointmentType = {
-  id: number;
-  patientId: number;
-  therapistId: number;
-  date: string;
-  time: string;
-  status: string;
-  notes?: string | null;
-  originalAppointmentId?: number | null;
-  patientName: string;
-  patientPhone: string;
-  therapistName: string;
-  therapistSpecialty: string;
-  createdAt: string;
-  updatedAt: string;
+  id: number; patientId: number; therapistId: number; date: string; time: string;
+  status: string; notes?: string | null; originalAppointmentId?: number | null;
+  recurringGroupId?: string | null; patientName: string; patientPhone: string;
+  therapistName: string; therapistSpecialty: string; createdAt: string; updatedAt: string;
 };
 
-type TherapistType = {
-  id: number;
-  name: string;
-  specialty: string;
-  phone: string;
-  availableHours?: string | null;
-};
-
-type PatientType = {
-  id: number;
-  name: string;
-  phone: string;
-};
+type TherapistType = { id: number; name: string; specialty: string; phone: string };
+type PatientType = { id: number; name: string; phone: string };
 
 const newApptSchema = z.object({
   patientId: z.number().min(1, "Selecione um paciente"),
   therapistId: z.number().min(1, "Selecione um fisioterapeuta"),
   date: z.string().min(1, "Data é obrigatória"),
   time: z.string().min(1, "Horário é obrigatório"),
-  status: z.enum(["agendado", "confirmado", "presente", "falta", "cancelado", "remarcado", "encaixe"]),
+  status: z.enum(["agendado","confirmado","presente","falta","cancelado","remarcado","encaixe"]),
   notes: z.string().optional().nullable(),
 });
 
@@ -136,27 +88,31 @@ const rescheduleSchema = z.object({
 type RescheduleFormData = z.infer<typeof rescheduleSchema>;
 
 export default function Agenda() {
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
-    const today = new Date();
-    return startOfWeek(today, { weekStartsOn: 1 });
-  });
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [selectedTherapistId, setSelectedTherapistId] = useState<number | undefined>(undefined);
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null);
   const [isNewApptOpen, setIsNewApptOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [createMode, setCreateMode] = useState<"single" | "recurring">("single");
+
+  // Recurrence state
+  const [recForm, setRecForm] = useState({
+    patientId: "", therapistId: "", startDate: format(new Date(), "yyyy-MM-dd"),
+    time: "08:00", recurrenceType: "semanal", weekDays: [] as number[],
+    totalCount: "12", endDate: "", notes: "",
+  });
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const weekStartStr = format(currentWeekStart, "yyyy-MM-dd");
   const weekDays = Array.from({ length: 6 }, (_, i) => addDays(currentWeekStart, i));
-
   const queryParams: Record<string, string | number> = { weekStart: weekStartStr };
   if (selectedTherapistId) queryParams.therapistId = selectedTherapistId;
 
   const { data: appointments = [], isLoading: isLoadingAppts } = useListAppointments(queryParams, {
     query: { queryKey: getListAppointmentsQueryKey(queryParams) },
   });
-
   const { data: therapists = [] } = useListTherapists();
   const { data: patients = [] } = useListPatients({});
 
@@ -165,31 +121,31 @@ export default function Agenda() {
   const deleteAppt = useDeleteAppointment();
   const createAppt = useCreateAppointment();
 
+  const recurringMut = useMutation({
+    mutationFn: (data: any) => apiFetch("/api/appointments/recurring", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: (data: any) => {
+      toast({ title: `${data.created} agendamentos criados com sucesso!` });
+      setIsNewApptOpen(false);
+      invalidate();
+    },
+    onError: (e: any) => toast({ title: e.message || "Erro ao criar recorrência", variant: "destructive" }),
+  });
+
   const newApptForm = useForm<NewApptFormData>({
     resolver: zodResolver(newApptSchema),
-    defaultValues: {
-      patientId: 0,
-      therapistId: 0,
-      date: format(new Date(), "yyyy-MM-dd"),
-      time: "08:00",
-      status: "agendado",
-      notes: null,
-    },
+    defaultValues: { patientId: 0, therapistId: 0, date: format(new Date(), "yyyy-MM-dd"), time: "08:00", status: "agendado", notes: null },
   });
 
   const rescheduleForm = useForm<RescheduleFormData>({
     resolver: zodResolver(rescheduleSchema),
-    defaultValues: {
-      date: format(new Date(), "yyyy-MM-dd"),
-      time: "08:00",
-      therapistId: null,
-    },
+    defaultValues: { date: format(new Date(), "yyyy-MM-dd"), time: "08:00", therapistId: null },
   });
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: getListAppointmentsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListAppointmentsQueryKey(queryParams) });
     queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
   }
 
   const apptsByDateAndTime = useMemo(() => {
@@ -205,16 +161,14 @@ export default function Agenda() {
   const handleStatusChange = (status: string) => {
     if (!selectedAppointment) return;
     updateStatus.mutate(
-      { id: selectedAppointment.id, data: { status: status as AppointmentType["status"] } },
+      { id: selectedAppointment.id, data: { status: status as any } },
       {
         onSuccess: (updated) => {
-          toast({ title: `Status atualizado: ${STATUS_LABELS[status]}` });
+          toast({ title: `Status: ${STATUS_LABELS[status]}` });
           setSelectedAppointment(updated as AppointmentType);
           invalidate();
         },
-        onError: () => {
-          toast({ title: "Erro ao atualizar status", variant: "destructive" });
-        },
+        onError: () => toast({ title: "Erro ao atualizar status", variant: "destructive" }),
       }
     );
   };
@@ -222,24 +176,10 @@ export default function Agenda() {
   const handleReschedule = (data: RescheduleFormData) => {
     if (!selectedAppointment) return;
     reschedule.mutate(
+      { id: selectedAppointment.id, data: { date: data.date, time: data.time, therapistId: data.therapistId ?? null } },
       {
-        id: selectedAppointment.id,
-        data: {
-          date: data.date,
-          time: data.time,
-          therapistId: data.therapistId ?? null,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast({ title: "Sessão remarcada com sucesso" });
-          setIsRescheduleOpen(false);
-          setSelectedAppointment(null);
-          invalidate();
-        },
-        onError: (err: any) => {
-          toast({ title: err?.error?.error || "Erro ao remarcar", variant: "destructive" });
-        },
+        onSuccess: () => { toast({ title: "Sessão remarcada com sucesso" }); setIsRescheduleOpen(false); setSelectedAppointment(null); invalidate(); },
+        onError: (err: any) => toast({ title: err?.error?.error || "Erro ao remarcar", variant: "destructive" }),
       }
     );
   };
@@ -249,37 +189,43 @@ export default function Agenda() {
     deleteAppt.mutate(
       { id: selectedAppointment.id },
       {
-        onSuccess: () => {
-          toast({ title: "Agendamento removido" });
-          setSelectedAppointment(null);
-          invalidate();
-        },
-        onError: () => {
-          toast({ title: "Erro ao remover", variant: "destructive" });
-        },
+        onSuccess: () => { toast({ title: "Agendamento removido" }); setSelectedAppointment(null); invalidate(); },
+        onError: () => toast({ title: "Erro ao remover", variant: "destructive" }),
       }
     );
   };
 
   const onCreateAppt = (data: NewApptFormData) => {
     createAppt.mutate(
+      { data: { ...data, notes: data.notes || null } },
       {
-        data: {
-          ...data,
-          notes: data.notes || null,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast({ title: "Agendamento criado" });
-          setIsNewApptOpen(false);
-          invalidate();
-        },
-        onError: (err: any) => {
-          toast({ title: err?.error?.error || "Erro ao criar agendamento", variant: "destructive" });
-        },
+        onSuccess: () => { toast({ title: "Agendamento criado" }); setIsNewApptOpen(false); invalidate(); },
+        onError: (err: any) => toast({ title: err?.error?.error || "Erro ao criar agendamento", variant: "destructive" }),
       }
     );
+  };
+
+  const onCreateRecurring = () => {
+    if (!recForm.patientId || !recForm.therapistId || !recForm.startDate || !recForm.time) {
+      toast({ title: "Preencha paciente, fisioterapeuta, data de início e horário", variant: "destructive" });
+      return;
+    }
+    const payload: any = {
+      patientId: parseInt(recForm.patientId), therapistId: parseInt(recForm.therapistId),
+      startDate: recForm.startDate, time: recForm.time,
+      recurrenceType: recForm.recurrenceType, notes: recForm.notes || null,
+    };
+    if (recForm.recurrenceType === "dias_semana") payload.weekDays = recForm.weekDays;
+    if (recForm.totalCount) payload.totalCount = parseInt(recForm.totalCount);
+    if (recForm.endDate) payload.endDate = recForm.endDate;
+    recurringMut.mutate(payload);
+  };
+
+  const whatsappLink = (phone: string, name: string, date: string, time: string, therapist: string) => {
+    const d = date ? (() => { const [y, m, day] = date.split("-"); return `${day}/${m}/${y}`; })() : "";
+    const msg = encodeURIComponent(`Olá ${name}! Lembrando sua sessão de fisioterapia dia ${d} às ${time} com ${therapist}. Confirme sua presença respondendo esta mensagem. VitalFisio.`);
+    const cleanPhone = phone.replace(/\D/g, "");
+    return `https://wa.me/55${cleanPhone}?text=${msg}`;
   };
 
   const today = new Date();
@@ -295,20 +241,11 @@ export default function Agenda() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <Select
-            value={selectedTherapistId?.toString() ?? "all"}
-            onValueChange={(v) => setSelectedTherapistId(v === "all" ? undefined : parseInt(v))}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Todos os fisioterapeutas" />
-            </SelectTrigger>
+          <Select value={selectedTherapistId?.toString() ?? "all"} onValueChange={v => setSelectedTherapistId(v === "all" ? undefined : parseInt(v))}>
+            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Todos os fisioterapeutas" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os fisioterapeutas</SelectItem>
-              {(therapists as TherapistType[]).map((t) => (
-                <SelectItem key={t.id} value={t.id.toString()}>
-                  {t.name}
-                </SelectItem>
-              ))}
+              {(therapists as TherapistType[]).map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <div className="flex items-center gap-1">
@@ -322,37 +259,28 @@ export default function Agenda() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={() => setIsNewApptOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Agendamento
+          <Button onClick={() => { setCreateMode("single"); setIsNewApptOpen(true); }} className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Agendamento
           </Button>
         </div>
       </div>
 
-      {/* Status Legend */}
+      {/* Legend */}
       <div className="flex flex-wrap gap-2">
         {Object.entries(STATUS_LABELS).map(([key, label]) => (
-          <span key={key} className={`text-xs px-2 py-1 rounded border font-medium ${STATUS_COLORS[key]}`}>
-            {label}
-          </span>
+          <span key={key} className={`text-xs px-2 py-1 rounded border font-medium ${STATUS_COLORS[key]}`}>{label}</span>
         ))}
       </div>
 
       {/* Weekly Grid */}
       <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
         <div className="min-w-[700px]">
-          {/* Header */}
           <div className="grid grid-cols-7 bg-muted/60 border-b border-border">
-            <div className="py-3 px-3 text-xs font-semibold text-muted-foreground text-center border-r border-border">
-              Horário
-            </div>
-            {weekDays.map((day) => {
+            <div className="py-3 px-3 text-xs font-semibold text-muted-foreground text-center border-r border-border">Horário</div>
+            {weekDays.map(day => {
               const isToday = isSameDay(day, today);
               return (
-                <div
-                  key={day.toISOString()}
-                  className={`py-3 px-2 text-center border-r border-border last:border-r-0 ${isToday ? "bg-primary/10" : ""}`}
-                >
+                <div key={day.toISOString()} className={`py-3 px-2 text-center border-r border-border last:border-r-0 ${isToday ? "bg-primary/10" : ""}`}>
                   <div className={`text-xs font-semibold uppercase ${isToday ? "text-primary" : "text-muted-foreground"}`}>
                     {format(day, "EEE", { locale: ptBR })}
                   </div>
@@ -364,47 +292,34 @@ export default function Agenda() {
             })}
           </div>
 
-          {/* Time Slots */}
           {ALL_SLOTS.map((slot, slotIndex) => {
             const isSectionBreak = slot === "13:30";
             return (
               <div key={slot}>
                 {isSectionBreak && (
                   <div className="grid grid-cols-7 bg-muted/30 border-y border-dashed border-muted-foreground/20">
-                    <div className="py-1 px-3 text-xs text-muted-foreground col-span-7 text-center">
-                      Intervalo — tarde
-                    </div>
+                    <div className="py-1 px-3 text-xs text-muted-foreground col-span-7 text-center">☀️ Tarde</div>
                   </div>
                 )}
-                <div
-                  className={`grid grid-cols-7 border-b border-border last:border-b-0 ${slotIndex % 2 === 0 ? "bg-background" : "bg-muted/20"}`}
-                  style={{ minHeight: "68px" }}
-                >
-                  <div className="py-2 px-3 text-xs font-mono text-muted-foreground font-medium border-r border-border flex items-start justify-center pt-3">
-                    {slot}
-                  </div>
-                  {weekDays.map((day) => {
+                <div className={`grid grid-cols-7 border-b border-border last:border-b-0 ${slotIndex % 2 === 0 ? "bg-background" : "bg-muted/20"}`} style={{ minHeight: "68px" }}>
+                  <div className="py-2 px-3 text-xs font-mono text-muted-foreground font-medium border-r border-border flex items-start justify-center pt-3">{slot}</div>
+                  {weekDays.map(day => {
                     const dateStr = format(day, "yyyy-MM-dd");
                     const key = `${dateStr}|${slot}`;
                     const apts = apptsByDateAndTime.get(key) || [];
                     const isToday = isSameDay(day, today);
                     return (
-                      <div
-                        key={dateStr}
-                        className={`py-1.5 px-1.5 border-r border-border last:border-r-0 ${isToday ? "bg-primary/5" : ""}`}
-                      >
+                      <div key={dateStr} className={`py-1.5 px-1 border-r border-border last:border-r-0 ${isToday ? "bg-primary/5" : ""}`}>
                         {isLoadingAppts ? (
                           <div className="h-10 bg-muted rounded animate-pulse" />
                         ) : (
-                          <div className="space-y-1">
-                            {apts.map((apt) => (
-                              <button
-                                key={apt.id}
-                                onClick={() => setSelectedAppointment(apt)}
-                                className={`w-full text-left text-xs rounded border p-1.5 transition-colors cursor-pointer ${STATUS_BG_COLORS[apt.status] || "bg-gray-50 border-gray-200 hover:bg-gray-100"}`}
-                              >
-                                <div className="font-semibold truncate leading-tight">{apt.patientName.split(" ")[0]}</div>
-                                <div className="text-[10px] opacity-70 truncate">{apt.therapistName.split(" ").slice(-1)[0]}</div>
+                          <div className="flex flex-wrap gap-1">
+                            {apts.map(apt => (
+                              <button key={apt.id} onClick={() => setSelectedAppointment(apt)}
+                                className={`text-left text-xs rounded border p-1.5 transition-colors cursor-pointer flex-shrink-0 ${STATUS_BG_COLORS[apt.status] || "bg-gray-50 border-gray-200 hover:bg-gray-100"}`}
+                                style={{ minWidth: apts.length > 1 ? "calc(50% - 2px)" : "100%", maxWidth: "100%" }}>
+                                <div className="font-semibold truncate leading-tight text-[11px]">{apt.patientName.split(" ")[0]}</div>
+                                <div className="text-[10px] opacity-60 truncate">{apt.therapistName.split(" ")[0]}</div>
                               </button>
                             ))}
                           </div>
@@ -432,24 +347,17 @@ export default function Agenda() {
             </div>
 
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Paciente</span>
-                <span className="font-medium">{selectedAppointment.patientName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Fisioterapeuta</span>
-                <span className="font-medium">{selectedAppointment.therapistName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Data</span>
-                <span className="font-medium">
-                  {format(new Date(selectedAppointment.date + "T12:00:00"), "dd/MM/yyyy")}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Horário</span>
-                <span className="font-medium">{selectedAppointment.time}</span>
-              </div>
+              {[
+                { label: "Paciente", value: selectedAppointment.patientName },
+                { label: "Fisioterapeuta", value: selectedAppointment.therapistName },
+                { label: "Data", value: format(new Date(selectedAppointment.date + "T12:00:00"), "dd/MM/yyyy") },
+                { label: "Horário", value: selectedAppointment.time },
+              ].map(i => (
+                <div key={i.label} className="flex justify-between">
+                  <span className="text-muted-foreground">{i.label}</span>
+                  <span className="font-medium">{i.value}</span>
+                </div>
+              ))}
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Status</span>
                 <Badge variant="outline" className={STATUS_COLORS[selectedAppointment.status]}>
@@ -459,21 +367,26 @@ export default function Agenda() {
               {selectedAppointment.notes && (
                 <div>
                   <span className="text-muted-foreground block mb-1">Observações</span>
-                  <p className="text-foreground italic">{selectedAppointment.notes}</p>
+                  <p className="text-foreground italic text-sm">{selectedAppointment.notes}</p>
                 </div>
               )}
             </div>
+
+            {/* WhatsApp */}
+            <a href={whatsappLink(selectedAppointment.patientPhone, selectedAppointment.patientName, selectedAppointment.date, selectedAppointment.time, selectedAppointment.therapistName)}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium border border-green-200 bg-green-50 rounded-lg px-3 py-2 transition-colors hover:bg-green-100">
+              <MessageCircle className="h-4 w-4" />
+              Enviar confirmação via WhatsApp
+            </a>
 
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Alterar Status</p>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => handleStatusChange(key)}
+                  <button key={key} onClick={() => handleStatusChange(key)}
                     disabled={selectedAppointment.status === key || updateStatus.isPending}
-                    className={`text-xs px-2.5 py-1.5 rounded border font-medium transition-opacity ${STATUS_COLORS[key]} ${selectedAppointment.status === key ? "opacity-100 ring-2 ring-offset-1 ring-current" : "opacity-70 hover:opacity-100"} disabled:cursor-default`}
-                  >
+                    className={`text-xs px-2.5 py-1.5 rounded border font-medium transition-opacity ${STATUS_COLORS[key]} ${selectedAppointment.status === key ? "opacity-100 ring-2 ring-offset-1 ring-current" : "opacity-70 hover:opacity-100"} disabled:cursor-default`}>
                     {label}
                   </button>
                 ))}
@@ -481,28 +394,12 @@ export default function Agenda() {
             </div>
 
             <div className="flex gap-2 pt-2 border-t border-border">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  rescheduleForm.reset({
-                    date: format(new Date(), "yyyy-MM-dd"),
-                    time: "08:00",
-                    therapistId: selectedAppointment.therapistId,
-                  });
-                  setIsRescheduleOpen(true);
-                }}
-              >
+              <Button variant="outline" size="sm" className="flex-1"
+                onClick={() => { rescheduleForm.reset({ date: format(new Date(), "yyyy-MM-dd"), time: "08:00", therapistId: selectedAppointment.therapistId }); setIsRescheduleOpen(true); }}>
                 Remarcar
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={handleDelete}
-                disabled={deleteAppt.isPending}
-              >
+              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"
+                onClick={handleDelete} disabled={deleteAppt.isPending}>
                 Excluir
               </Button>
             </div>
@@ -513,73 +410,38 @@ export default function Agenda() {
       {/* Reschedule Dialog */}
       <Dialog open={isRescheduleOpen} onOpenChange={setIsRescheduleOpen}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Remarcar Sessão</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Remarcar Sessão</DialogTitle></DialogHeader>
           <Form {...rescheduleForm}>
             <form onSubmit={rescheduleForm.handleSubmit(handleReschedule)} className="space-y-4">
-              <FormField
-                control={rescheduleForm.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nova Data</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={rescheduleForm.control}
-                name="time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Novo Horário</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="" disabled>Manhã</SelectItem>
-                        {MORNING_SLOTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        <SelectItem value="interval" disabled>Tarde</SelectItem>
-                        {AFTERNOON_SLOTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={rescheduleForm.control}
-                name="therapistId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fisioterapeuta (opcional)</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(v ? parseInt(v) : null)}
-                      value={field.value?.toString() ?? ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Manter o mesmo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="">Manter o mesmo</SelectItem>
-                        {(therapists as TherapistType[]).map((t) => (
-                          <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={rescheduleForm.control} name="date" render={({ field }) => (
+                <FormItem><FormLabel>Nova Data</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={rescheduleForm.control} name="time" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Novo Horário</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {MORNING_SLOTS.map(s => <SelectItem key={s} value={s}>{s} (manhã)</SelectItem>)}
+                      {AFTERNOON_SLOTS.map(s => <SelectItem key={s} value={s}>{s} (tarde)</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={rescheduleForm.control} name="therapistId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fisioterapeuta (opcional)</FormLabel>
+                  <Select onValueChange={v => field.onChange(v ? parseInt(v) : null)} value={field.value?.toString() ?? ""}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Manter o mesmo" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Manter o mesmo</SelectItem>
+                      {(therapists as TherapistType[]).map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsRescheduleOpen(false)}>Cancelar</Button>
                 <Button type="submit" disabled={reschedule.isPending}>Remarcar</Button>
@@ -591,138 +453,178 @@ export default function Agenda() {
 
       {/* New Appointment Dialog */}
       <Dialog open={isNewApptOpen} onOpenChange={setIsNewApptOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Novo Agendamento</DialogTitle>
-          </DialogHeader>
-          <Form {...newApptForm}>
-            <form onSubmit={newApptForm.handleSubmit(onCreateAppt)} className="space-y-4">
-              <FormField
-                control={newApptForm.control}
-                name="patientId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Paciente</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(parseInt(v))} value={field.value?.toString() ?? ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um paciente" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {(patients as PatientType[]).map((p) => (
-                          <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={newApptForm.control}
-                name="therapistId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fisioterapeuta</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(parseInt(v))} value={field.value?.toString() ?? ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um fisioterapeuta" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {(therapists as TherapistType[]).map((t) => (
-                          <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={newApptForm.control}
-                  name="date"
-                  render={({ field }) => (
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Novo Agendamento</DialogTitle></DialogHeader>
+
+          <Tabs value={createMode} onValueChange={v => setCreateMode(v as any)}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="single">Sessão Única</TabsTrigger>
+              <TabsTrigger value="recurring">
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Recorrente
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Single */}
+            <TabsContent value="single">
+              <Form {...newApptForm}>
+                <form onSubmit={newApptForm.handleSubmit(onCreateAppt)} className="space-y-4 mt-4">
+                  <FormField control={newApptForm.control} name="patientId" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Data</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={newApptForm.control}
-                  name="time"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Horário</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
+                      <FormLabel>Paciente</FormLabel>
+                      <Select onValueChange={v => field.onChange(parseInt(v))} value={field.value?.toString() ?? ""}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione um paciente" /></SelectTrigger></FormControl>
                         <SelectContent>
-                          {MORNING_SLOTS.map((s) => <SelectItem key={s} value={s}>{s} (manhã)</SelectItem>)}
-                          {AFTERNOON_SLOTS.map((s) => <SelectItem key={s} value={s}>{s} (tarde)</SelectItem>)}
+                          {(patients as PatientType[]).map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={newApptForm.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
+                  )} />
+                  <FormField control={newApptForm.control} name="therapistId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fisioterapeuta</FormLabel>
+                      <Select onValueChange={v => field.onChange(parseInt(v))} value={field.value?.toString() ?? ""}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione um fisioterapeuta" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {(therapists as TherapistType[]).map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={newApptForm.control} name="date" render={({ field }) => (
+                      <FormItem><FormLabel>Data</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={newApptForm.control} name="time" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Horário</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {MORNING_SLOTS.map(s => <SelectItem key={s} value={s}>{s} (manhã)</SelectItem>)}
+                            {AFTERNOON_SLOTS.map(s => <SelectItem key={s} value={s}>{s} (tarde)</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                  <FormField control={newApptForm.control} name="status" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={newApptForm.control} name="notes" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Observações</FormLabel>
+                      <FormControl><Textarea placeholder="Observações opcionais..." {...field} value={field.value ?? ""} rows={2} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsNewApptOpen(false)}>Cancelar</Button>
+                    <Button type="submit" disabled={createAppt.isPending}>Criar Agendamento</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </TabsContent>
+
+            {/* Recurring */}
+            <TabsContent value="recurring">
+              <div className="space-y-4 mt-4">
+                <div>
+                  <Label>Paciente</Label>
+                  <Select value={recForm.patientId} onValueChange={v => setRecForm(p => ({ ...p, patientId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um paciente" /></SelectTrigger>
+                    <SelectContent>
+                      {(patients as PatientType[]).map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Fisioterapeuta</Label>
+                  <Select value={recForm.therapistId} onValueChange={v => setRecForm(p => ({ ...p, therapistId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um fisioterapeuta" /></SelectTrigger>
+                    <SelectContent>
+                      {(therapists as TherapistType[]).map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Data de Início</Label>
+                    <Input type="date" value={recForm.startDate} onChange={e => setRecForm(p => ({ ...p, startDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Horário</Label>
+                    <Select value={recForm.time} onValueChange={v => setRecForm(p => ({ ...p, time: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v}</SelectItem>
-                        ))}
+                        {MORNING_SLOTS.map(s => <SelectItem key={s} value={s}>{s} (manhã)</SelectItem>)}
+                        {AFTERNOON_SLOTS.map(s => <SelectItem key={s} value={s}>{s} (tarde)</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
+                  </div>
+                </div>
+                <div>
+                  <Label>Tipo de Recorrência</Label>
+                  <Select value={recForm.recurrenceType} onValueChange={v => setRecForm(p => ({ ...p, recurrenceType: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="semanal">Semanal (mesmo dia da semana)</SelectItem>
+                      <SelectItem value="dias_semana">Dias específicos da semana</SelectItem>
+                      <SelectItem value="diaria">Diária</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {recForm.recurrenceType === "dias_semana" && (
+                  <div>
+                    <Label>Dias da Semana</Label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {WEEK_DAYS.map(d => (
+                        <button key={d.value} type="button"
+                          className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${recForm.weekDays.includes(d.value) ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-muted"}`}
+                          onClick={() => setRecForm(p => ({ ...p, weekDays: p.weekDays.includes(d.value) ? p.weekDays.filter(x => x !== d.value) : [...p.weekDays, d.value] }))}>
+                          {d.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
-              />
-              <FormField
-                control={newApptForm.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Observações</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Observações opcionais..."
-                        {...field}
-                        value={field.value ?? ""}
-                        rows={2}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsNewApptOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={createAppt.isPending}>Criar Agendamento</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Quantidade de Sessões</Label>
+                    <Input type="number" min="1" max="100" value={recForm.totalCount}
+                      onChange={e => setRecForm(p => ({ ...p, totalCount: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Data Final (opcional)</Label>
+                    <Input type="date" value={recForm.endDate} onChange={e => setRecForm(p => ({ ...p, endDate: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Observações</Label>
+                  <Textarea rows={2} placeholder="Observações opcionais..." value={recForm.notes}
+                    onChange={e => setRecForm(p => ({ ...p, notes: e.target.value }))} />
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsNewApptOpen(false)}>Cancelar</Button>
+                  <Button onClick={onCreateRecurring} disabled={recurringMut.isPending}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Criar Recorrência
+                  </Button>
+                </DialogFooter>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>

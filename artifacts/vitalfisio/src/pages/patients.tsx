@@ -1,217 +1,157 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useLocation } from "wouter";
-import {
-  useListPatients,
-  useCreatePatient,
-  useUpdatePatient,
-  useDeletePatient,
-  getListPatientsQueryKey,
-} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { apiFetch } from "@/lib/apiFetch";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Plus, UserRound, History, Pencil, Trash2, Phone, Activity } from "lucide-react";
+import { Search, Plus, UserRound, History, Pencil, Trash2, Phone, Activity, Mail, MapPin, Loader2 } from "lucide-react";
 
-const patientSchema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  phone: z.string().min(8, "Telefone inválido"),
-  birthDate: z.string().optional().nullable(),
-  insuranceType: z.enum(["particular", "convenio"]),
-  insuranceName: z.string().optional().nullable(),
-  totalSessions: z.number().int().min(1, "Mínimo 1 sessão"),
-  notes: z.string().optional().nullable(),
-});
-
-type PatientFormData = z.infer<typeof patientSchema>;
-
-type PatientRecord = {
-  id: number;
-  name: string;
-  phone: string;
-  birthDate?: string | null;
-  insuranceType: string;
-  insuranceName?: string | null;
-  totalSessions: number;
-  remainingSessions: number;
-  notes?: string | null;
-  createdAt: string;
-  updatedAt: string;
+type Patient = {
+  id: number; name: string; phone: string; email?: string | null;
+  birthDate?: string | null; insuranceType: string; insuranceName?: string | null;
+  paymentMethod?: string | null; totalSessions: number; remainingSessions: number;
+  zipCode?: string | null; addressStreet?: string | null; addressNumber?: string | null;
+  addressComplement?: string | null; neighborhood?: string | null; city?: string | null;
+  state?: string | null; notes?: string | null; createdAt: string;
 };
+
+type FormData = {
+  name: string; phone: string; email: string; birthDate: string;
+  insuranceType: string; insuranceName: string; paymentMethod: string;
+  totalSessions: number; zipCode: string; addressStreet: string; addressNumber: string;
+  addressComplement: string; neighborhood: string; city: string; state: string; notes: string;
+};
+
+const emptyForm: FormData = {
+  name: "", phone: "", email: "", birthDate: "", insuranceType: "particular",
+  insuranceName: "", paymentMethod: "dinheiro", totalSessions: 10,
+  zipCode: "", addressStreet: "", addressNumber: "", addressComplement: "",
+  neighborhood: "", city: "", state: "", notes: "",
+};
+
+const paymentMethods = [
+  { value: "dinheiro", label: "Dinheiro" },
+  { value: "pix", label: "PIX" },
+  { value: "cartao_credito", label: "Cartão de Crédito" },
+  { value: "cartao_debito", label: "Cartão de Débito" },
+  { value: "transferencia", label: "Transferência" },
+  { value: "boleto", label: "Boleto" },
+];
 
 export default function Patients() {
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingPatient, setEditingPatient] = useState<PatientRecord | null>(null);
-  const [deletingPatient, setDeletingPatient] = useState<PatientRecord | null>(null);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [deletingPatient, setDeletingPatient] = useState<Patient | null>(null);
+  const [form, setForm] = useState<FormData>(emptyForm);
+  const [cepLoading, setCepLoading] = useState(false);
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const searchParam = search.trim() ? { search: search.trim() } : undefined;
-  const { data: patients = [], isLoading } = useListPatients(
-    searchParam ?? {},
-    { query: { queryKey: getListPatientsQueryKey(searchParam) } }
-  );
-
-  const createPatient = useCreatePatient();
-  const updatePatient = useUpdatePatient();
-  const deletePatient = useDeletePatient();
-
-  const form = useForm<PatientFormData>({
-    resolver: zodResolver(patientSchema),
-    defaultValues: {
-      name: "",
-      phone: "",
-      birthDate: null,
-      insuranceType: "particular",
-      insuranceName: null,
-      totalSessions: 10,
-      notes: null,
-    },
+  const { data: patients = [], isLoading } = useQuery({
+    queryKey: ["patients", search],
+    queryFn: () => apiFetch(`/api/patients${search.trim() ? `?search=${encodeURIComponent(search)}` : ""}`),
   });
 
-  const watchInsuranceType = form.watch("insuranceType");
+  const createMutation = useMutation({
+    mutationFn: (data: FormData) => apiFetch("/api/patients", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { toast({ title: "Paciente criado com sucesso" }); setIsDialogOpen(false); queryClient.invalidateQueries({ queryKey: ["patients"] }); },
+    onError: (e: any) => toast({ title: e.message || "Erro ao criar paciente", variant: "destructive" }),
+  });
 
-  function openCreateDialog() {
-    setEditingPatient(null);
-    form.reset({
-      name: "",
-      phone: "",
-      birthDate: null,
-      insuranceType: "particular",
-      insuranceName: null,
-      totalSessions: 10,
-      notes: null,
-    });
-    setIsDialogOpen(true);
-  }
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: FormData }) => apiFetch(`/api/patients/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => { toast({ title: "Paciente atualizado" }); setIsDialogOpen(false); queryClient.invalidateQueries({ queryKey: ["patients"] }); },
+    onError: (e: any) => toast({ title: e.message || "Erro ao atualizar paciente", variant: "destructive" }),
+  });
 
-  function openEditDialog(patient: PatientRecord) {
-    setEditingPatient(patient);
-    form.reset({
-      name: patient.name,
-      phone: patient.phone,
-      birthDate: patient.birthDate ?? null,
-      insuranceType: patient.insuranceType as "particular" | "convenio",
-      insuranceName: patient.insuranceName ?? null,
-      totalSessions: patient.totalSessions,
-      notes: patient.notes ?? null,
-    });
-    setIsDialogOpen(true);
-  }
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiFetch(`/api/patients/${id}`, { method: "DELETE" }),
+    onSuccess: () => { toast({ title: "Paciente removido" }); setDeletingPatient(null); queryClient.invalidateQueries({ queryKey: ["patients"] }); },
+    onError: (e: any) => toast({ title: e.message || "Erro ao remover paciente", variant: "destructive" }),
+  });
 
-  function invalidatePatients() {
-    queryClient.invalidateQueries({ queryKey: getListPatientsQueryKey() });
-    queryClient.invalidateQueries({ queryKey: getListPatientsQueryKey(searchParam) });
-  }
-
-  const onSubmit = (data: PatientFormData) => {
-    const payload = {
-      ...data,
-      birthDate: data.birthDate || null,
-      insuranceName: data.insuranceName || null,
-      notes: data.notes || null,
-    };
-
-    if (editingPatient) {
-      updatePatient.mutate(
-        { id: editingPatient.id, data: payload },
-        {
-          onSuccess: () => {
-            toast({ title: "Paciente atualizado com sucesso" });
-            setIsDialogOpen(false);
-            invalidatePatients();
-          },
-          onError: () => {
-            toast({ title: "Erro ao atualizar paciente", variant: "destructive" });
-          },
-        }
-      );
-    } else {
-      createPatient.mutate(
-        { data: payload },
-        {
-          onSuccess: () => {
-            toast({ title: "Paciente criado com sucesso" });
-            setIsDialogOpen(false);
-            invalidatePatients();
-          },
-          onError: () => {
-            toast({ title: "Erro ao criar paciente", variant: "destructive" });
-          },
-        }
-      );
-    }
-  };
-
-  const handleDelete = () => {
-    if (!deletingPatient) return;
-    deletePatient.mutate(
-      { id: deletingPatient.id },
-      {
-        onSuccess: () => {
-          toast({ title: "Paciente removido" });
-          setDeletingPatient(null);
-          invalidatePatients();
-        },
-        onError: () => {
-          toast({ title: "Erro ao remover paciente", variant: "destructive" });
-        },
+  const lookupCep = useCallback(async (cep: string) => {
+    const clean = cep.replace(/\D/g, "");
+    if (clean.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm(prev => ({
+          ...prev,
+          addressStreet: data.logradouro || prev.addressStreet,
+          neighborhood: data.bairro || prev.neighborhood,
+          city: data.localidade || prev.city,
+          state: data.uf || prev.state,
+        }));
+        toast({ title: "Endereço preenchido automaticamente" });
+      } else {
+        toast({ title: "CEP não encontrado", variant: "destructive" });
       }
-    );
+    } catch {
+      toast({ title: "Erro ao buscar CEP", variant: "destructive" });
+    } finally {
+      setCepLoading(false);
+    }
+  }, [toast]);
+
+  function openCreate() {
+    setEditingPatient(null);
+    setForm(emptyForm);
+    setIsDialogOpen(true);
+  }
+
+  function openEdit(p: Patient) {
+    setEditingPatient(p);
+    setForm({
+      name: p.name, phone: p.phone, email: p.email || "",
+      birthDate: p.birthDate || "", insuranceType: p.insuranceType,
+      insuranceName: p.insuranceName || "", paymentMethod: p.paymentMethod || "dinheiro",
+      totalSessions: p.totalSessions, zipCode: p.zipCode || "",
+      addressStreet: p.addressStreet || "", addressNumber: p.addressNumber || "",
+      addressComplement: p.addressComplement || "", neighborhood: p.neighborhood || "",
+      city: p.city || "", state: p.state || "", notes: p.notes || "",
+    });
+    setIsDialogOpen(true);
+  }
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.phone.trim()) {
+      toast({ title: "Nome e telefone são obrigatórios", variant: "destructive" });
+      return;
+    }
+    if (editingPatient) updateMutation.mutate({ id: editingPatient.id, data: form });
+    else createMutation.mutate(form);
+  }
+
+  const formatDate = (d?: string | null) => {
+    if (!d) return "-";
+    const [y, m, day] = d.split("-");
+    return `${day}/${m}/${y}`;
   };
 
-  const formatDate = (dateStr: string | null | undefined) => {
-    if (!dateStr) return "-";
-    const [y, m, d] = dateStr.split("-");
-    return `${d}/${m}/${y}`;
-  };
-
-  const getSessionBadgeColor = (remaining: number, total: number) => {
-    const ratio = remaining / total;
-    if (ratio <= 0.2) return "bg-red-100 text-red-700 border-red-200";
-    if (ratio <= 0.4) return "bg-orange-100 text-orange-700 border-orange-200";
+  const sessionColor = (rem: number, tot: number) => {
+    if (tot === 0) return "bg-gray-100 text-gray-600 border-gray-200";
+    const r = rem / tot;
+    if (r <= 0.2) return "bg-red-100 text-red-700 border-red-200";
+    if (r <= 0.4) return "bg-orange-100 text-orange-700 border-orange-200";
     return "bg-green-100 text-green-700 border-green-200";
   };
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -220,25 +160,20 @@ export default function Patients() {
           <h1 className="text-3xl font-bold tracking-tight">Pacientes</h1>
           <p className="text-muted-foreground mt-1">Gerencie os cadastros de pacientes da clínica</p>
         </div>
-        <Button onClick={openCreateDialog} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Paciente
+        <Button onClick={openCreate} className="gap-2">
+          <Plus className="h-4 w-4" /> Novo Paciente
         </Button>
       </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar paciente por nome..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+        <Input placeholder="Buscar paciente por nome..." value={search}
+          onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {[1,2,3,4,5,6].map(i => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-5 space-y-3">
                 <div className="h-5 w-2/3 bg-muted rounded" />
@@ -256,22 +191,23 @@ export default function Patients() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(patients as PatientRecord[]).map((patient) => (
-            <Card key={patient.id} className="hover:shadow-md transition-shadow border border-border">
+          {(patients as Patient[]).map(p => (
+            <Card key={p.id} className="hover:shadow-md transition-shadow border border-border">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-base truncate">{patient.name}</h3>
+                    <h3 className="font-semibold text-base truncate">{p.name}</h3>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
-                      <Phone className="h-3 w-3" />
-                      {patient.phone}
+                      <Phone className="h-3 w-3" /> {p.phone}
                     </div>
+                    {p.email && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <Mail className="h-3 w-3" /> {p.email}
+                      </div>
+                    )}
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={patient.insuranceType === "convenio" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}
-                  >
-                    {patient.insuranceType === "convenio" ? patient.insuranceName || "Convênio" : "Particular"}
+                  <Badge variant="outline" className={p.insuranceType === "convenio" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}>
+                    {p.insuranceType === "convenio" ? p.insuranceName || "Convênio" : "Particular"}
                   </Badge>
                 </div>
 
@@ -281,45 +217,31 @@ export default function Patients() {
                     <span className="text-muted-foreground">Sessões:</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm font-semibold px-2 py-0.5 rounded border ${getSessionBadgeColor(patient.remainingSessions, patient.totalSessions)}`}>
-                      {patient.remainingSessions} restantes
+                    <span className={`text-sm font-semibold px-2 py-0.5 rounded border ${sessionColor(p.remainingSessions, p.totalSessions)}`}>
+                      {p.remainingSessions} restantes
                     </span>
-                    <span className="text-xs text-muted-foreground">/ {patient.totalSessions}</span>
+                    <span className="text-xs text-muted-foreground">/ {p.totalSessions}</span>
                   </div>
                 </div>
 
-                {patient.birthDate && (
-                  <p className="text-xs text-muted-foreground mb-3">Nasc.: {formatDate(patient.birthDate)}</p>
+                {(p.city || p.state) && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                    <MapPin className="h-3 w-3" />
+                    {[p.city, p.state].filter(Boolean).join(", ")}
+                  </div>
                 )}
 
-                {patient.notes && (
-                  <p className="text-xs text-muted-foreground italic mb-3 line-clamp-2">{patient.notes}</p>
-                )}
+                {p.birthDate && <p className="text-xs text-muted-foreground mb-2">Nasc.: {formatDate(p.birthDate)}</p>}
+                {p.notes && <p className="text-xs text-muted-foreground italic mb-2 line-clamp-2">{p.notes}</p>}
 
                 <div className="flex gap-2 mt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 gap-1"
-                    onClick={() => setLocation(`/patients/${patient.id}/history`)}
-                  >
-                    <History className="h-3.5 w-3.5" />
-                    Histórico
+                  <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => setLocation(`/patients/${p.id}/history`)}>
+                    <History className="h-3.5 w-3.5" /> Histórico
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1"
-                    onClick={() => openEditDialog(patient)}
-                  >
+                  <Button variant="outline" size="sm" className="gap-1" onClick={() => openEdit(p)}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1 text-destructive hover:text-destructive"
-                    onClick={() => setDeletingPatient(patient)}
-                  >
+                  <Button variant="outline" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => setDeletingPatient(p)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -331,152 +253,150 @@ export default function Patients() {
 
       {/* Create / Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingPatient ? "Editar Paciente" : "Novo Paciente"}</DialogTitle>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome Completo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Maria Oliveira" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Telefone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(11) 99999-0000" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="birthDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data de Nascimento</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <form onSubmit={onSubmit} className="space-y-5">
+            {/* Dados pessoais */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Dados Pessoais</p>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <Label>Nome Completo *</Label>
+                  <Input placeholder="Ex: Maria Oliveira" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Telefone *</Label>
+                    <Input placeholder="(11) 99999-0000" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Data de Nascimento</Label>
+                    <Input type="date" value={form.birthDate} onChange={e => setForm(p => ({ ...p, birthDate: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label>E-mail</Label>
+                  <Input type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="insuranceType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="particular">Particular</SelectItem>
-                          <SelectItem value="convenio">Convênio</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {watchInsuranceType === "convenio" && (
-                  <FormField
-                    control={form.control}
-                    name="insuranceName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome do Convênio</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Unimed" {...field} value={field.value ?? ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+            </div>
+
+            {/* Convênio e Pagamento */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Convênio e Pagamento</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Tipo de Atendimento</Label>
+                  <Select value={form.insuranceType} onValueChange={v => setForm(p => ({ ...p, insuranceType: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="particular">Particular</SelectItem>
+                      <SelectItem value="convenio">Convênio</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.insuranceType === "convenio" && (
+                  <div>
+                    <Label>Nome do Convênio</Label>
+                    <Input placeholder="Ex: Unimed" value={form.insuranceName} onChange={e => setForm(p => ({ ...p, insuranceName: e.target.value }))} />
+                  </div>
                 )}
+                <div>
+                  <Label>Forma de Pagamento</Label>
+                  <Select value={form.paymentMethod} onValueChange={v => setForm(p => ({ ...p, paymentMethod: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Total de Sessões</Label>
+                  <Input type="number" min={0} value={form.totalSessions}
+                    onChange={e => setForm(p => ({ ...p, totalSessions: parseInt(e.target.value) || 0 }))} />
+                </div>
               </div>
-              <FormField
-                control={form.control}
-                name="totalSessions"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Total de Sessões Contratadas</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+            </div>
+
+            {/* Endereço */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Endereço</p>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-1">
+                    <Label>CEP</Label>
+                    <div className="relative">
+                      <Input placeholder="00000-000" value={form.zipCode}
+                        onChange={e => { setForm(p => ({ ...p, zipCode: e.target.value })); if (e.target.value.replace(/\D/g, "").length === 8) lookupCep(e.target.value); }}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Observações</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Diagnóstico, observações clínicas..."
-                        {...field}
-                        value={field.value ?? ""}
-                        rows={3}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={createPatient.isPending || updatePatient.isPending}>
-                  {editingPatient ? "Salvar" : "Criar Paciente"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                      {cepLoading && <Loader2 className="absolute right-2 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Logradouro</Label>
+                    <Input placeholder="Rua, Avenida..." value={form.addressStreet} onChange={e => setForm(p => ({ ...p, addressStreet: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Número</Label>
+                    <Input placeholder="123" value={form.addressNumber} onChange={e => setForm(p => ({ ...p, addressNumber: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Complemento</Label>
+                    <Input placeholder="Apto 4B" value={form.addressComplement} onChange={e => setForm(p => ({ ...p, addressComplement: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label>Bairro</Label>
+                    <Input placeholder="Centro" value={form.neighborhood} onChange={e => setForm(p => ({ ...p, neighborhood: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Cidade</Label>
+                    <Input placeholder="São Paulo" value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Estado</Label>
+                    <Input placeholder="SP" maxLength={2} value={form.state} onChange={e => setForm(p => ({ ...p, state: e.target.value.toUpperCase() }))} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Observações */}
+            <div>
+              <Label>Observações</Label>
+              <Textarea placeholder="Diagnóstico, observações clínicas..." rows={3}
+                value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {editingPatient ? "Salvar" : "Criar Paciente"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       {/* Delete confirmation */}
-      <AlertDialog open={!!deletingPatient} onOpenChange={(open) => !open && setDeletingPatient(null)}>
+      <AlertDialog open={!!deletingPatient} onOpenChange={open => !open && setDeletingPatient(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover Paciente</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover <strong>{deletingPatient?.name}</strong>? Esta ação não pode ser desfeita.
+              Tem certeza que deseja remover <strong>{deletingPatient?.name}</strong>? Esta ação removerá também todos os agendamentos do paciente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={() => deletingPatient && deleteMutation.mutate(deletingPatient.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Remover
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -1,84 +1,36 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useListPatients } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  Clock,
-  AlertTriangle,
-  Plus,
-  Pencil,
-  Trash2,
-  Filter,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, AlertTriangle, Plus, Pencil, Trash2, CheckCircle2, Loader2, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import apiFetch from "@/lib/apiFetch";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { format, subMonths, getMonth, getYear } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { apiFetch } from "@/lib/apiFetch";
+import { getMonth, getYear } from "date-fns";
 
 type FinancialRecord = {
-  id: number;
-  description: string;
-  type: "receita" | "despesa";
-  amount: number;
-  paymentStatus: "pago" | "pendente" | "vencido";
-  category: string | null;
-  dueDate: string | null;
-  paymentDate: string | null;
-  patientId: number | null;
-  patientName?: string | null;
-  paymentMethod: string | null;
-  notes: string | null;
-  createdAt: string;
+  id: number; description: string; type: "receita" | "despesa";
+  amount: number; paymentStatus: string; category: string | null;
+  supplier: string | null; dueDate: string | null; paymentDate: string | null;
+  patientId: number | null; patientName?: string | null;
+  paymentMethod: string | null; notes: string | null; createdAt: string;
 };
 
 type Summary = {
-  totalReceitas: number;
-  totalDespesas: number;
-  saldo: number;
-  totalPendente: number;
-  totalVencido: number;
-  countReceitas: number;
-  countDespesas: number;
+  totalReceitas: number; totalDespesas: number; saldo: number;
+  totalPendente: number; totalVencido: number;
 };
 
-type PatientType = { id: number; name: string };
-
-const CATEGORIES_RECEITA = ["Sessão", "Avaliação", "Pacote", "Convênio", "Outros"];
-const CATEGORIES_DESPESA = ["Aluguel", "Equipamentos", "Salários", "Material", "Manutenção", "Impostos", "Outros"];
-const PAYMENT_METHODS = ["Dinheiro", "Cartão de crédito", "Cartão de débito", "PIX", "Transferência", "Cheque", "Convênio"];
+const CATS_RECEITA = ["Sessão", "Avaliação", "Pacote", "Convênio", "Outros"];
+const CATS_DESPESA = ["Aluguel", "Equipamentos", "Salários", "Material", "Manutenção", "Impostos", "Marketing", "Outros"];
+const PAY_METHODS = ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Transferência", "Boleto", "Convênio"];
 
 const STATUS_STYLES: Record<string, string> = {
   pago: "bg-green-100 text-green-800 border-green-200",
@@ -86,508 +38,390 @@ const STATUS_STYLES: Record<string, string> = {
   vencido: "bg-red-100 text-red-800 border-red-200",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pago: "Pago",
-  pendente: "Pendente",
-  vencido: "Vencido",
+const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
+const fmtDate = (s?: string | null) => { if (!s) return "-"; const [y, m, d] = s.split("-"); return `${d}/${m}/${y}`; };
+
+const today = new Date().toISOString().split("T")[0];
+
+type FormState = {
+  description: string; type: string; amount: string; paymentStatus: string;
+  category: string; supplier: string; dueDate: string; paymentDate: string;
+  patientId: string; paymentMethod: string; notes: string;
 };
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-}
-
-function formatDate(str: string | null) {
-  if (!str) return "-";
-  const [y, m, d] = str.split("-");
-  return `${d}/${m}/${y}`;
-}
-
-const defaultForm = {
-  description: "",
-  type: "receita" as "receita" | "despesa",
-  amount: "",
-  paymentStatus: "pendente" as "pago" | "pendente" | "vencido",
-  category: "",
-  dueDate: "",
-  paymentDate: "",
-  patientId: "",
-  paymentMethod: "",
-  notes: "",
+const emptyForm: FormState = {
+  description: "", type: "receita", amount: "", paymentStatus: "pendente",
+  category: "", supplier: "", dueDate: "", paymentDate: "",
+  patientId: "", paymentMethod: "", notes: "",
 };
 
 export default function Financial() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [tab, setTab] = useState("receitas");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<FinancialRecord | null>(null);
   const [deletingRecord, setDeletingRecord] = useState<FinancialRecord | null>(null);
-  const [form, setForm] = useState(defaultForm);
-  const [filterType, setFilterType] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [form, setForm] = useState<FormState>(emptyForm);
 
   const now = new Date();
   const [summaryMonth, setSummaryMonth] = useState(String(getMonth(now) + 1));
   const [summaryYear, setSummaryYear] = useState(String(getYear(now)));
 
-  const { data: records = [], isLoading } = useQuery({
-    queryKey: ["financial", filterType, filterStatus],
-    queryFn: () => {
-      const params = new URLSearchParams();
-      if (filterType !== "all") params.set("type", filterType);
-      if (filterStatus !== "all") params.set("paymentStatus", filterStatus);
-      return apiFetch<FinancialRecord[]>(`/api/financial?${params.toString()}`);
-    },
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["financial"] });
+    queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+  };
+
+  const { data: allRecords = [], isLoading } = useQuery<FinancialRecord[]>({
+    queryKey: ["financial"],
+    queryFn: () => apiFetch("/api/financial"),
   });
 
-  const { data: summary } = useQuery({
+  const { data: summary } = useQuery<Summary>({
     queryKey: ["financial-summary", summaryMonth, summaryYear],
-    queryFn: () =>
-      apiFetch<Summary>(`/api/financial/summary?month=${summaryMonth}&year=${summaryYear}`),
+    queryFn: () => apiFetch(`/api/financial/summary?month=${summaryMonth}&year=${summaryYear}`),
   });
 
-  const { data: patients = [] } = useListPatients({});
-
-  const createRecord = useMutation({
-    mutationFn: (data: any) => apiFetch("/api/financial", { method: "POST", body: JSON.stringify(data) }),
-    onSuccess: () => {
-      toast({ title: "Registro criado com sucesso" });
-      invalidate();
-      setIsDialogOpen(false);
-    },
-    onError: (e: any) => toast({ title: e.message || "Erro ao criar", variant: "destructive" }),
+  const { data: patients = [] } = useQuery<any[]>({
+    queryKey: ["patients"],
+    queryFn: () => apiFetch("/api/patients"),
   });
 
-  const updateRecord = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
-      apiFetch(`/api/financial/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-    onSuccess: () => {
-      toast({ title: "Registro atualizado" });
-      invalidate();
-      setIsDialogOpen(false);
-      setEditingRecord(null);
-    },
+  const createMut = useMutation({
+    mutationFn: (data: FormState) => apiFetch("/api/financial", { method: "POST", body: JSON.stringify({ ...data, amount: parseFloat(data.amount) || 0, patientId: data.patientId || null }) }),
+    onSuccess: () => { toast({ title: "Registro criado com sucesso" }); setIsDialogOpen(false); invalidate(); },
+    onError: (e: any) => toast({ title: e.message || "Erro ao criar registro", variant: "destructive" }),
+  });
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: FormState }) => apiFetch(`/api/financial/${id}`, { method: "PUT", body: JSON.stringify({ ...data, amount: parseFloat(data.amount) || 0, patientId: data.patientId || null }) }),
+    onSuccess: () => { toast({ title: "Registro atualizado" }); setIsDialogOpen(false); invalidate(); },
     onError: (e: any) => toast({ title: e.message || "Erro ao atualizar", variant: "destructive" }),
   });
 
-  const deleteRecord = useMutation({
+  const payMut = useMutation({
+    mutationFn: (id: number) => apiFetch(`/api/financial/${id}/pay`, { method: "PATCH" }),
+    onSuccess: () => { toast({ title: "Marcado como pago!" }); invalidate(); },
+    onError: (e: any) => toast({ title: e.message || "Erro", variant: "destructive" }),
+  });
+
+  const deleteMut = useMutation({
     mutationFn: (id: number) => apiFetch(`/api/financial/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      toast({ title: "Registro removido" });
-      invalidate();
-      setDeletingRecord(null);
-    },
+    onSuccess: () => { toast({ title: "Registro removido" }); setDeletingRecord(null); invalidate(); },
     onError: (e: any) => toast({ title: e.message || "Erro ao remover", variant: "destructive" }),
   });
 
-  function invalidate() {
-    queryClient.invalidateQueries({ queryKey: ["financial"] });
-    queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
-  }
-
-  function openCreate() {
+  function openCreate(type: "receita" | "despesa") {
     setEditingRecord(null);
-    setForm(defaultForm);
+    setForm({ ...emptyForm, type });
     setIsDialogOpen(true);
   }
 
   function openEdit(r: FinancialRecord) {
     setEditingRecord(r);
     setForm({
-      description: r.description,
-      type: r.type,
-      amount: String(r.amount),
-      paymentStatus: r.paymentStatus,
-      category: r.category ?? "",
-      dueDate: r.dueDate ?? "",
-      paymentDate: r.paymentDate ?? "",
-      patientId: r.patientId ? String(r.patientId) : "",
-      paymentMethod: r.paymentMethod ?? "",
-      notes: r.notes ?? "",
+      description: r.description, type: r.type, amount: String(r.amount),
+      paymentStatus: r.paymentStatus, category: r.category || "",
+      supplier: r.supplier || "", dueDate: r.dueDate || "", paymentDate: r.paymentDate || "",
+      patientId: r.patientId ? String(r.patientId) : "", paymentMethod: r.paymentMethod || "",
+      notes: r.notes || "",
     });
     setIsDialogOpen(true);
   }
 
-  function handleSubmit() {
-    if (!form.description.trim() || !form.amount) {
-      toast({ title: "Descrição e valor são obrigatórios", variant: "destructive" });
-      return;
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.description || !form.amount) {
+      toast({ title: "Preencha a descrição e o valor", variant: "destructive" }); return;
     }
-    const payload = {
-      ...form,
-      amount: parseFloat(form.amount),
-      patientId: form.patientId ? parseInt(form.patientId) : null,
-      category: form.category || null,
-      dueDate: form.dueDate || null,
-      paymentDate: form.paymentDate || null,
-      paymentMethod: form.paymentMethod || null,
-      notes: form.notes || null,
-    };
-    if (editingRecord) {
-      updateRecord.mutate({ id: editingRecord.id, data: payload });
-    } else {
-      createRecord.mutate(payload);
-    }
+    if (editingRecord) updateMut.mutate({ id: editingRecord.id, data: form });
+    else createMut.mutate(form);
   }
 
-  // Build chart data for last 6 months
-  const months = Array.from({ length: 6 }, (_, i) => {
-    const d = subMonths(now, 5 - i);
-    return { label: format(d, "MMM", { locale: ptBR }), month: getMonth(d) + 1, year: getYear(d) };
-  });
+  const receitas = allRecords.filter(r => r.type === "receita");
+  const despesas = allRecords.filter(r => r.type === "despesa");
+  const overdueCount = despesas.filter(r => r.paymentStatus === "pendente" && r.dueDate && r.dueDate < today).length;
 
-  const chartData = months.map(({ label }) => ({ mes: label, Receitas: 0, Despesas: 0 }));
-
-  const allRecords = records as FinancialRecord[];
-  const receitas = allRecords.filter((r) => r.type === "receita" && r.paymentStatus === "pago");
-  const despesas = allRecords.filter((r) => r.type === "despesa" && r.paymentStatus === "pago");
+  const RecordRow = ({ r }: { r: FinancialRecord }) => {
+    const isOverdue = r.paymentStatus === "pendente" && r.dueDate && r.dueDate < today;
+    return (
+      <div className={`flex items-start gap-3 p-4 rounded-lg border transition-colors hover:bg-muted/30 ${isOverdue ? "border-red-200 bg-red-50/30" : "border-border"}`}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-sm truncate">{r.description}</span>
+            {r.category && <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{r.category}</span>}
+            {isOverdue && <span className="text-xs text-red-600 font-medium">VENCIDO</span>}
+          </div>
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
+            {r.patientName && <span className="text-xs text-muted-foreground">Paciente: {r.patientName}</span>}
+            {r.supplier && <span className="text-xs text-muted-foreground">Fornecedor: {r.supplier}</span>}
+            {r.dueDate && <span className="text-xs text-muted-foreground">Venc.: {fmtDate(r.dueDate)}</span>}
+            {r.paymentDate && <span className="text-xs text-muted-foreground">Pago em: {fmtDate(r.paymentDate)}</span>}
+            {r.paymentMethod && <span className="text-xs text-muted-foreground">{r.paymentMethod}</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`text-base font-bold ${r.type === "receita" ? "text-green-600" : "text-red-600"}`}>
+            {r.type === "receita" ? "+" : "-"}{fmt(r.amount)}
+          </span>
+          <Badge variant="outline" className={`text-xs ${STATUS_STYLES[r.paymentStatus] || ""}`}>
+            {r.paymentStatus === "pago" ? "Pago" : r.paymentStatus === "pendente" ? "Pendente" : "Vencido"}
+          </Badge>
+          <div className="flex gap-1">
+            {r.paymentStatus !== "pago" && (
+              <Button variant="outline" size="sm" className="h-7 w-7 p-0 text-green-600 hover:bg-green-50" onClick={() => payMut.mutate(r.id)}>
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(r)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0 text-destructive hover:bg-red-50" onClick={() => setDeletingRecord(r)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Controle Financeiro</h1>
-          <p className="text-muted-foreground mt-1">Receitas, despesas e fluxo de caixa da clínica</p>
+          <h1 className="text-3xl font-bold tracking-tight">Financeiro</h1>
+          <p className="text-muted-foreground mt-1">Controle de receitas e contas a pagar</p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Lançamento
-        </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Receitas</span>
-              <TrendingUp className="h-4 w-4 text-green-500" />
-            </div>
-            <p className="text-xl font-bold text-green-600">{formatCurrency(summary?.totalReceitas ?? 0)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">pagas no mês</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Despesas</span>
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            </div>
-            <p className="text-xl font-bold text-red-600">{formatCurrency(summary?.totalDespesas ?? 0)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">pagas no mês</p>
-          </CardContent>
-        </Card>
-        <Card className={`border-l-4 ${(summary?.saldo ?? 0) >= 0 ? "border-l-primary" : "border-l-orange-500"}`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Saldo</span>
-              <Wallet className="h-4 w-4 text-primary" />
-            </div>
-            <p className={`text-xl font-bold ${(summary?.saldo ?? 0) >= 0 ? "text-primary" : "text-orange-600"}`}>
-              {formatCurrency(summary?.saldo ?? 0)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">receitas − despesas</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Pendente/Vencido</span>
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-            </div>
-            <p className="text-xl font-bold text-yellow-600">
-              {formatCurrency((summary?.totalPendente ?? 0) + (summary?.totalVencido ?? 0))}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">a receber/pagar</p>
-          </CardContent>
-        </Card>
+      {/* Resumo */}
+      <div className="flex gap-3 items-center flex-wrap">
+        <div className="flex gap-2 items-center">
+          <Label className="text-sm">Mês:</Label>
+          <Select value={summaryMonth} onValueChange={setSummaryMonth}>
+            <SelectTrigger className="w-32 h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((m, i) => (
+                <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={summaryYear} onValueChange={setSummaryYear}>
+            <SelectTrigger className="w-24 h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[2023, 2024, 2025, 2026, 2027].map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Month selector for summary */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm text-muted-foreground">Resumo do mês:</span>
-        <Select value={summaryMonth} onValueChange={setSummaryMonth}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.from({ length: 12 }, (_, i) => ({
-              value: String(i + 1),
-              label: format(new Date(2024, i, 1), "MMMM", { locale: ptBR }),
-            })).map(({ value, label }) => (
-              <SelectItem key={value} value={value}>{label.charAt(0).toUpperCase() + label.slice(1)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={summaryYear} onValueChange={setSummaryYear}>
-          <SelectTrigger className="w-24">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {[2024, 2025, 2026, 2027].map((y) => (
-              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {summary && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {[
+            { label: "Total Recebido", value: fmt(summary.totalReceitas), icon: TrendingUp, color: "border-l-green-500", textColor: "text-green-600" },
+            { label: "Total Despesas", value: fmt(summary.totalDespesas), icon: TrendingDown, color: "border-l-red-500", textColor: "text-red-600" },
+            { label: "Saldo", value: fmt(summary.saldo), icon: DollarSign, color: `border-l-${summary.saldo >= 0 ? "emerald" : "red"}-500`, textColor: `text-${summary.saldo >= 0 ? "emerald" : "red"}-600` },
+            { label: "Pendente", value: fmt(summary.totalPendente), icon: Wallet, color: "border-l-yellow-500", textColor: "text-yellow-600" },
+            { label: "Vencido", value: fmt(summary.totalVencido), icon: AlertTriangle, color: `border-l-${summary.totalVencido > 0 ? "red" : "gray"}-500`, textColor: `text-${summary.totalVencido > 0 ? "red" : "gray"}-600` },
+          ].map((c) => (
+            <Card key={c.label} className={`border-l-4 ${c.color} shadow-sm`}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{c.label}</CardTitle>
+                <c.icon className={`h-4 w-4 ${c.textColor}`} />
+              </CardHeader>
+              <CardContent><div className={`text-xl font-bold ${c.textColor}`}>{c.value}</div></CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* Tabs */}
-      <Tabs defaultValue="records">
-        <TabsList className="grid w-full sm:w-auto grid-cols-2">
-          <TabsTrigger value="records">Lançamentos</TabsTrigger>
-          <TabsTrigger value="chart">Gráfico</TabsTrigger>
+      {overdueCount > 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span className="text-sm font-medium">{overdueCount} conta{overdueCount > 1 ? "s" : ""} vencida{overdueCount > 1 ? "s" : ""} aguardando pagamento</span>
+        </div>
+      )}
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="receitas">
+            <TrendingUp className="h-4 w-4 mr-2" /> Receitas ({receitas.length})
+          </TabsTrigger>
+          <TabsTrigger value="despesas">
+            <TrendingDown className="h-4 w-4 mr-2" /> Contas a Pagar ({despesas.length})
+            {overdueCount > 0 && <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">{overdueCount}</span>}
+          </TabsTrigger>
         </TabsList>
 
-        {/* Records Tab */}
-        <TabsContent value="records" className="space-y-4 mt-4">
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3 items-center">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="receita">Receitas</SelectItem>
-                <SelectItem value="despesa">Despesas</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="pago">Pago</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="vencido">Vencido</SelectItem>
-              </SelectContent>
-            </Select>
+        <TabsContent value="receitas" className="space-y-4 pt-4">
+          <div className="flex justify-end">
+            <Button onClick={() => openCreate("receita")} className="gap-2">
+              <Plus className="h-4 w-4" /> Nova Receita
+            </Button>
           </div>
-
           {isLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => <Card key={i} className="animate-pulse"><CardContent className="p-4 h-16" /></Card>)}
-            </div>
-          ) : allRecords.length === 0 ? (
-            <div className="text-center py-20 text-muted-foreground">
-              <Wallet className="h-14 w-14 mx-auto mb-4 opacity-20" />
-              <p className="text-lg font-medium">Nenhum lançamento encontrado</p>
+            <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />)}</div>
+          ) : receitas.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-20" />
+              <p>Nenhuma receita registrada.</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {allRecords.map((r) => (
-                <Card key={r.id} className={`border-l-4 ${r.type === "receita" ? "border-l-green-400" : "border-l-red-400"}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm">{r.description}</span>
-                          {r.category && (
-                            <Badge variant="outline" className="text-xs">{r.category}</Badge>
-                          )}
-                          {r.patientName && (
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                              {r.patientName}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                          {r.dueDate && <span>Vencto: {formatDate(r.dueDate)}</span>}
-                          {r.paymentDate && <span>Pago em: {formatDate(r.paymentDate)}</span>}
-                          {r.paymentMethod && <span>{r.paymentMethod}</span>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className={`text-base font-bold ${r.type === "receita" ? "text-green-600" : "text-red-600"}`}>
-                            {r.type === "receita" ? "+" : "-"}{formatCurrency(r.amount)}
-                          </p>
-                          <Badge variant="outline" className={`text-xs ${STATUS_STYLES[r.paymentStatus]}`}>
-                            {STATUS_LABELS[r.paymentStatus]}
-                          </Badge>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletingRecord(r)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    {r.notes && <p className="text-xs text-muted-foreground italic mt-2 border-t pt-2">{r.notes}</p>}
-                  </CardContent>
-                </Card>
-              ))}
+              {receitas.map(r => <RecordRow key={r.id} r={r} />)}
             </div>
           )}
         </TabsContent>
 
-        {/* Chart Tab */}
-        <TabsContent value="chart" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Receitas vs. Despesas — Últimos 6 meses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                O gráfico exibe os lançamentos <strong>pagos</strong> por mês de criação.
-              </p>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                  <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${v}`} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                  <Legend />
-                  <Bar dataKey="Receitas" fill="#22c55e" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="Despesas" fill="#ef4444" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <TabsContent value="despesas" className="space-y-4 pt-4">
+          <div className="flex justify-end">
+            <Button onClick={() => openCreate("despesa")} className="gap-2 bg-red-600 hover:bg-red-700">
+              <Plus className="h-4 w-4" /> Nova Conta a Pagar
+            </Button>
+          </div>
+          {isLoading ? (
+            <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />)}</div>
+          ) : despesas.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <TrendingDown className="h-12 w-12 mx-auto mb-3 opacity-20" />
+              <p>Nenhuma conta a pagar registrada.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* Vencidas primeiro */}
+              {[...despesas].sort((a, b) => {
+                const aOv = a.paymentStatus === "pendente" && a.dueDate && a.dueDate < today;
+                const bOv = b.paymentStatus === "pendente" && b.dueDate && b.dueDate < today;
+                if (aOv && !bOv) return -1;
+                if (!aOv && bOv) return 1;
+                return (a.dueDate || "").localeCompare(b.dueDate || "");
+              }).map(r => <RecordRow key={r.id} r={r} />)}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
-      {/* Create / Edit Dialog */}
+      {/* Dialog de criação/edição */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingRecord ? "Editar Lançamento" : "Novo Lançamento"}</DialogTitle>
+            <DialogTitle>
+              {editingRecord ? "Editar Registro" : form.type === "receita" ? "Nova Receita" : "Nova Conta a Pagar"}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v, category: "" }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="receita">Receita</SelectItem>
+                  <SelectItem value="despesa">Despesa / Conta a Pagar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Descrição *</Label>
+              <Input placeholder="Ex: Sessão de fisioterapia" value={form.description}
+                onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium block mb-1.5">Tipo</label>
-                <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as any, category: "" }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Label>Valor (R$) *</Label>
+                <Input type="number" min="0" step="0.01" placeholder="0,00" value={form.amount}
+                  onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Categoria</Label>
+                <Select value={form.category || ""} onValueChange={v => setForm(p => ({ ...p, category: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="receita">Receita</SelectItem>
-                    <SelectItem value="despesa">Despesa</SelectItem>
+                    {(form.type === "receita" ? CATS_RECEITA : CATS_DESPESA).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            {form.type === "despesa" && (
               <div>
-                <label className="text-sm font-medium block mb-1.5">Status</label>
-                <Select value={form.paymentStatus} onValueChange={(v) => setForm((f) => ({ ...f, paymentStatus: v as any }))}>
+                <Label>Fornecedor</Label>
+                <Input placeholder="Nome do fornecedor" value={form.supplier}
+                  onChange={e => setForm(p => ({ ...p, supplier: e.target.value }))} />
+              </div>
+            )}
+            {form.type === "receita" && (
+              <div>
+                <Label>Paciente</Label>
+                <Select value={form.patientId || ""} onValueChange={v => setForm(p => ({ ...p, patientId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar paciente..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum</SelectItem>
+                    {(patients as any[]).map((p: any) => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Vencimento</Label>
+                <Input type="date" value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Data de Pagamento</Label>
+                <Input type="date" value={form.paymentDate} onChange={e => setForm(p => ({ ...p, paymentDate: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Status</Label>
+                <Select value={form.paymentStatus} onValueChange={v => setForm(p => ({ ...p, paymentStatus: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pago">Pago</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="pago">Pago</SelectItem>
                     <SelectItem value="vencido">Vencido</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium block mb-1.5">Descrição *</label>
-              <Input
-                placeholder="Ex: Sessão de fisioterapia - Maria"
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium block mb-1.5">Valor (R$) *</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  value={form.amount}
-                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Categoria</label>
-                <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <Label>Forma de Pagamento</Label>
+                <Select value={form.paymentMethod || ""} onValueChange={v => setForm(p => ({ ...p, paymentMethod: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                   <SelectContent>
-                    {(form.type === "receita" ? CATEGORIES_RECEITA : CATEGORIES_DESPESA).map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
+                    {PAY_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Vencimento</label>
-                <Input type="date" value={form.dueDate} onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))} />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Data de Pagamento</label>
-                <Input type="date" value={form.paymentDate} onChange={(e) => setForm((f) => ({ ...f, paymentDate: e.target.value }))} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Forma de Pagamento</label>
-                <Select value={form.paymentMethod} onValueChange={(v) => setForm((f) => ({ ...f, paymentMethod: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_METHODS.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {form.type === "receita" && (
-                <div>
-                  <label className="text-sm font-medium block mb-1.5">Paciente</label>
-                  <Select value={form.patientId} onValueChange={(v) => setForm((f) => ({ ...f, patientId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Vincular paciente" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
-                      {(patients as PatientType[]).map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-
             <div>
-              <label className="text-sm font-medium block mb-1.5">Observações</label>
-              <Textarea
-                placeholder="Observações opcionais..."
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                rows={2}
-              />
+              <Label>Observações</Label>
+              <Textarea rows={2} placeholder="Observações..." value={form.notes}
+                onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={createRecord.isPending || updateRecord.isPending}>
-              {editingRecord ? "Salvar" : "Criar Lançamento"}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={createMut.isPending || updateMut.isPending}>
+                {(createMut.isPending || updateMut.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {editingRecord ? "Salvar" : "Criar"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirm */}
-      <AlertDialog open={!!deletingRecord} onOpenChange={(open) => !open && setDeletingRecord(null)}>
+      <AlertDialog open={!!deletingRecord} onOpenChange={open => !open && setDeletingRecord(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover Lançamento</AlertDialogTitle>
+            <AlertDialogTitle>Remover Registro</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover "<strong>{deletingRecord?.description}</strong>"?
+              Tem certeza que deseja remover <strong>{deletingRecord?.description}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deletingRecord && deleteRecord.mutate(deletingRecord.id)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={() => deletingRecord && deleteMut.mutate(deletingRecord.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Remover
             </AlertDialogAction>
           </AlertDialogFooter>

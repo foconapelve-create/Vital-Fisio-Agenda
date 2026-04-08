@@ -15,25 +15,21 @@ import Therapists from "@/pages/therapists";
 import Agenda from "@/pages/agenda";
 import Reports from "@/pages/reports";
 import Financial from "@/pages/financial";
+import Relatorio from "@/pages/relatorio";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
+    queries: { retry: 1, refetchOnWindowFocus: false },
   },
 });
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+function ProtectedRoute({ component: Component, roles }: { component: React.ComponentType; roles?: string[] }) {
   const [, setLocation] = useLocation();
   const { data: user, isLoading, error } = useGetMe({ query: { retry: false } });
 
   useEffect(() => {
-    if (!isLoading && !user && error) {
-      setLocation("/login");
-    }
+    if (!isLoading && !user && error) setLocation("/login");
   }, [user, isLoading, error, setLocation]);
 
   if (isLoading) {
@@ -44,8 +40,18 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     );
   }
 
-  if (!user) {
-    return null;
+  if (!user) return null;
+
+  const userRole = (user as any).role || "admin";
+  if (roles && !roles.includes(userRole)) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <p className="text-lg font-semibold">Acesso não permitido</p>
+          <p className="text-muted-foreground mt-1">Você não tem permissão para acessar esta página.</p>
+        </div>
+      </AppLayout>
+    );
   }
 
   return (
@@ -63,19 +69,25 @@ function Router() {
         <ProtectedRoute component={Dashboard} />
       </Route>
       <Route path="/patients">
-        <ProtectedRoute component={Patients} />
+        <ProtectedRoute component={Patients} roles={["admin", "fisioterapeuta"]} />
       </Route>
       <Route path="/patients/:id/history">
-        <ProtectedRoute component={PatientHistory} />
+        <ProtectedRoute component={PatientHistory} roles={["admin", "fisioterapeuta"]} />
       </Route>
       <Route path="/therapists">
-        <ProtectedRoute component={Therapists} />
+        <ProtectedRoute component={Therapists} roles={["admin"]} />
       </Route>
       <Route path="/agenda">
-        <ProtectedRoute component={Agenda} />
+        <ProtectedRoute component={Agenda} roles={["admin", "fisioterapeuta"]} />
       </Route>
       <Route path="/reports">
         <ProtectedRoute component={Reports} />
+      </Route>
+      <Route path="/financial">
+        <ProtectedRoute component={Financial} roles={["admin", "financeiro"]} />
+      </Route>
+      <Route path="/relatorio">
+        <ProtectedRoute component={Relatorio} roles={["admin", "fisioterapeuta"]} />
       </Route>
       <Route component={NotFound} />
     </Switch>

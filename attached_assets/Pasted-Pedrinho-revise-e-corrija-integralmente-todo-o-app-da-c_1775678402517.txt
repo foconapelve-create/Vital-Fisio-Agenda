@@ -1,0 +1,202 @@
+Pedrinho, revise e corrija integralmente todo o app da clínica de fisioterapia, eliminando bugs, erros de integração, falhas de carregamento, problemas de salvamento, inconsistências visuais, erros de banco de dados, falhas na agenda, erros no login, problemas nas automações e qualquer comportamento que impeça o sistema de funcionar corretamente. Quero que você faça uma revisão completa do sistema e deixe o app 100% funcional, estável, organizado, seguro e pronto para uso real em produção.
+
+Além de corrigir todos os erros existentes, implemente e garanta o funcionamento completo dos seguintes módulos e regras:
+
+1. CONTROLE FINANCEIRO E CONTAS A PAGAR
+- Criar módulo financeiro completo.
+- Criar aba de contas a pagar.
+- Permitir cadastrar conta com: descrição, categoria, fornecedor, valor, data de vencimento, status (pendente, pago, vencido), forma de pagamento, observações.
+- Criar alerta visual e automático para próximas contas a vencer.
+- Exibir aviso de contas vencendo no dashboard.
+- Exibir aviso de contas vencidas no dashboard.
+- Permitir marcar conta como paga.
+- Permitir editar e excluir contas.
+- Criar conexão direta entre financeiro e cadastro do paciente.
+- Registrar entrada financeira dos pacientes conforme sessões pagas, pacotes e forma de pagamento.
+- Criar resumo financeiro no dashboard com:
+  - total recebido no dia
+  - total recebido no mês
+  - contas a pagar do mês
+  - contas vencendo
+  - saldo previsto
+
+2. CONFIRMAÇÃO AUTOMÁTICA DE SESSÃO VIA WHATSAPP
+- Criar automação para envio automático de mensagem no WhatsApp com 24 horas de antecedência de cada sessão agendada.
+- O envio deve buscar automaticamente os agendamentos do dia seguinte.
+- A mensagem deve ser personalizada com nome do paciente, data, horário e nome do fisioterapeuta.
+- Quando o paciente responder a confirmação, o sistema deve alterar automaticamente o status do agendamento na agenda.
+- Criar status automáticos:
+  - aguardando confirmação
+  - confirmado
+  - cancelado
+  - sem resposta
+- A resposta do paciente deve gerar conexão direta com a agenda.
+- O status do paciente/agendamento deve mudar automaticamente após a resposta.
+- Caso o paciente não responda, manter status “sem resposta”.
+- Garantir que essa integração fique funcional e sincronizada com os agendamentos.
+
+3. GESTÃO DE PACIENTES
+- Permitir inclusão de pacientes.
+- Permitir exclusão de pacientes.
+- Permitir edição completa de cadastro.
+- No cadastro do paciente incluir os seguintes campos:
+  - nome completo
+  - telefone
+  - e-mail
+  - endereço
+  - CEP
+  - número
+  - complemento
+  - bairro
+  - cidade
+  - estado
+  - data de nascimento
+  - convênio ou particular
+  - forma de pagamento
+  - número total de sessões
+  - sessões realizadas
+  - sessões restantes
+  - observações
+- Criar busca automática de endereço pelo CEP.
+- Assim que digitar o CEP, buscar automaticamente no serviço de CEP dos Correios ou API compatível e preencher rua, bairro, cidade e estado.
+- Garantir que os dados fiquem salvos corretamente no banco.
+
+4. CONEXÃO DO CADASTRO DO PACIENTE COM O FINANCEIRO
+- Toda forma de pagamento cadastrada no paciente deve estar conectada ao módulo financeiro.
+- Permitir formas de pagamento como:
+  - pix
+  - cartão
+  - dinheiro
+  - transferência
+  - boleto
+- O número de sessões contratado deve se conectar ao controle financeiro e ao controle de sessões.
+- Sempre que houver pagamento lançado, refletir no financeiro.
+- Sempre que uma sessão for realizada, atualizar sessões restantes automaticamente.
+
+5. ABA DE EVOLUÇÃO DO PACIENTE
+- Criar aba de evolução clínica do paciente.
+- A evolução deve ficar conectada diretamente à agenda.
+- A evolução só deve ser liberada para preenchimento quando o paciente estiver com presença marcada no agendamento.
+- Assim que o status da sessão for marcado como “presente”, liberar automaticamente o campo de evolução para o fisioterapeuta responsável.
+- A evolução deve conter:
+  - data
+  - horário
+  - fisioterapeuta responsável
+  - texto livre da evolução
+- A evolução deve ficar vinculada ao paciente e ao agendamento correspondente.
+- Garantir histórico de evoluções por paciente.
+
+6. RECORRÊNCIA DE SESSÕES NA AGENDA
+- Criar funcionalidade de recorrência de sessões.
+- Permitir que um paciente seja agendado de forma recorrente.
+- Opções de recorrência:
+  - diária
+  - semanal
+  - em dias específicos da semana
+  - quantidade definida de sessões
+  - até uma data final
+- Garantir que a recorrência crie automaticamente os agendamentos futuros na agenda.
+- Permitir edição de uma única sessão ou da recorrência inteira.
+- Permitir cancelamento de uma sessão isolada ou da série recorrente.
+
+7. LOGIN E PERMISSÕES SEPARADAS
+- Criar login separado por perfil de usuário.
+- Perfis:
+  - administrador
+  - financeiro
+  - fisioterapeuta
+- O fisioterapeuta não pode ter acesso ao financeiro nem à aba de contas a pagar.
+- O financeiro não deve acessar evoluções clínicas se isso não fizer parte da permissão.
+- O administrador deve ter acesso total.
+- Criar controle de permissão por tela e por função.
+- Proteger rotas e páginas conforme o perfil do usuário.
+
+8. RELATÓRIO FISIOTERAPÊUTICO
+- Criar aba para elaboração de relatório fisioterapêutico.
+- O relatório deve ter layout profissional.
+- Deve conter espaço para:
+  - logomarca da clínica
+  - nome da clínica
+  - dados do paciente
+  - texto do relatório
+  - data
+  - nome do fisioterapeuta responsável
+  - assinatura do fisioterapeuta
+- Permitir upload ou exibição da logomarca da clínica.
+- Permitir assinatura digital ou exibição do nome do responsável no final.
+- Permitir salvar, editar, visualizar e imprimir/exportar em PDF.
+
+9. AGENDA COM VÁRIOS PACIENTES PARA O MESMO FISIOTERAPEUTA
+- Na agenda, permitir vários pacientes no mesmo horário para o mesmo fisioterapeuta.
+- Os pacientes devem aparecer lado a lado até 5 pacientes na mesma linha.
+- Após 5 pacientes, continuar em uma linha abaixo automaticamente.
+- Não limitar a quantidade de nomes nem a quantidade de linhas.
+- A visualização precisa ficar organizada, responsiva e legível.
+- Garantir que o sistema aceite múltiplos pacientes por horário sem quebrar o layout.
+- Cada item do paciente na agenda deve mostrar:
+  - nome
+  - status
+  - tipo de sessão
+  - observação rápida, se houver
+- Permitir clicar no nome para abrir detalhes do paciente/agendamento.
+
+10. INTEGRAÇÃO TOTAL COM A AGENDA
+- Revisar toda a lógica da agenda.
+- Garantir que a agenda esteja sincronizada com:
+  - confirmação via WhatsApp
+  - presença
+  - falta
+  - cancelamento
+  - evolução
+  - recorrência
+  - sessões restantes
+  - financeiro
+- Sempre que houver alteração em um módulo, refletir automaticamente no outro quando houver vínculo.
+
+11. CORREÇÃO GERAL DO APP
+- Corrigir todos os erros atuais do sistema.
+- Revisar backend e frontend.
+- Revisar banco de dados.
+- Revisar workflows e automações.
+- Revisar autenticação.
+- Revisar integração com WhatsApp.
+- Revisar salvamento de dados.
+- Revisar edição e exclusão de registros.
+- Revisar filtros, buscas, status e carregamentos.
+- Corrigir telas quebradas, botões sem ação, campos que não salvam, páginas que não atualizam e qualquer falha de usabilidade.
+- Garantir app totalmente funcional em computador e celular.
+
+12. PADRÃO DE ENTREGA
+- Não quero apenas estrutura visual.
+- Quero tudo realmente funcional.
+- Revise o sistema inteiro até não haver erros.
+- Teste todos os fluxos principais:
+  - login
+  - cadastro de paciente
+  - edição de paciente
+  - exclusão de paciente
+  - agenda
+  - recorrência
+  - confirmação por WhatsApp
+  - alteração de status
+  - presença
+  - evolução
+  - relatório
+  - financeiro
+  - contas a pagar
+  - permissões por perfil
+- Corrija qualquer erro encontrado durante os testes.
+- Ao final, entregue o app organizado, limpo, estável, conectado e pronto para operação real.
+
+13. MELHORIAS TÉCNICAS OBRIGATÓRIAS
+- Padronizar nomes de campos, tabelas e status.
+- Evitar duplicidade de registros.
+- Garantir integridade relacional no banco.
+- Criar mensagens de erro amigáveis.
+- Criar mensagens de sucesso nas ações principais.
+- Melhorar performance de carregamento.
+- Garantir segurança básica de acesso e dados.
+- Garantir que exclusão e edição não quebrem vínculos importantes.
+- Garantir que o sistema continue funcionando mesmo com muitos pacientes cadastrados e muitos agendamentos.
+
+Quero que você faça tudo isso agora no app existente, corrigindo o que já foi criado e completando o que falta, sem quebrar as funcionalidades atuais que já funcionam.

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, sql } from "drizzle-orm";
-import { db, appointmentsTable, patientsTable, therapistsTable } from "@workspace/db";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { db, appointmentsTable, patientsTable, therapistsTable, financialTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -12,40 +12,64 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
   const today = getTodayString();
 
   const rows = await db
-    .select({
-      status: appointmentsTable.status,
-      count: sql<number>`cast(count(*) as integer)`,
-    })
+    .select({ status: appointmentsTable.status, count: sql<number>`cast(count(*) as integer)` })
     .from(appointmentsTable)
     .where(eq(appointmentsTable.date, today))
     .groupBy(appointmentsTable.status);
 
-  let totalToday = 0;
-  let totalAbsences = 0;
-  let totalCompleted = 0;
-  let totalScheduled = 0;
-  let totalCancelled = 0;
+  let totalToday = 0, totalAbsences = 0, totalCompleted = 0, totalScheduled = 0, totalCancelled = 0;
 
   for (const row of rows) {
     totalToday += Number(row.count);
     if (row.status === "falta") totalAbsences += Number(row.count);
     if (row.status === "presente") totalCompleted += Number(row.count);
-    if (row.status === "agendado" || row.status === "confirmado" || row.status === "encaixe") totalScheduled += Number(row.count);
+    if (["agendado", "confirmado", "encaixe"].includes(row.status)) totalScheduled += Number(row.count);
     if (row.status === "cancelado") totalCancelled += Number(row.count);
   }
 
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+  const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  const [todayReceitas] = await db.select({ total: sql<number>`cast(coalesce(sum(amount),0) as float)` })
+    .from(financialTable)
+    .where(and(eq(financialTable.type, "receita"), eq(financialTable.paymentStatus, "pago"), eq(sql`date(${financialTable.paymentDate})`, today)));
+
+  const [monthReceitas] = await db.select({ total: sql<number>`cast(coalesce(sum(amount),0) as float)` })
+    .from(financialTable)
+    .where(and(eq(financialTable.type, "receita"), eq(financialTable.paymentStatus, "pago"),
+      gte(financialTable.dueDate, monthStart), lte(financialTable.dueDate, monthEnd)));
+
+  const overdueRecords = await db.select({ id: financialTable.id, description: financialTable.description, amount: financialTable.amount, dueDate: financialTable.dueDate })
+    .from(financialTable)
+    .where(and(eq(financialTable.paymentStatus, "pendente"), lte(financialTable.dueDate, today)));
+
+  const upcomingBills = await db.select({ id: financialTable.id, description: financialTable.description, amount: financialTable.amount, dueDate: financialTable.dueDate })
+    .from(financialTable)
+    .where(and(eq(financialTable.paymentStatus, "pendente"), gte(financialTable.dueDate, today), lte(financialTable.dueDate, in7Days)));
+
+  const [pendingTotal] = await db.select({ total: sql<number>`cast(coalesce(sum(amount),0) as float)` })
+    .from(financialTable)
+    .where(and(eq(financialTable.type, "despesa"), eq(financialTable.paymentStatus, "pendente"),
+      gte(financialTable.dueDate, monthStart), lte(financialTable.dueDate, monthEnd)));
+
   res.json({
-    totalToday,
-    totalAbsences,
-    totalCompleted,
-    totalScheduled,
-    totalCancelled,
+    totalToday, totalAbsences, totalCompleted, totalScheduled, totalCancelled,
+    financialSummary: {
+      receivedToday: todayReceitas?.total || 0,
+      receivedMonth: monthReceitas?.total || 0,
+      billsMonth: pendingTotal?.total || 0,
+      overdueCount: overdueRecords.length,
+      overdueRecords,
+      upcomingBillsCount: upcomingBills.length,
+      upcomingBills,
+    },
   });
 });
 
 router.get("/dashboard/upcoming", async (_req, res): Promise<void> => {
   const today = getTodayString();
-
   const now = new Date();
   const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
@@ -69,13 +93,11 @@ router.get("/dashboard/upcoming", async (_req, res): Promise<void> => {
     .from(appointmentsTable)
     .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
     .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
-    .where(
-      and(
-        eq(appointmentsTable.date, today),
-        sql`${appointmentsTable.time} >= ${currentTime}`,
-        sql`${appointmentsTable.status} IN ('agendado', 'confirmado', 'encaixe')`
-      )
-    )
+    .where(and(
+      eq(appointmentsTable.date, today),
+      sql`${appointmentsTable.time} >= ${currentTime}`,
+      sql`${appointmentsTable.status} IN ('agendado', 'confirmado', 'encaixe')`
+    ))
     .orderBy(appointmentsTable.time)
     .limit(10);
 
