@@ -1,0 +1,249 @@
+ATUALIZAÇÃO GLOBAL DO SISTEMA
+
+1. PADRONIZAÇÃO DO SISTEMA
+Substituir todos os termos:
+- “Fisioterapeuta” → “Profissional da Saúde”
+- “Clínica de Fisioterapia” → “Clínica de Saúde” (quando aplicável)
+
+Garantir que todo o sistema funcione para múltiplas especialidades.
+
+---
+
+2. CADASTRO DE PROFISSIONAIS DA SAÚDE
+
+Criar/atualizar cadastro com os campos:
+
+- Nome completo
+- Especialidade (campo selecionável)
+- Registro profissional (ex: CREFITO, CRM, CRP, COREN, etc.)
+- Telefone
+- E-mail
+- Horários de atendimento
+- Status (ativo/inativo)
+
+Criar campo de seleção de especialidade (dropdown):
+- Fisioterapia
+- Psicologia
+- Medicina
+- Enfermagem
+- Nutrição
+- Fonoaudiologia
+- Terapia Ocupacional
+- Estética
+- Outro (com campo livre)
+
+---
+
+3. VINCULAÇÃO EM TODO O SISTEMA
+
+Adicionar campo obrigatório “Profissional da Saúde responsável” em:
+
+- Agendamentos
+- Cadastro do paciente
+- Evolução/prontuário
+- Receituários
+- Encaminhamentos
+- Solicitação de exames
+- Financeiro (opcional, se vincular receita ao profissional)
+
+Permitir filtro por profissional em todas as telas:
+- Agenda
+- Relatórios
+- Aniversariantes
+- Financeiro
+- Planner de conteúdo
+
+---
+
+4. NOVA ABA: “DOCUMENTOS CLÍNICOS”
+
+Criar uma aba principal chamada:
+“Documentos Clínicos”
+
+Subabas obrigatórias:
+- Receituários
+- Encaminhamentos
+- Solicitação de Exames
+
+---
+
+5. SUBABA: RECEITUÁRIOS
+
+Campos obrigatórios:
+
+- Nome do paciente
+- Data
+- Profissional da saúde responsável
+- Especialidade
+- Texto do receituário (campo grande editável)
+- Orientações adicionais
+- Assinatura (nome do profissional + registro)
+
+Opções adicionais:
+- Modelos prontos de receituário
+- Campo para adicionar medicamentos/orientações
+- Opção de imprimir
+- Opção de exportar em PDF
+- Histórico de receituários por paciente
+
+---
+
+6. SUBABA: ENCAMINHAMENTOS
+
+Campos:
+
+- Nome do paciente
+- Data
+- Profissional solicitante
+- Especialidade de destino
+- Profissional/serviço de destino (campo livre)
+- Motivo do encaminhamento
+- Observações clínicas
+- Assinatura do profissional
+
+Opções:
+- Gerar documento formatado
+- Imprimir
+- Exportar PDF
+- Histórico por paciente
+
+---
+
+7. SUBABA: SOLICITAÇÃO DE EXAMES
+
+Campos:
+
+- Nome do paciente
+- Data
+- Profissional solicitante
+- Tipo de exame
+- Lista de exames (campo múltipla escolha + campo livre)
+- Justificativa clínica
+- Observações
+- Assinatura do profissional
+
+Tipos de exames (sugestão):
+- Laboratoriais
+- Imagem (RX, USG, RM, TC)
+- Funcionais
+- Outros
+
+Funcionalidades:
+- Gerar documento pronto
+- Imprimir
+- Exportar PDF
+- Histórico por paciente
+
+---
+
+8. MODELOS PRONTOS
+
+Criar biblioteca de modelos editáveis para:
+- Receituário padrão
+- Encaminhamento padrão
+- Solicitação de exames padrão
+
+Permitir:
+- Editar modelos
+- Salvar novos modelos
+- Duplicar modelos
+
+---
+
+9. INTEGRAÇÃO COM PACIENTE
+
+Dentro do cadastro do paciente, criar aba:
+“Documentos”
+
+Mostrar:
+- Receituários emitidos
+- Encaminhamentos realizados
+- Exames solicitados
+- Opção de visualizar/baixar PDF
+
+---
+
+10. ASSINATURA AUTOMÁTICA
+
+Ao gerar qualquer documento, preencher automaticamente:
+
+- Nome do profissional
+- Especialidade
+- Registro profissional
+
+---
+
+11. PERMISSÕES
+
+- Profissional da saúde:
+  Pode criar e visualizar documentos próprios
+
+- Recepção:
+  Pode visualizar e imprimir
+
+- Gestor:
+  Acesso total + edição de modelos
+
+---
+
+12. PADRÃO VISUAL DOS DOCUMENTOS
+
+Todos os documentos devem conter:
+
+- Nome da clínica
+- Endereço
+- Telefone
+- Logo (se houver)
+- Dados do paciente
+- Dados do profissional
+- Corpo do documento
+- Assinatura
+- Data
+
+Layout profissional, limpo e pronto para impressão.
+
+---
+
+13. FILTROS E BUSCA
+
+Permitir busca por:
+- Paciente
+- Profissional
+- Tipo de documento
+- Data
+
+---
+
+14. HISTÓRICO E SEGURANÇA
+
+Registrar:
+- Quem criou
+- Data e hora
+- Alterações realizadas
+
+Não permitir exclusão sem confirmação.
+
+---
+
+15. CORRIGIR SISTEMA
+
+Garantir que:
+- Não haja erros ao selecionar profissional
+- Não haja erros ao gerar documentos
+- PDFs funcionem corretamente
+- Impressão funcione corretamente
+- Todos os dados sejam salvos corretamente
+
+---
+
+16. EXPERIÊNCIA DO USUÁRIO
+
+Sistema deve ser:
+- Intuitivo
+- Rápido
+- Responsivo (funcionar bem no celular)
+- Profissional (nível software de clínica premium)
+
+---
+
+ENTREGAR TUDO FUNCIONANDO DE PONTA A PONTA.

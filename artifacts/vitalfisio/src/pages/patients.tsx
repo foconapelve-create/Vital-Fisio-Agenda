@@ -24,6 +24,7 @@ type Patient = {
   zipCode?: string | null; addressStreet?: string | null; addressNumber?: string | null;
   addressComplement?: string | null; neighborhood?: string | null; city?: string | null;
   state?: string | null; notes?: string | null; createdAt: string;
+  contactPreference?: string | null;
 };
 
 type FormData = {
@@ -31,13 +32,14 @@ type FormData = {
   insuranceType: string; insuranceName: string; paymentMethod: string;
   totalSessions: number; amountPaid: string; zipCode: string; addressStreet: string; addressNumber: string;
   addressComplement: string; neighborhood: string; city: string; state: string; notes: string;
+  contactPreference: string;
 };
 
 const emptyForm: FormData = {
   name: "", phone: "", email: "", birthDate: "", insuranceType: "particular",
   insuranceName: "", paymentMethod: "dinheiro", totalSessions: 10, amountPaid: "",
   zipCode: "", addressStreet: "", addressNumber: "", addressComplement: "",
-  neighborhood: "", city: "", state: "", notes: "",
+  neighborhood: "", city: "", state: "", notes: "", contactPreference: "whatsapp",
 };
 
 const paymentMethods = [
@@ -125,6 +127,7 @@ export default function Patients() {
       zipCode: p.zipCode || "", addressStreet: p.addressStreet || "", addressNumber: p.addressNumber || "",
       addressComplement: p.addressComplement || "", neighborhood: p.neighborhood || "",
       city: p.city || "", state: p.state || "", notes: p.notes || "",
+      contactPreference: p.contactPreference || "whatsapp",
     });
     setIsDialogOpen(true);
   }
@@ -282,9 +285,22 @@ export default function Patients() {
                     <Input type="date" value={form.birthDate} onChange={e => setForm(p => ({ ...p, birthDate: e.target.value }))} />
                   </div>
                 </div>
-                <div>
-                  <Label>E-mail</Label>
-                  <Input type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>E-mail</Label>
+                    <Input type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Preferência de Contato</Label>
+                    <Select value={form.contactPreference} onValueChange={v => setForm(p => ({ ...p, contactPreference: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="email">E-mail</SelectItem>
+                        <SelectItem value="ambos">WhatsApp e E-mail</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </div>

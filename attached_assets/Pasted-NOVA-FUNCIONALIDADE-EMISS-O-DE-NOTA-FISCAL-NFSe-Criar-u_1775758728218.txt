@@ -1,0 +1,235 @@
+NOVA FUNCIONALIDADE: EMISSÃO DE NOTA FISCAL (NFSe)
+
+Criar uma nova aba no sistema chamada:
+“Financeiro > Nota Fiscal”
+
+Objetivo:
+Permitir emissão, controle e gestão de notas fiscais de serviço (NFSe) diretamente pelo sistema da clínica.
+
+---
+
+1. CONFIGURAÇÃO INICIAL DA CLÍNICA
+
+Criar uma subaba:
+“Configurações Fiscais”
+
+Campos obrigatórios:
+
+- Razão Social
+- Nome Fantasia
+- CNPJ
+- Inscrição Municipal
+- Regime tributário:
+  - Simples Nacional
+  - Lucro Presumido
+  - Lucro Real
+- Endereço completo da clínica
+- Cidade
+- Estado
+- CEP
+- E-mail fiscal
+- Telefone
+
+Campos técnicos:
+- Código do serviço (ISS)
+- Alíquota (%)
+- CNAE
+- Série da nota
+- Ambiente:
+  - Produção
+  - Homologação
+
+---
+
+2. INTEGRAÇÃO COM PREFEITURA (NFSe)
+
+Permitir integração via API com sistemas de NFSe, como:
+- ABRASF padrão nacional
+- Provedores como:
+  - Nota Carioca
+  - ISSNet
+  - Betha
+  - GINFES
+  - WebISS
+  - ou outro (campo configurável)
+
+Permitir configurar:
+- URL da API
+- Token / chave de acesso
+- Certificado digital (A1)
+(upload do arquivo .pfx + senha)
+
+---
+
+3. EMISSÃO DE NOTA
+
+Criar botão:
+“Emitir Nota Fiscal”
+
+Pode ser acionado:
+- Dentro do financeiro (receitas)
+- Dentro do cadastro do paciente
+- Após pagamento confirmado
+
+---
+
+4. DADOS AUTOMÁTICOS NA NOTA
+
+Puxar automaticamente:
+
+Do paciente:
+- Nome
+- CPF/CNPJ
+- E-mail
+- Endereço (se houver)
+
+Do sistema:
+- Serviço prestado
+- Profissional da saúde responsável
+- Valor pago
+- Forma de pagamento
+- Data do atendimento
+
+---
+
+5. CAMPOS DA NOTA
+
+Permitir editar antes de emitir:
+
+- Descrição do serviço
+- Valor
+- Código do serviço
+- Alíquota
+- Observações
+
+---
+
+6. STATUS DA NOTA
+
+Mostrar status:
+
+- Pendente
+- Emitida
+- Cancelada
+- Erro na emissão
+
+---
+
+7. AÇÕES DISPONÍVEIS
+
+Para cada nota:
+
+- Emitir
+- Visualizar
+- Baixar PDF
+- Enviar por e-mail
+- Cancelar nota
+- Reemitir
+
+---
+
+8. ENVIO AUTOMÁTICO
+
+Após emissão:
+
+- Enviar automaticamente a nota por e-mail para o paciente
+- Assunto:
+  “Sua nota fiscal - [Nome da Clínica]”
+
+---
+
+9. HISTÓRICO DE NOTAS
+
+Criar lista com:
+
+- Número da nota
+- Paciente
+- Data
+- Valor
+- Profissional
+- Status
+
+Permitir filtros por:
+- Data
+- Paciente
+- Profissional
+- Status
+
+---
+
+10. RELATÓRIOS
+
+Criar relatórios:
+
+- Total faturado por período
+- Total de notas emitidas
+- Total canceladas
+- Faturamento por profissional
+- Faturamento por tipo de serviço
+
+Permitir exportar:
+- PDF
+- Excel
+
+---
+
+11. INTEGRAÇÃO COM FINANCEIRO
+
+Toda nota deve estar vinculada a:
+- Uma receita
+
+Ao emitir nota:
+- Marcar receita como “faturada”
+
+---
+
+12. SEGURANÇA
+
+- Não permitir emissão sem dados fiscais completos
+- Validar CPF/CNPJ
+- Confirmar antes de cancelar nota
+- Registrar log:
+  - Quem emitiu
+  - Data/hora
+  - Alterações
+
+---
+
+13. PERMISSÕES
+
+- Recepção:
+  Pode emitir e enviar nota
+
+- Profissional da saúde:
+  Pode visualizar suas notas
+
+- Gestor:
+  Acesso total + configurações fiscais
+
+---
+
+14. EXPERIÊNCIA DO USUÁRIO
+
+- Interface simples
+- Botão rápido “Emitir nota”
+- Processo rápido (até 3 cliques)
+- Feedback visual de sucesso ou erro
+
+---
+
+15. IMPORTANTE (BRASIL)
+
+Sistema deve estar preparado para:
+- Diferença entre municípios
+- Padrões diferentes de NFSe
+- Integração via API REST ou SOAP
+
+Caso não seja possível integração imediata:
+Criar modo manual:
+- Gerar PDF da nota
+- Registrar como “emitida manualmente”
+
+---
+
+ENTREGAR TUDO FUNCIONANDO, SEM ERROS, INTEGRADO AO FINANCEIRO E CADASTRO DO PACIENTE.
+
