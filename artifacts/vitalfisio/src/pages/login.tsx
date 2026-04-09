@@ -291,7 +291,6 @@ export default function Login() {
                   <SelectContent>
                     <SelectItem value="profissional">Profissional da Saúde</SelectItem>
                     <SelectItem value="admin">Administrador</SelectItem>
-                    <SelectItem value="financeiro">Financeiro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
