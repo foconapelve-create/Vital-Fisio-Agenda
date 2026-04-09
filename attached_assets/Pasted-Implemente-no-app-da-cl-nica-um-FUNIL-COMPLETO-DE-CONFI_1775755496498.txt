@@ -1,0 +1,308 @@
+Implemente no app da clínica um FUNIL COMPLETO DE CONFIRMAÇÃO E REDUÇÃO DE FALTAS, com lógica profissional, automatizada e pensada para clínica de alto faturamento. Quero um fluxo inteligente para diminuir faltas, aumentar confirmações, facilitar remarcações e melhorar a ocupação da agenda.
+
+OBJETIVO GERAL
+Criar um sistema automático que acompanhe o paciente antes da sessão, classifique o nível de confirmação, gere alertas para a recepção, facilite remarcações e permita ações rápidas para evitar horários vazios na agenda.
+
+ESTRUTURA DO FUNIL
+
+1. STATUS INTELIGENTES DE CONFIRMAÇÃO
+Criar os seguintes status de jornada do agendamento:
+- agendado
+- mensagem enviada
+- aguardando confirmação
+- confirmado
+- solicitou remarcação
+- não respondeu
+- confirmado pela recepção
+- cancelado
+- faltou
+- reagendado
+- encaixe preenchido
+
+Todos esses status devem ficar visíveis na agenda, no cadastro do paciente e em uma aba de acompanhamento operacional.
+
+2. DISPARO AUTOMÁTICO EM 24 HORAS
+O sistema deve enviar automaticamente mensagem via WhatsApp 24 horas antes da sessão.
+
+Mensagem padrão:
+"Olá, [Nome]! Aqui é da clínica [Nome da Clínica]. Sua sessão está agendada para [data] às [horário].
+
+Para facilitar seu atendimento, responda:
+1 - Confirmar presença
+2 - Remarcar horário"
+
+Ao enviar a mensagem:
+- alterar status para “mensagem enviada”
+- depois para “aguardando confirmação”
+- registrar data e hora do envio
+- salvar histórico de disparo no agendamento
+
+3. LEITURA AUTOMÁTICA DAS RESPOSTAS
+O sistema deve interpretar automaticamente a resposta do paciente.
+
+Respostas que significam confirmação:
+- 1
+- sim
+- confirmo
+- confirmado
+- ok
+- estarei aí
+
+Ação:
+- mudar status para “confirmado”
+- registrar data e hora da resposta
+- destacar em verde na agenda
+
+Respostas que significam remarcação:
+- 2
+- remarcar
+- não posso
+- outro horário
+- preciso mudar
+- não consigo ir
+
+Ação:
+- mudar status para “solicitou remarcação”
+- gerar alerta automático para recepção
+- destacar em vermelho na agenda
+- criar pendência operacional
+
+Respostas não reconhecidas:
+- manter como “aguardando confirmação” ou “não respondeu”
+- sinalizar para conferência manual da recepção
+
+4. SEGUNDO DISPARO AUTOMÁTICO PARA QUEM NÃO RESPONDEU
+Se o paciente não responder dentro de um prazo configurável, criar uma segunda tentativa automática.
+
+Regra sugerida:
+- primeira mensagem: 24h antes
+- segunda mensagem: 12h antes, apenas para quem ainda estiver sem resposta
+
+Mensagem da segunda tentativa:
+"Olá, [Nome]! Não identificamos sua confirmação para a sessão de [data] às [horário]. Responda:
+1 - Confirmar presença
+2 - Remarcar horário"
+
+Ao enviar a segunda mensagem:
+- registrar nova tentativa
+- marcar que o paciente recebeu reforço de confirmação
+- manter rastreabilidade no histórico
+
+5. ALERTA AUTOMÁTICO PARA RECEPÇÃO
+Criar um painel de alertas para a recepção com os seguintes grupos:
+
+A. pacientes que pediram remarcação
+B. pacientes sem resposta
+C. pacientes com alto risco de falta
+D. horários vagos gerados por cancelamento
+
+Cada alerta deve mostrar:
+- nome do paciente
+- telefone
+- data e horário da sessão
+- fisioterapeuta
+- tempo desde o último contato
+- status atual
+- botão de ação rápida
+
+Botões de ação:
+- abrir WhatsApp
+- ligar
+- remarcar
+- marcar como resolvido
+- registrar observação
+
+6. CLASSIFICAÇÃO DE RISCO DE FALTA
+Criar um score simples de risco de ausência do paciente com base no histórico.
+
+Exemplos de critérios:
+- já faltou antes
+- costuma responder tarde
+- já cancelou em cima da hora
+- não respondeu desta vez
+- possui histórico de baixa adesão
+
+Classificação:
+- baixo risco
+- médio risco
+- alto risco
+
+Ações sugeridas:
+- baixo risco: seguir fluxo normal
+- médio risco: recepção acompanha
+- alto risco: criar alerta prioritário e contato ativo da recepção
+
+Esse risco deve aparecer:
+- no cadastro do paciente
+- no agendamento
+- no painel da recepção
+
+7. CONFIRMAÇÃO ATIVA PELA RECEPÇÃO
+Se o paciente não responder automaticamente, a recepção deve conseguir atuar manualmente.
+
+Criar ação:
+- “confirmado pela recepção”
+
+Quando a recepção entrar em contato e confirmar manualmente:
+- mudar status para “confirmado pela recepção”
+- registrar usuário responsável
+- registrar data e hora
+- manter histórico da interação
+
+8. FLUXO DE REMARCAÇÃO INTELIGENTE
+Quando o paciente escolher “2 - remarcar”:
+- não cancelar automaticamente sem controle
+- criar pendência para recepção
+- manter horário original com status “solicitou remarcação” até a recepção resolver
+- permitir oferecer novo horário
+- após definir novo horário:
+  - marcar sessão antiga como “remarcada”
+  - criar ou atualizar sessão nova
+  - atualizar agenda
+  - atualizar histórico
+  - remover pendência da recepção
+
+Garantir que a remarcação:
+- não duplique sessão
+- não mexa incorretamente nas sessões restantes
+- preserve rastreabilidade
+
+9. PREENCHIMENTO DE HORÁRIOS VAGOS
+Quando houver cancelamento, pedido de remarcação ou ausência prevista, criar lógica para reduzir prejuízo na agenda.
+
+Criar uma aba chamada:
+“OPORTUNIDADES DE ENCAIXE”
+
+Nessa aba, mostrar:
+- horários vagos do dia
+- horários vagos do dia seguinte
+- pacientes elegíveis para encaixe
+- pacientes da fila de espera
+- pacientes que querem antecipar atendimento
+- pacientes em tratamento com frequência alta
+
+Criar ações rápidas:
+- enviar mensagem de encaixe
+- registrar encaixe feito
+- vincular encaixe ao horário vago
+- marcar horário como preenchido
+
+Mensagem modelo de encaixe:
+"Olá, [Nome]! Surgiu um horário disponível na clínica para [data] às [horário]. Caso tenha interesse, responda esta mensagem para agendarmos."
+
+Se o encaixe for preenchido:
+- mudar status do horário para “encaixe preenchido”
+- registrar qual paciente ocupou a vaga
+- atualizar agenda em tempo real
+
+10. DASHBOARD OPERACIONAL DE REDUÇÃO DE FALTAS
+Criar um dashboard com os seguintes indicadores:
+
+- total de sessões do dia
+- total confirmado
+- total aguardando resposta
+- total solicitando remarcação
+- total sem resposta
+- total de faltas no dia
+- taxa de confirmação
+- taxa de faltas
+- taxa de remarcação
+- horários recuperados por encaixe
+- pacientes de alto risco no dia
+
+Criar filtros por:
+- dia
+- semana
+- mês
+- fisioterapeuta
+- unidade, se houver
+
+11. HISTÓRICO COMPLETO DE CONTATO
+Cada agendamento deve possuir histórico com:
+- mensagens enviadas
+- respostas recebidas
+- alteração de status
+- contato manual da recepção
+- remarcações
+- cancelamentos
+- encaixes
+
+Cada evento precisa registrar:
+- data
+- hora
+- usuário ou automação responsável
+- observação
+
+12. VISUAL NA AGENDA
+Aplicar padrão visual por cor:
+- confirmado = verde
+- confirmado pela recepção = azul
+- aguardando confirmação = amarelo
+- solicitou remarcação = vermelho
+- não respondeu = cinza
+- cancelado = preto ou cinza escuro
+- encaixe preenchido = roxo
+
+13. REGRAS DE NEGÓCIO IMPORTANTES
+- Não duplicar agendamentos.
+- Não perder histórico.
+- Não alterar sessões restantes de forma errada.
+- Toda alteração de status deve refletir na agenda em tempo real.
+- Toda resposta do WhatsApp deve buscar o agendamento correto.
+- O fisioterapeuta deve ver apenas o que for operacional/clínico, sem acesso ao financeiro.
+- A recepção deve ver pendências, confirmações, remarcações e encaixes.
+- O administrador deve ver tudo.
+
+14. AUTOMAÇÕES EXTRAS PARA CLÍNICA DE ALTO FATURAMENTO
+Criar automações adicionais:
+
+A. paciente com 2 faltas ou mais
+- gerar alerta de baixa adesão
+- sinalizar no cadastro
+- avisar recepção para contato ativo
+
+B. paciente que falta muito
+- marcar perfil como “risco de evasão”
+
+C. paciente que responde e confirma sempre
+- marcar perfil como “boa adesão”
+
+D. paciente sem retorno após cancelamento
+- criar lembrete para recepção retomar contato em X dias
+
+15. TESTES OBRIGATÓRIOS
+Testar de ponta a ponta:
+- envio 24h antes
+- interpretação da resposta “1”
+- interpretação da resposta “2”
+- segunda tentativa 12h antes
+- paciente sem resposta
+- alerta para recepção
+- confirmação manual pela recepção
+- remarcação
+- cancelamento
+- encaixe em vaga livre
+- atualização na agenda
+- atualização no dashboard
+- manutenção do histórico
+- funcionamento em desktop e mobile
+
+16. RESULTADO FINAL ESPERADO
+Quero um funil operacional completo, automático, com foco em:
+- reduzir faltas
+- aumentar confirmações
+- facilitar remarcações
+- recuperar horários vagos
+- melhorar ocupação da agenda
+- dar previsibilidade para recepção
+- profissionalizar o relacionamento com o paciente
+
+Não quero só layout. Quero tudo funcional, integrado, testado e pronto para uso real no app.
+
+
+
+
+Atualize o sistema da clínica para incluir visualização da agenda em dois modos: DIÁRIA e SEMANAL.
+
+Objetivo:
+Permitir que a recepção e a gestão visualizem os agendamentos de forma prática, podendo alternar entre a agenda do dia e a agenda da semana inteira.

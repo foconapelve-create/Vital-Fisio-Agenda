@@ -25,28 +25,51 @@ import { format, addDays, startOfWeek, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const STATUS_LABELS: Record<string, string> = {
-  agendado: "Agendado", confirmado: "Confirmado", presente: "Presente",
-  falta: "Falta", cancelado: "Cancelado", remarcado: "Remarcado", encaixe: "Encaixe",
+  agendado: "Agendado",
+  mensagem_enviada: "Msg. Enviada",
+  aguardando_confirmacao: "Ag. Confirmação",
+  confirmado: "Confirmado",
+  confirmado_recepcao: "Conf. Recepção",
+  solicitou_remarcacao: "Sol. Remarcação",
+  nao_respondeu: "Não Respondeu",
+  presente: "Presente",
+  falta: "Falta",
+  cancelado: "Cancelado",
+  remarcado: "Remarcado",
+  encaixe: "Encaixe",
+  encaixe_preenchido: "Encaixe Preen.",
 };
 
 const STATUS_COLORS: Record<string, string> = {
   agendado: "bg-blue-100 text-blue-800 border-blue-200",
+  mensagem_enviada: "bg-sky-100 text-sky-800 border-sky-200",
+  aguardando_confirmacao: "bg-yellow-100 text-yellow-800 border-yellow-200",
   confirmado: "bg-teal-100 text-teal-800 border-teal-200",
+  confirmado_recepcao: "bg-cyan-100 text-cyan-800 border-cyan-200",
+  solicitou_remarcacao: "bg-red-100 text-red-800 border-red-200",
+  nao_respondeu: "bg-gray-100 text-gray-700 border-gray-300",
   presente: "bg-green-100 text-green-800 border-green-200",
   falta: "bg-orange-100 text-orange-800 border-orange-200",
-  cancelado: "bg-red-100 text-red-800 border-red-200",
+  cancelado: "bg-slate-100 text-slate-700 border-slate-300",
   remarcado: "bg-purple-100 text-purple-800 border-purple-200",
   encaixe: "bg-amber-100 text-amber-800 border-amber-200",
+  encaixe_preenchido: "bg-violet-100 text-violet-800 border-violet-200",
 };
 
 const STATUS_BG_COLORS: Record<string, string> = {
   agendado: "bg-blue-50 border-blue-200 hover:bg-blue-100",
+  mensagem_enviada: "bg-sky-50 border-sky-200 hover:bg-sky-100",
+  aguardando_confirmacao: "bg-yellow-50 border-yellow-200 hover:bg-yellow-100",
   confirmado: "bg-teal-50 border-teal-200 hover:bg-teal-100",
+  confirmado_recepcao: "bg-cyan-50 border-cyan-200 hover:bg-cyan-100",
+  solicitou_remarcacao: "bg-red-50 border-red-200 hover:bg-red-100",
+  nao_respondeu: "bg-gray-50 border-gray-300 hover:bg-gray-100",
   presente: "bg-green-50 border-green-200 hover:bg-green-100",
   falta: "bg-orange-50 border-orange-200 hover:bg-orange-100",
-  cancelado: "bg-red-50 border-red-200 hover:bg-red-100",
+  cancelado: "bg-slate-50 border-slate-300 hover:bg-slate-100",
   remarcado: "bg-purple-50 border-purple-200 hover:bg-purple-100",
   encaixe: "bg-amber-50 border-amber-200 hover:bg-amber-100",
+  encaixe_preenchido: "bg-violet-50 border-violet-200 hover:bg-violet-100",
 };
 
 const MORNING_SLOTS = ["08:00", "08:40", "09:20", "10:00", "10:40", "11:20"];
@@ -68,12 +91,17 @@ type AppointmentType = {
 type TherapistType = { id: number; name: string; specialty: string; phone: string };
 type PatientType = { id: number; name: string; phone: string };
 
+const ALL_STATUSES_LIST = [
+  "agendado","mensagem_enviada","aguardando_confirmacao","confirmado","confirmado_recepcao",
+  "solicitou_remarcacao","nao_respondeu","presente","falta","cancelado","remarcado","encaixe","encaixe_preenchido"
+] as const;
+
 const newApptSchema = z.object({
   patientId: z.number().min(1, "Selecione um paciente"),
   therapistId: z.number().min(1, "Selecione um fisioterapeuta"),
   date: z.string().min(1, "Data é obrigatória"),
   time: z.string().min(1, "Horário é obrigatório"),
-  status: z.enum(["agendado","confirmado","presente","falta","cancelado","remarcado","encaixe"]),
+  status: z.enum(ALL_STATUSES_LIST),
   notes: z.string().optional().nullable(),
 });
 
@@ -94,6 +122,8 @@ export default function Agenda() {
   const [isNewApptOpen, setIsNewApptOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [createMode, setCreateMode] = useState<"single" | "recurring">("single");
+  const [viewMode, setViewMode] = useState<"semanal" | "diaria">("semanal");
+  const [dailyDate, setDailyDate] = useState<Date>(new Date());
 
   // Recurrence state
   const [recForm, setRecForm] = useState({
@@ -107,7 +137,10 @@ export default function Agenda() {
 
   const weekStartStr = format(currentWeekStart, "yyyy-MM-dd");
   const weekDays = Array.from({ length: 6 }, (_, i) => addDays(currentWeekStart, i));
-  const queryParams: Record<string, string | number> = { weekStart: weekStartStr };
+  const dailyDateStr = format(dailyDate, "yyyy-MM-dd");
+  const queryParams: Record<string, string | number> = viewMode === "semanal"
+    ? { weekStart: weekStartStr }
+    : { date: dailyDateStr };
   if (selectedTherapistId) queryParams.therapistId = selectedTherapistId;
 
   const { data: appointments = [], isLoading: isLoadingAppts } = useListAppointments(queryParams, {
@@ -251,39 +284,70 @@ export default function Agenda() {
 
   const today = new Date();
 
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Agenda Semanal</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {viewMode === "semanal" ? "Agenda Semanal" : "Agenda Diária"}
+          </h1>
           <p className="text-muted-foreground mt-1">
-            {format(currentWeekStart, "dd 'de' MMMM", { locale: ptBR })} —{" "}
-            {format(addDays(currentWeekStart, 5), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            {viewMode === "semanal"
+              ? `${format(currentWeekStart, "dd 'de' MMMM", { locale: ptBR })} — ${format(addDays(currentWeekStart, 5), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`
+              : format(dailyDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          {/* View Mode Toggle */}
+          <div className="flex rounded-lg border border-border overflow-hidden">
+            <Button variant={viewMode === "semanal" ? "default" : "ghost"}
+              size="sm" className="rounded-none h-9 px-3 text-xs"
+              onClick={() => setViewMode("semanal")}>Semanal</Button>
+            <Button variant={viewMode === "diaria" ? "default" : "ghost"}
+              size="sm" className="rounded-none h-9 px-3 text-xs border-l"
+              onClick={() => setViewMode("diaria")}>Diária</Button>
+          </div>
           <Select value={selectedTherapistId?.toString() ?? "all"} onValueChange={v => setSelectedTherapistId(v === "all" ? undefined : parseInt(v))}>
-            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Todos os fisioterapeutas" /></SelectTrigger>
+            <SelectTrigger className="w-[190px]"><SelectValue placeholder="Todos os fisioterapeutas" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os fisioterapeutas</SelectItem>
               {(therapists as TherapistType[]).map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" onClick={() => setCurrentWeekStart(addDays(currentWeekStart, -7))}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
-              Hoje
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => setCurrentWeekStart(addDays(currentWeekStart, 7))}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            {viewMode === "semanal" ? (
+              <>
+                <Button variant="outline" size="icon" onClick={() => setCurrentWeekStart(addDays(currentWeekStart, -7))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
+                  Hoje
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => setCurrentWeekStart(addDays(currentWeekStart, 7))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" size="icon" onClick={() => setDailyDate(addDays(dailyDate, -1))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setDailyDate(new Date())}>
+                  Hoje
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => setDailyDate(addDays(dailyDate, 1))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
           <Button onClick={() => {
             setCreateMode("single");
-            newApptForm.reset({ patientId: 0, therapistId: 0, date: format(new Date(), "yyyy-MM-dd"), time: "08:00", status: "agendado", notes: null });
-            setRecForm({ patientId: "", therapistId: "", startDate: format(new Date(), "yyyy-MM-dd"), time: "08:00", recurrenceType: "semanal", weekDays: [], totalCount: "12", endDate: "", notes: "" });
+            const defaultDate = viewMode === "diaria" ? dailyDateStr : format(new Date(), "yyyy-MM-dd");
+            newApptForm.reset({ patientId: 0, therapistId: 0, date: defaultDate, time: "08:00", status: "agendado", notes: null });
+            setRecForm({ patientId: "", therapistId: "", startDate: defaultDate, time: "08:00", recurrenceType: "semanal", weekDays: [], totalCount: "12", endDate: "", notes: "" });
             setIsNewApptOpen(true);
           }} className="gap-2">
             <Plus className="h-4 w-4" /> Novo Agendamento
@@ -298,67 +362,133 @@ export default function Agenda() {
         ))}
       </div>
 
-      {/* Weekly Grid */}
-      <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
-        <div className="min-w-[700px]">
-          <div className="grid grid-cols-7 bg-muted/60 border-b border-border">
-            <div className="py-3 px-3 text-xs font-semibold text-muted-foreground text-center border-r border-border">Horário</div>
-            {weekDays.map(day => {
-              const isToday = isSameDay(day, today);
+      {/* Daily View */}
+      {viewMode === "diaria" && (
+        <div className="rounded-xl border border-border shadow-sm overflow-hidden">
+          {/* Stats bar */}
+          {!isLoadingAppts && (
+            <div className="flex gap-6 px-4 py-2 bg-muted/40 border-b border-border text-xs">
+              <span className="text-muted-foreground">Total: <strong className="text-foreground">{(appointments as AppointmentType[]).length}</strong></span>
+              {["confirmado","confirmado_recepcao","presente"].map(s => {
+                const count = (appointments as AppointmentType[]).filter(a => a.status === s).length;
+                return count > 0 ? <span key={s} className={`px-2 py-0.5 rounded ${STATUS_COLORS[s]}`}>{STATUS_LABELS[s]}: {count}</span> : null;
+              })}
+              {["solicitou_remarcacao","nao_respondeu","falta"].map(s => {
+                const count = (appointments as AppointmentType[]).filter(a => a.status === s).length;
+                return count > 0 ? <span key={s} className={`px-2 py-0.5 rounded ${STATUS_COLORS[s]}`}>{STATUS_LABELS[s]}: {count}</span> : null;
+              })}
+            </div>
+          )}
+          <div className="divide-y divide-border">
+            {ALL_SLOTS.map((slot, slotIdx) => {
+              const key = `${dailyDateStr}|${slot}`;
+              const apts = apptsByDateAndTime.get(key) || [];
+              const isMorningBreak = slot === "13:30";
               return (
-                <div key={day.toISOString()} className={`py-3 px-2 text-center border-r border-border last:border-r-0 ${isToday ? "bg-primary/10" : ""}`}>
-                  <div className={`text-xs font-semibold uppercase ${isToday ? "text-primary" : "text-muted-foreground"}`}>
-                    {format(day, "EEE", { locale: ptBR })}
-                  </div>
-                  <div className={`text-lg font-bold mt-0.5 ${isToday ? "text-primary" : "text-foreground"}`}>
-                    {format(day, "dd")}
+                <div key={slot}>
+                  {isMorningBreak && (
+                    <div className="py-1.5 px-4 bg-muted/30 text-xs text-muted-foreground text-center border-y border-dashed border-muted-foreground/20">
+                      ☀️ Tarde
+                    </div>
+                  )}
+                  <div className={`flex gap-3 px-4 py-3 ${slotIdx % 2 === 0 ? "bg-background" : "bg-muted/10"} ${apts.length === 0 ? "min-h-[56px]" : ""}`}>
+                    <div className="w-14 shrink-0 text-xs font-mono text-muted-foreground font-medium pt-1">{slot}</div>
+                    {isLoadingAppts ? (
+                      <div className="flex-1 h-12 bg-muted rounded animate-pulse" />
+                    ) : apts.length === 0 ? (
+                      <div className="flex-1 flex items-center">
+                        <span className="text-xs text-muted-foreground/40 italic">Horário livre</span>
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex flex-wrap gap-2">
+                        {apts.map(apt => (
+                          <button key={apt.id} onClick={() => setSelectedAppointment(apt)}
+                            className={`text-left rounded-lg border p-3 transition-colors cursor-pointer flex-1 min-w-[180px] max-w-[280px] ${STATUS_BG_COLORS[apt.status] || "bg-gray-50 border-gray-200 hover:bg-gray-100"}`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-sm leading-tight">{apt.patientName}</span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded border ${STATUS_COLORS[apt.status] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                                {STATUS_LABELS[apt.status] || apt.status}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {apt.therapistName} {apt.patientPhone && <span>· {apt.patientPhone}</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
-
-          {ALL_SLOTS.map((slot, slotIndex) => {
-            const isSectionBreak = slot === "13:30";
-            return (
-              <div key={slot}>
-                {isSectionBreak && (
-                  <div className="grid grid-cols-7 bg-muted/30 border-y border-dashed border-muted-foreground/20">
-                    <div className="py-1 px-3 text-xs text-muted-foreground col-span-7 text-center">☀️ Tarde</div>
-                  </div>
-                )}
-                <div className={`grid grid-cols-7 border-b border-border last:border-b-0 ${slotIndex % 2 === 0 ? "bg-background" : "bg-muted/20"}`} style={{ minHeight: "68px" }}>
-                  <div className="py-2 px-3 text-xs font-mono text-muted-foreground font-medium border-r border-border flex items-start justify-center pt-3">{slot}</div>
-                  {weekDays.map(day => {
-                    const dateStr = format(day, "yyyy-MM-dd");
-                    const key = `${dateStr}|${slot}`;
-                    const apts = apptsByDateAndTime.get(key) || [];
-                    const isToday = isSameDay(day, today);
-                    return (
-                      <div key={dateStr} className={`py-1.5 px-1 border-r border-border last:border-r-0 ${isToday ? "bg-primary/5" : ""}`}>
-                        {isLoadingAppts ? (
-                          <div className="h-10 bg-muted rounded animate-pulse" />
-                        ) : (
-                          <div className="flex flex-wrap gap-1">
-                            {apts.map(apt => (
-                              <button key={apt.id} onClick={() => setSelectedAppointment(apt)}
-                                className={`text-left text-xs rounded border p-1.5 transition-colors cursor-pointer flex-shrink-0 ${STATUS_BG_COLORS[apt.status] || "bg-gray-50 border-gray-200 hover:bg-gray-100"}`}
-                                style={{ minWidth: apts.length > 1 ? "calc(50% - 2px)" : "100%", maxWidth: "100%" }}>
-                                <div className="font-semibold truncate leading-tight text-[11px]">{apt.patientName.split(" ")[0]}</div>
-                                <div className="text-[10px] opacity-60 truncate">{apt.therapistName.split(" ")[0]}</div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
         </div>
-      </div>
+      )}
+
+      {/* Weekly Grid */}
+      {viewMode === "semanal" && (
+        <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
+          <div className="min-w-[700px]">
+            <div className="grid grid-cols-7 bg-muted/60 border-b border-border">
+              <div className="py-3 px-3 text-xs font-semibold text-muted-foreground text-center border-r border-border">Horário</div>
+              {weekDays.map(day => {
+                const isToday = isSameDay(day, today);
+                return (
+                  <div key={day.toISOString()} className={`py-3 px-2 text-center border-r border-border last:border-r-0 cursor-pointer hover:bg-muted/80 transition-colors ${isToday ? "bg-primary/10" : ""}`}
+                    onClick={() => { setDailyDate(day); setViewMode("diaria"); }}>
+                    <div className={`text-xs font-semibold uppercase ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                      {format(day, "EEE", { locale: ptBR })}
+                    </div>
+                    <div className={`text-lg font-bold mt-0.5 ${isToday ? "text-primary" : "text-foreground"}`}>
+                      {format(day, "dd")}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {ALL_SLOTS.map((slot, slotIndex) => {
+              const isSectionBreak = slot === "13:30";
+              return (
+                <div key={slot}>
+                  {isSectionBreak && (
+                    <div className="grid grid-cols-7 bg-muted/30 border-y border-dashed border-muted-foreground/20">
+                      <div className="py-1 px-3 text-xs text-muted-foreground col-span-7 text-center">☀️ Tarde</div>
+                    </div>
+                  )}
+                  <div className={`grid grid-cols-7 border-b border-border last:border-b-0 ${slotIndex % 2 === 0 ? "bg-background" : "bg-muted/20"}`} style={{ minHeight: "68px" }}>
+                    <div className="py-2 px-3 text-xs font-mono text-muted-foreground font-medium border-r border-border flex items-start justify-center pt-3">{slot}</div>
+                    {weekDays.map(day => {
+                      const dateStr = format(day, "yyyy-MM-dd");
+                      const key = `${dateStr}|${slot}`;
+                      const apts = apptsByDateAndTime.get(key) || [];
+                      const isToday = isSameDay(day, today);
+                      return (
+                        <div key={dateStr} className={`py-1.5 px-1 border-r border-border last:border-r-0 ${isToday ? "bg-primary/5" : ""}`}>
+                          {isLoadingAppts ? (
+                            <div className="h-10 bg-muted rounded animate-pulse" />
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {apts.map(apt => (
+                                <button key={apt.id} onClick={() => setSelectedAppointment(apt)}
+                                  className={`text-left text-xs rounded border p-1.5 transition-colors cursor-pointer flex-shrink-0 ${STATUS_BG_COLORS[apt.status] || "bg-gray-50 border-gray-200 hover:bg-gray-100"}`}
+                                  style={{ minWidth: apts.length > 1 ? "calc(50% - 2px)" : "100%", maxWidth: "100%" }}>
+                                  <div className="font-semibold truncate leading-tight text-[11px]">{apt.patientName.split(" ")[0]}</div>
+                                  <div className="text-[10px] opacity-60 truncate">{apt.therapistName.split(" ")[0]}</div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Appointment Detail Panel */}
       {selectedAppointment && (

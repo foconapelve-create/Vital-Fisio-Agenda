@@ -22,6 +22,7 @@ export const patientsTable = pgTable("patients", {
   city: text("city"),
   state: text("state"),
   notes: text("notes"),
+  adhesionProfile: text("adhesion_profile"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

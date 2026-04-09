@@ -1,12 +1,18 @@
 import { Router, type IRouter } from "express";
-import { eq, and, gte, lte, sql, ne } from "drizzle-orm";
-import { db, appointmentsTable, patientsTable, therapistsTable } from "@workspace/db";
+import { eq, and, gte, lte, sql, ne, desc } from "drizzle-orm";
+import { db, appointmentsTable, patientsTable, therapistsTable, appointmentContactsTable } from "@workspace/db";
 import {
   CreateAppointmentBody, UpdateAppointmentBody,
-  UpdateAppointmentStatusBody, RescheduleAppointmentBody,
+  RescheduleAppointmentBody,
   ListAppointmentsQueryParams,
 } from "@workspace/api-zod";
 import { randomUUID } from "crypto";
+
+const ALL_STATUSES = [
+  "agendado", "mensagem_enviada", "aguardando_confirmacao", "confirmado",
+  "confirmado_recepcao", "solicitou_remarcacao", "nao_respondeu",
+  "presente", "falta", "cancelado", "remarcado", "encaixe", "encaixe_preenchido",
+] as const;
 
 const router: IRouter = Router();
 
@@ -80,6 +86,41 @@ router.get("/appointments/upcoming", async (req, res): Promise<void> => {
     .orderBy(appointmentsTable.date, appointmentsTable.time);
 
   res.json(apts);
+});
+
+// ─── ENCAIXE OPPORTUNITIES (must be before /:id to avoid conflict) ───────────
+
+router.get("/appointments/encaixe-opportunities", async (req, res): Promise<void> => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    const slots = ["08:00","08:40","09:20","10:00","10:40","11:20","13:30","14:10","14:50","15:30","16:10","16:50"];
+
+    const existingApts = await db.select(buildSelect()).from(appointmentsTable)
+      .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
+      .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+      .where(and(
+        gte(appointmentsTable.date, today),
+        lte(appointmentsTable.date, tomorrow),
+        sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`,
+      ));
+
+    const allPatients = await db.select({ id: patientsTable.id, name: patientsTable.name, phone: patientsTable.phone, remainingSessions: patientsTable.remainingSessions })
+      .from(patientsTable).where(sql`${patientsTable.remainingSessions} > 0`).limit(20);
+
+    const freeSlots: Array<{ date: string; time: string }> = [];
+    for (const date of [today, tomorrow]) {
+      for (const time of slots) {
+        const occupied = existingApts.filter(a => a.date === date && a.time === time);
+        if (occupied.length === 0) freeSlots.push({ date, time });
+      }
+    }
+
+    const requestingReschedule = existingApts.filter(a => a.status === "solicitou_remarcacao");
+    res.json({ freeSlots, eligiblePatients: allPatients, requestingReschedule });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || "Erro ao buscar oportunidades de encaixe" });
+  }
 });
 
 // ─── DELETE GROUP (must be before /:id to avoid conflict) ────────────────────
@@ -268,6 +309,35 @@ router.delete("/appointments/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
+// ─── CONTACT HISTORY ─────────────────────────────────────────────────────────
+
+router.get("/appointments/:id/contacts", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
+  const contacts = await db.select().from(appointmentContactsTable)
+    .where(eq(appointmentContactsTable.appointmentId, id))
+    .orderBy(desc(appointmentContactsTable.createdAt));
+  res.json(contacts);
+});
+
+router.post("/appointments/:id/contacts", async (req, res): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
+    const { type, content, performedBy } = req.body;
+    if (!type) { res.status(400).json({ error: "type é obrigatório" }); return; }
+    const [contact] = await db.insert(appointmentContactsTable).values({
+      appointmentId: id,
+      type: String(type),
+      content: content ? String(content) : null,
+      performedBy: performedBy ? String(performedBy) : "sistema",
+    }).returning();
+    res.status(201).json(contact);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || "Erro ao registrar contato" });
+  }
+});
+
 // ─── UPDATE STATUS ────────────────────────────────────────────────────────────
 
 router.patch("/appointments/:id/status", async (req, res): Promise<void> => {
@@ -275,18 +345,39 @@ router.patch("/appointments/:id/status", async (req, res): Promise<void> => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-    const parsed = UpdateAppointmentStatusBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: "Status inválido. Use: agendado, confirmado, presente, falta, cancelado, remarcado, encaixe" });
+    const { status, performedBy } = req.body;
+    if (!status || !ALL_STATUSES.includes(status)) {
+      res.status(400).json({ error: `Status inválido. Use: ${ALL_STATUSES.join(", ")}` });
       return;
     }
 
-    const { status } = parsed.data;
     const [current] = await db.select().from(appointmentsTable).where(eq(appointmentsTable.id, id));
     if (!current) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
 
     const prevStatus = current.status;
     await db.update(appointmentsTable).set({ status }).where(eq(appointmentsTable.id, id));
+
+    // Auto-log status change in contacts
+    const statusLabel: Record<string, string> = {
+      mensagem_enviada: "Mensagem WhatsApp enviada",
+      aguardando_confirmacao: "Aguardando confirmação do paciente",
+      confirmado: "Paciente confirmou presença",
+      confirmado_recepcao: "Confirmado manualmente pela recepção",
+      solicitou_remarcacao: "Paciente solicitou remarcação",
+      nao_respondeu: "Paciente não respondeu",
+      presente: "Paciente presente na sessão",
+      falta: "Paciente faltou à sessão",
+      cancelado: "Sessão cancelada",
+      remarcado: "Sessão remarcada",
+    };
+    if (statusLabel[status] && status !== prevStatus) {
+      await db.insert(appointmentContactsTable).values({
+        appointmentId: id,
+        type: "status_change",
+        content: statusLabel[status],
+        performedBy: performedBy ? String(performedBy) : "sistema",
+      });
+    }
 
     // Session count management
     if (status === "presente" && prevStatus !== "presente") {

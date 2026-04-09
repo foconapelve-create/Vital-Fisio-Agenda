@@ -1,0 +1,211 @@
+Funcionalidades obrigatórias:
+
+1. Criar um seletor de visualização da agenda com 2 opções:
+   - Agenda Diária
+   - Agenda Semanal
+
+2. Agenda Diária:
+   - Mostrar apenas os agendamentos do dia selecionado
+   - Exibir os horários em blocos de 40 minutos
+   - Mostrar em cada horário:
+     - nome do paciente
+     - fisioterapeuta
+     - status do atendimento
+     - tipo de atendimento
+   - Permitir ações rápidas:
+     - confirmar presença
+     - remarcar
+     - cancelar
+     - registrar falta
+     - marcar como concluído
+
+3. Agenda Semanal:
+   - Mostrar a semana completa de segunda a sábado
+   - Exibir colunas por dia da semana
+   - Exibir linhas por horário em blocos de 40 minutos
+   - Mostrar todos os pacientes agendados em cada horário
+   - Permitir visualizar os 21 pacientes por horário quando houver lotação máxima
+   - Destacar visualmente horários com vagas disponíveis, horários cheios, cancelamentos e faltas
+
+4. Navegação da agenda:
+   - Botão “Hoje” para voltar ao dia atual
+   - Botão “Semana Atual”
+   - Setas para avançar e voltar dias
+   - Setas para avançar e voltar semanas
+
+5. Filtros:
+   - Filtrar por fisioterapeuta
+   - Filtrar por status
+   - Filtrar por tipo de atendimento
+   - Filtrar por paciente
+
+6. Layout:
+   - Interface moderna, limpa e responsiva
+   - Cards ou tabela organizada
+   - Cores diferentes para cada status:
+     - confirmado
+     - pendente
+     - falta
+     - cancelado
+     - concluído
+     - remarcar
+   - Manter visual profissional de clínica
+
+7. Regras da agenda:
+   - Horários da manhã: 08:00 às 12:00
+   - Horários da tarde: 13:30 às 17:00
+   - Intervalos fixos de 40 em 40 minutos
+   - Cada horário pode comportar ate 40 pacientes
+   - Cada paciente deve estar vinculado a um fisioterapeuta e a um status de sessão 
+-não limitar número de pacientes por fisioterapeuta 
+
+8. Banco de dados:
+   Garantir que cada agendamento tenha os campos:
+   - paciente
+   - fisioterapeuta
+   - data
+   - horário
+   - status
+   - tipo de atendimento
+   - observações
+   - presença_confirmada (sim/não)
+
+9. Comportamento do sistema:
+   - Ao alternar entre agenda diária e semanal, os dados devem carregar corretamente sem erros
+   - Atualizar a agenda em tempo real após novo agendamento, remarcação ou cancelamento
+   - Corrigir qualquer erro de sincronização entre cadastro, agenda e status do paciente
+
+10. Extras importantes:
+   - Na agenda diária, mostrar total de pacientes do dia
+   - Na agenda semanal, mostrar total de agendamentos por dia
+   - Mostrar quantidade de vagas restantes em cada horário
+   - Permitir clicar no agendamento para abrir os detalhes do paciente
+
+11. Corrigir possíveis erros:
+   - erro ao exibir horários
+   - erro ao trocar entre visualização diária e semanal
+   - erro de atualização após remarcar paciente
+   - erro na recorrência dos agendamentos
+   - erro no carregamento da agenda
+
+Objetivo final:
+Deixar a agenda do sistema completa, funcional, visualmente profissional e com opção clara de visualização diária e semanal para facilitar a rotina da clínica.
+
+
+
+Atualize o sistema completo para permitir IMPRIMIR e SALVAR EM PDF em todas as áreas principais do app, com layout profissional, organizado e pronto para uso em clínica.
+
+Objetivo:
+Permitir que a usuária consiga imprimir ou salvar em PDF qualquer tela importante do sistema com apenas um clique, incluindo agenda, financeiro, cadastro e relatórios.
+
+Funcionalidades obrigatórias:
+
+1. Adicionar botões visíveis em todas as áreas principais do sistema:
+   - Botão “Imprimir”
+   - Botão “Salvar em PDF”
+
+2. Áreas que devem ter essa função:
+   - Dashboard
+   - Agenda diária
+   - Agenda semanal
+   - Cadastro de pacientes
+   - Cadastro de fisioterapeutas
+   - Controle financeiro
+   - Contas a pagar
+   - Relatórios
+   - Histórico de atendimentos
+   - Ficha individual do paciente
+   - Resumo de faturamento diário, semanal e mensal
+
+3. Função de impressão:
+   - Abrir visualização limpa para impressão
+   - Ocultar menus laterais, botões de edição, cabeçalho desnecessário e elementos que não precisam aparecer no papel
+   - Mostrar apenas o conteúdo principal da tela
+   - Ajustar automaticamente para formato A4
+   - Permitir impressão em retrato ou paisagem conforme a área
+   - Manter boa quebra de página para não cortar tabelas ou cards no meio
+
+4. Função de salvar em PDF:
+   - Gerar PDF com o mesmo layout da impressão
+   - Nomear o arquivo automaticamente conforme a área e a data
+   - Exemplos:
+     - agenda-diaria-2026-04-08.pdf
+     - agenda-semanal-2026-04-08.pdf
+     - financeiro-semanal-2026-04-08.pdf
+     - ficha-paciente-nome-do-paciente.pdf
+   - Garantir que o PDF seja baixado corretamente sem quebrar o layout
+
+5. Layout do PDF e impressão:
+   - Visual profissional
+   - Cabeçalho com nome da clínica e data de emissão
+   - Título da página impressa
+   - Tabelas organizadas
+   - Fontes legíveis
+   - Espaçamento adequado
+   - Paginação no rodapé
+   - Manter identidade visual limpa e moderna
+
+6. Regras por área:
+   - Agenda diária:
+     - mostrar data
+     - horários
+     - pacientes
+     - fisioterapeuta
+     - status
+   - Agenda semanal:
+     - mostrar semana completa
+     - agendamentos por dia
+     - horários
+     - vagas restantes
+   - Financeiro:
+     - mostrar receitas
+     - despesas
+     - forma de pagamento
+     - totais
+   - Cadastro de pacientes:
+     - permitir imprimir ficha individual
+     - permitir salvar histórico em PDF
+   - Relatórios:
+     - permitir impressão de relatórios completos com filtros aplicados
+
+7. Comportamento do sistema:
+   - Os botões devem funcionar em desktop e mobile
+   - O sistema deve respeitar os filtros ativos ao imprimir ou gerar PDF
+   - Exemplo:
+     - se filtrar por fisioterapeuta, imprimir apenas os dados filtrados
+     - se filtrar por período, gerar PDF apenas daquele período
+   - Atualizar os dados antes da exportação para evitar PDF com informação desatualizada
+
+8. Estrutura técnica:
+   - Criar componente reutilizável de impressão/exportação
+   - Criar versão print-friendly de cada tela
+   - Garantir compatibilidade com tabelas, cards e listas
+   - Corrigir problemas de corte de conteúdo
+   - Corrigir problemas de alinhamento no PDF
+   - Corrigir problemas de quebra de página
+   - Corrigir erro de exportação de telas grandes
+
+9. Segurança e controle:
+   - Apenas usuários autorizados podem imprimir ou salvar PDF de dados sensíveis
+   - Garantir que dados do paciente só apareçam para perfis com permissão
+
+10. Extras importantes:
+   - Adicionar opção de imprimir ou salvar PDF de:
+     - um único paciente
+     - um único dia
+     - uma semana inteira
+     - um período financeiro
+   - Adicionar visualização prévia antes de imprimir ou salvar
+   - Garantir que logos, títulos e informações não fiquem distorcidos
+
+11. Corrigir possíveis erros:
+   - erro ao gerar PDF em telas com muitos dados
+   - erro de corte de tabela
+   - erro de layout na impressão
+   - erro ao exportar agenda semanal
+   - erro ao exportar ficha do paciente
+   - erro ao gerar PDF no celular
+   - erro ao aplicar filtros antes de exportar
+
+Objetivo final:
+Deixar o sistema totalmente preparado para impressão e exportação em PDF em todas as áreas, com qualidade profissional, boa organização visual e funcionamento estável.

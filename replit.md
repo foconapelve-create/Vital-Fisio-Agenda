@@ -44,11 +44,30 @@ Full-stack physiotherapy clinic management system (Brazilian Portuguese).
 - `/patients` — patient CRUD (cards, search, sessions counter)
 - `/patients/:id/history` — full appointment history per patient
 - `/therapists` — therapist CRUD
-- `/agenda` — weekly visual schedule (40-min blocks: 08:00-11:20 & 13:30-16:50)
+- `/agenda` — dual-view schedule: **Semanal** (weekly grid, 40-min blocks) and **Diária** (daily timeline with per-slot detail, stats bar). Click any day header in weekly view to jump to daily view.
+- `/confirmacoes` — Funil completo de confirmações (4 abas: Funil, Alertas, Encaixes, Dashboard)
 - `/reports` — 3-tab reports (daily attendance chart, absences list, remaining sessions per patient)
 
+### Confirmation Funnel (Confirmações)
+- **Tab Funil**: all upcoming appointments with actions (WhatsApp 24h, WhatsApp 2ª tentativa 12h, Confirmar pela recepção, Não respondeu, Observação). Per-appointment expandable contact history.
+- **Tab Alertas**: grouped by action-needed (Solicitaram Remarcação, Não Responderam, Aguardando Confirmação) with badges count
+- **Tab Encaixes**: free time slots today/tomorrow + eligible patients (with remaining sessions) + WhatsApp oportunidade de encaixe template
+- **Tab Dashboard**: operational metrics (total today, confirmed, waiting, no-response, rescheduling requests, absences, confirmation rate, free slots) + status distribution bar chart
+
 ### Business Rules
-- 7 appointment statuses: agendado, confirmado, presente, falta, cancelado, remarcado, encaixe
+- 13 appointment statuses: agendado, mensagem_enviada, aguardando_confirmacao, confirmado, confirmado_recepcao, solicitou_remarcacao, nao_respondeu, presente, falta, cancelado, remarcado, encaixe, encaixe_preenchido
+- Every status change auto-logs an entry in appointment_contacts table
 - Marking "presente" decrements remainingSessions; reverting increments it back
 - Conflict detection prevents double-booking the same therapist (excludes cancelado/remarcado)
 - Reschedule creates new appointment with remarcado status on original
+- Patient risk scoring: alto (>=3 faltas or >=40% falta+cancelado rate), medio (>=1 falta or >=20%), baixo
+- patients.adhesionProfile column available for future use
+
+### DB Tables
+- appointments: core appointment table with all 13 statuses
+- appointment_contacts: contact history per appointment (type, content, performedBy, createdAt)
+- patients: includes adhesionProfile column
+- user_sessions: PostgreSQL-backed express-session store (connect-pg-simple)
+
+### Session Store
+- connect-pg-simple, tableName: "user_sessions", createTableIfMissing: false (created via raw SQL)
