@@ -20,6 +20,7 @@ import Confirmacoes from "@/pages/confirmacoes";
 import Atestados from "@/pages/atestados";
 import Aniversariantes from "@/pages/aniversariantes";
 import Planner from "@/pages/planner";
+import Fiscal from "@/pages/fiscal";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -104,6 +105,9 @@ function Router() {
       </Route>
       <Route path="/planner">
         <ProtectedRoute component={Planner} roles={["admin", "fisioterapeuta"]} />
+      </Route>
+      <Route path="/fiscal">
+        <ProtectedRoute component={Fiscal} roles={["admin", "financeiro"]} />
       </Route>
       <Route component={NotFound} />
     </Switch>

@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, CalendarDays, Users, UserRound, FileBarChart,
-  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake, LayoutGrid,
+  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake, LayoutGrid, Receipt,
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ const adminItems = [
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/therapists", label: "Fisioterapeutas", icon: UserRound },
   { href: "/financial", label: "Financeiro", icon: Wallet },
+  { href: "/fiscal", label: "Nota Fiscal (NFSe)", icon: Receipt },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
   { href: "/relatorio", label: "Rel. Fisioterapêutico", icon: FileText },
   { href: "/atestados", label: "Atestados / Declarações", icon: ClipboardList },
@@ -37,6 +38,7 @@ const financeiroItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/financial", label: "Financeiro", icon: Wallet },
+  { href: "/fiscal", label: "Nota Fiscal (NFSe)", icon: Receipt },
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
 ];
