@@ -5,6 +5,28 @@
 **CliniSmart** — Sistema Inteligente para Profissionais da Saúde.
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## Role Permissions (Profissional da Saúde)
+- **Sidebar access**: Dashboard, Agenda, Aniversariantes, Pacientes (filtrados), Relatórios, Relatório Clínico, Documentos Clínicos, Planner de Conteúdo
+- **Blocked**: Financeiro, Nota Fiscal, Usuários, Configurações
+- **Patient filtering**: When logged as profissional, `/api/patients` filters to only patients who have appointments with a therapist whose name matches the user's name (first name match via ILIKE)
+- **Auto-fill**: In Relatório Clínico page, therapist is auto-selected if a matching therapist record is found
+
+## Documentos Clínicos (/atestados)
+Previously called "Atestados e Declarações", now supports 5 document types:
+- **Declaração de Comparecimento** — date, times, attendance type, auto-generated text
+- **Atestado** — date, times, attendance type, auto-generated text
+- **Receituário** — prescription textarea (free-form), validity in days
+- **Encaminhamento** — destination specialty/clinic, reason, urgency (Normal/Urgente/Emergência)
+- **Solicitação de Exames** — exam list (one per line), clinical justification
+- Each type has colored badges in history: blue (declaração), green (atestado), purple (receituário), orange (encaminhamento), cyan (solicitação de exames)
+
+## Relatório Clínico (/relatorio)
+Previously called "Relatório Fisioterapêutico". Now includes:
+- **Tipo de Relatório** dropdown: 8 specialty options (Fisioterapêutico, Fonoaudiológico, Psicológico, Nutricional, Médico, Enfermagem, Terapia Ocupacional, Multiprofissional, Personalizado)
+- **Título Personalizado** optional override field
+- Auto-fills the therapist if logged in as profissional/fisioterapeuta
+- Print preview shows selected tipo in the document header
+
 ## App Name & Dynamic Settings
 - App is named **CliniSmart** (previously "VitalFisio") — all hardcoded references have been replaced with dynamic values
 - `system_name` and `logo_url` are stored in `clinic_settings` table (defaulting to "CliniSmart")

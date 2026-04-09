@@ -1,0 +1,140 @@
+ATUALIZAÇÃO DE PERMISSÕES DO USUÁRIO “PROFISSIONAL DA SAÚDE”
+
+Objetivo:
+Permitir que o usuário do tipo “Profissional da Saúde” tenha acesso controlado às funcionalidades clínicas essenciais, mantendo segurança e organização do sistema.
+
+---
+
+1. ACESSOS PERMITIDOS PARA “PROFISSIONAL DA SAÚDE”
+
+Liberar acesso às seguintes abas:
+
+- Agenda
+- Pacientes (somente os vinculados ao profissional)
+- Documentos Clínicos
+
+Dentro de “Documentos Clínicos”, permitir acesso a:
+
+- Atestados / Declarações
+- Relatórios clínicos (ex: relatório fisioterapêutico ou equivalente da especialidade)
+- Receituários
+- Encaminhamentos
+- Solicitação de exames
+
+---
+
+2. FUNCIONALIDADES LIBERADAS
+
+O profissional poderá:
+
+- Visualizar sua agenda
+- Visualizar atendimentos do dia
+- Confirmar presença do paciente
+- Marcar falta
+- Remarcar paciente (somente seus atendimentos)
+- Criar e editar documentos clínicos próprios:
+  - Atestados
+  - Declarações
+  - Relatórios
+  - Receituários
+  - Encaminhamentos
+  - Solicitação de exames
+
+- Visualizar histórico do paciente (somente quando vinculado ao atendimento)
+
+---
+
+3. RESTRIÇÕES IMPORTANTES
+
+O profissional NÃO pode:
+
+- Acessar financeiro geral da clínica
+- Visualizar faturamento total
+- Excluir pacientes
+- Excluir dados críticos do sistema
+- Acessar configurações fiscais (nota fiscal)
+- Gerenciar usuários
+- Alterar configurações do sistema
+
+---
+
+4. CONTROLE DE DADOS
+
+- O profissional só pode visualizar:
+  - Pacientes vinculados a ele
+  - Atendimentos que ele realizou
+  - Documentos que ele criou
+
+- NÃO pode acessar dados de outros profissionais
+
+---
+
+5. DOCUMENTOS CLÍNICOS
+
+Nos documentos (atestados, relatórios, etc.):
+
+Preencher automaticamente:
+- Nome do profissional
+- Especialidade
+- Registro profissional
+
+Garantir que:
+- O profissional só pode editar documentos que ele criou
+- Pode visualizar documentos do paciente (se vinculado)
+
+---
+
+6. FILTROS
+
+Adicionar filtros por:
+- Profissional da saúde
+- Tipo de documento
+- Paciente
+- Data
+
+---
+
+7. SEGURANÇA
+
+- Registrar log de ações:
+  - Criação de documento
+  - Edição
+  - Impressão
+
+- Não permitir exclusão sem confirmação
+- Controlar permissões por perfil automaticamente após login
+
+---
+
+8. EXPERIÊNCIA DO USUÁRIO
+
+- Interface simples e rápida
+- Acesso direto à agenda do dia
+- Botão rápido:
+  - “Criar atestado”
+  - “Criar relatório”
+  - “Criar declaração”
+
+---
+
+9. NOMENCLATURA (IMPORTANTE)
+
+Trocar:
+- “Relatório fisioterapêutico” → “Relatório clínico”
+
+Mas permitir:
+- Selecionar tipo de relatório conforme especialidade
+
+---
+
+10. TESTES
+
+Garantir que:
+- Profissional acessa apenas o que é permitido
+- Não ocorre erro ao abrir agenda
+- Não ocorre erro ao criar documentos
+- Não ocorre erro ao salvar dados
+
+---
+
+ENTREGAR FUNCIONALIDADE SEGURA, ORGANIZADA E 100% FUNCIONAL.

@@ -59,12 +59,20 @@ const fmtDate = (s: string) => { if (!s) return ""; const [y, m, d] = s.split("-
 
 function generateText(form: FormState, patientName: string): string {
   const tipoAtend = form.tipoAtendimento === "Outro" ? (form.outroTipoAtendimento || "atendimento") : form.tipoAtendimento;
-  const endereco = form.enderecoClinica ? `, localizada em ${form.enderecoClinica}` : " nesta unidade de saúde";
 
-  if (form.tipoDocumento === "declaracao") {
-    return `Declaro, para os devidos fins, que o(a) paciente ${patientName} compareceu a atendimento de ${tipoAtend.toLowerCase()} no dia ${fmtDate(form.dataAtendimento)}, no horário de ${form.horaInicio} às ${form.horaTermino}, nesta unidade${form.enderecoClinica ? ` localizada em ${form.enderecoClinica}` : " de saúde"}.`;
-  } else {
-    return `Atesto, para os devidos fins, que o(a) paciente ${patientName} esteve em atendimento de ${tipoAtend.toLowerCase()} no dia ${fmtDate(form.dataAtendimento)}, no horário de ${form.horaInicio} às ${form.horaTermino}, na clínica${form.enderecoClinica ? ` localizada em ${form.enderecoClinica}` : ""}, necessitando de afastamento conforme avaliação profissional, se aplicável.`;
+  switch (form.tipoDocumento) {
+    case "declaracao":
+      return `Declaro, para os devidos fins, que o(a) paciente ${patientName} compareceu a atendimento de ${tipoAtend.toLowerCase()} no dia ${fmtDate(form.dataAtendimento)}, no horário de ${form.horaInicio} às ${form.horaTermino}, nesta unidade${form.enderecoClinica ? ` localizada em ${form.enderecoClinica}` : " de saúde"}.`;
+    case "atestado":
+      return `Atesto, para os devidos fins, que o(a) paciente ${patientName} esteve em atendimento de ${tipoAtend.toLowerCase()} no dia ${fmtDate(form.dataAtendimento)}, no horário de ${form.horaInicio} às ${form.horaTermino}, na clínica${form.enderecoClinica ? ` localizada em ${form.enderecoClinica}` : ""}, necessitando de afastamento conforme avaliação profissional, se aplicável.`;
+    case "receituario":
+      return form.prescricao || "";
+    case "encaminhamento":
+      return `Encaminho o(a) paciente ${patientName} para avaliação e acompanhamento em ${form.destinoEspecialidade || "[especialidade/clínica]"}.\n\nMotivo: ${form.motivoEncaminhamento || "-"}\n\nUrgência: ${form.urgencia || "Normal"}`;
+    case "solicitacao_exames":
+      return `Solicito os seguintes exames para o(a) paciente ${patientName}:\n\n${form.examesSolicitados || "-"}\n\nJustificativa Clínica:\n${form.justificativaExames || "-"}`;
+    default:
+      return "";
   }
 }
 
@@ -82,6 +90,13 @@ type FormState = {
   dataEmissao: string;
   cidade: string;
   enderecoClinica: string;
+  prescricao: string;
+  validadePrescricao: string;
+  destinoEspecialidade: string;
+  motivoEncaminhamento: string;
+  urgencia: string;
+  examesSolicitados: string;
+  justificativaExames: string;
 };
 
 const emptyForm: FormState = {
@@ -90,6 +105,9 @@ const emptyForm: FormState = {
   outroTipoAtendimento: "", observacoes: "", profissionalResponsavel: "",
   registroProfissional: "", dataEmissao: format(new Date(), "yyyy-MM-dd"),
   cidade: "", enderecoClinica: "",
+  prescricao: "", validadePrescricao: "30",
+  destinoEspecialidade: "", motivoEncaminhamento: "", urgencia: "Normal",
+  examesSolicitados: "", justificativaExames: "",
 };
 
 export default function Atestados() {
@@ -174,13 +192,27 @@ export default function Atestados() {
   );
 
   const generatedText = useMemo(() => {
-    if (!selectedPatient || !form.dataAtendimento || !form.horaInicio || !form.horaTermino) return "";
+    if (!selectedPatient) return "";
+    const tipo = form.tipoDocumento;
+    if ((tipo === "declaracao" || tipo === "atestado") && (!form.dataAtendimento || !form.horaInicio || !form.horaTermino)) return "";
     return generateText(form, selectedPatient.name);
   }, [form, selectedPatient]);
 
   const handleSave = () => {
-    if (!form.patientId || !form.dataAtendimento || !form.profissionalResponsavel) {
-      toast({ title: "Preencha: paciente, data e profissional responsável", variant: "destructive" });
+    const tipo = form.tipoDocumento;
+    const baseValid = !form.patientId || !form.profissionalResponsavel;
+    let specificMsg = "";
+    if (tipo === "declaracao" || tipo === "atestado") {
+      if (!form.dataAtendimento) specificMsg = "Preencha: paciente, data de atendimento e profissional responsável";
+    } else if (tipo === "receituario") {
+      if (!form.prescricao.trim()) specificMsg = "Preencha: paciente, prescrição e profissional responsável";
+    } else if (tipo === "encaminhamento") {
+      if (!form.destinoEspecialidade.trim()) specificMsg = "Preencha: paciente, especialidade de destino e profissional responsável";
+    } else if (tipo === "solicitacao_exames") {
+      if (!form.examesSolicitados.trim()) specificMsg = "Preencha: paciente, exames solicitados e profissional responsável";
+    }
+    if (baseValid || specificMsg) {
+      toast({ title: specificMsg || "Preencha: paciente e profissional responsável", variant: "destructive" });
       return;
     }
     saveMut.mutate({
@@ -193,7 +225,8 @@ export default function Atestados() {
   const handlePrint = (doc?: Attestation) => {
     const originalTitle = document.title;
     const patient = doc ? patients.find(p => p.id === doc.patientId) : selectedPatient;
-    const docType = (doc?.tipoDocumento || form.tipoDocumento) === "declaracao" ? "Declaração" : "Atestado";
+    const tipo = doc?.tipoDocumento || form.tipoDocumento;
+    const docType = tipoLabel(tipo);
     document.title = `${docType}-${patient?.name || "paciente"}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
     window.print();
     document.title = originalTitle;
@@ -210,7 +243,24 @@ export default function Atestados() {
     });
   }, [history, historySearch, patients]);
 
-  const tipoLabel = (t: string) => t === "declaracao" ? "Declaração" : "Atestado";
+  const tipoLabel = (t: string) => {
+    const labels: Record<string, string> = {
+      declaracao: "Declaração",
+      atestado: "Atestado",
+      receituario: "Receituário",
+      encaminhamento: "Encaminhamento",
+      solicitacao_exames: "Solicitação de Exames",
+    };
+    return labels[t] || t;
+  };
+
+  const docTypeLabels: Record<string, string> = {
+    declaracao: "DECLARAÇÃO DE COMPARECIMENTO",
+    atestado: "ATESTADO",
+    receituario: "RECEITUÁRIO",
+    encaminhamento: "ENCAMINHAMENTO",
+    solicitacao_exames: "SOLICITAÇÃO DE EXAMES",
+  };
 
   // Document preview component (used for print and modal)
   const DocumentPreview = ({ doc, patientName, forPrint = false }: {
@@ -218,10 +268,10 @@ export default function Atestados() {
   }) => {
     const d = doc || { ...form, id: 0, createdAt: "" };
     const pName = patientName || selectedPatient?.name || "[Paciente]";
-    const tipoAtend = d.tipoAtendimento === "Outro" ? (d.outroTipoAtendimento || "atendimento") : d.tipoAtendimento;
     const text = doc?.textoGerado || generateText(d as any, pName);
-    const docType = d.tipoDocumento === "declaracao" ? "DECLARAÇÃO DE COMPARECIMENTO" : "ATESTADO";
+    const docType = docTypeLabels[d.tipoDocumento] || d.tipoDocumento.toUpperCase();
     const settings = clinicSettings;
+    const isReceituario = d.tipoDocumento === "receituario";
 
     return (
       <div className={`bg-white border border-gray-200 rounded-lg ${forPrint ? "print-doc" : "shadow"}`}
@@ -231,7 +281,6 @@ export default function Atestados() {
           <div className="flex justify-between items-start">
             <div>
               <div className="font-bold text-xl text-gray-800">{settings?.nomeClinica || appName}</div>
-              <div className="text-sm text-gray-600 mt-0.5">Clínica de Fisioterapia</div>
               {settings?.enderecoClinica && (
                 <div className="text-xs text-gray-500 mt-0.5">{settings.enderecoClinica}</div>
               )}
@@ -247,16 +296,24 @@ export default function Atestados() {
           </div>
         </div>
 
+        {/* Patient info */}
+        <div className="px-8 mb-4">
+          <p className="text-sm text-gray-700"><span className="font-semibold">Paciente:</span> {pName}</p>
+        </div>
+
         {/* Title */}
         <div className="text-center mb-8 px-8">
-          <h1 className="text-2xl font-bold text-gray-800 tracking-widest uppercase border-b-2 border-gray-400 pb-2 inline-block px-8">
+          <h1 className="text-xl font-bold text-gray-800 tracking-widest uppercase border-b-2 border-gray-400 pb-2 inline-block px-8">
             {docType}
           </h1>
         </div>
 
         {/* Body */}
         <div className="px-8 mb-8">
-          <p className="text-base text-gray-700 leading-relaxed text-justify" style={{ lineHeight: "2" }}>
+          {isReceituario && (
+            <p className="text-xs text-gray-500 uppercase font-bold mb-2">Rx:</p>
+          )}
+          <p className="text-base text-gray-700 leading-relaxed text-justify whitespace-pre-wrap" style={{ lineHeight: "2" }}>
             {text}
           </p>
           {d.observacoes && (
@@ -271,7 +328,7 @@ export default function Atestados() {
           <div className="mt-16 pt-4 border-t border-gray-400 text-center">
             <div className="text-sm text-gray-700 font-medium">{d.profissionalResponsavel}</div>
             {d.registroProfissional && (
-              <div className="text-xs text-gray-500 mt-1">CREFITO / Reg. Profissional: {d.registroProfissional}</div>
+              <div className="text-xs text-gray-500 mt-1">Reg. Profissional: {d.registroProfissional}</div>
             )}
             <div className="text-xs text-gray-400 mt-2">Assinatura</div>
           </div>
@@ -285,18 +342,18 @@ export default function Atestados() {
       {/* Print-only header */}
       <div className="print-only">
         <PrintHeader
-          title={form.tipoDocumento === "declaracao" ? "Declaração de Comparecimento" : "Atestado"}
+          title={tipoLabel(form.tipoDocumento)}
           subtitle={selectedPatient?.name}
         />
-        {generatedText && <DocumentPreview forPrint />}
+        {<DocumentPreview forPrint />}
       </div>
 
       {/* Screen content — hidden in print */}
       <div className="no-print">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Atestados e Declarações</h1>
-            <p className="text-muted-foreground mt-1">Emissão de atestados e declarações de comparecimento</p>
+            <h1 className="text-3xl font-bold tracking-tight">Documentos Clínicos</h1>
+            <p className="text-muted-foreground mt-1">Emissão de atestados, declarações, receituários, encaminhamentos e solicitações de exames</p>
           </div>
           <div className="flex gap-2">
             {me?.role === "admin" && (
@@ -330,18 +387,16 @@ export default function Atestados() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tipo de Documento</Label>
-                      <div className="flex rounded-lg border border-border overflow-hidden">
-                        <button
-                          className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${form.tipoDocumento === "declaracao" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}
-                          onClick={() => setForm(f => ({ ...f, tipoDocumento: "declaracao" }))}>
-                          Declaração
-                        </button>
-                        <button
-                          className={`flex-1 py-2 px-3 text-sm font-medium transition-colors border-l ${form.tipoDocumento === "atestado" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}
-                          onClick={() => setForm(f => ({ ...f, tipoDocumento: "atestado" }))}>
-                          Atestado
-                        </button>
-                      </div>
+                      <Select value={form.tipoDocumento} onValueChange={v => setForm(f => ({ ...f, tipoDocumento: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="declaracao">Declaração de Comparecimento</SelectItem>
+                          <SelectItem value="atestado">Atestado</SelectItem>
+                          <SelectItem value="receituario">Receituário</SelectItem>
+                          <SelectItem value="encaminhamento">Encaminhamento</SelectItem>
+                          <SelectItem value="solicitacao_exames">Solicitação de Exames</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Data de Emissão</Label>
@@ -360,39 +415,99 @@ export default function Atestados() {
                     </Select>
                   </div>
 
-                  {/* Datas e Horários */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Data Atendimento *</Label>
-                      <Input type="date" value={form.dataAtendimento} onChange={e => setForm(f => ({ ...f, dataAtendimento: e.target.value }))} />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Hora Início</Label>
-                      <Input type="time" value={form.horaInicio} onChange={e => setForm(f => ({ ...f, horaInicio: e.target.value }))} />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Hora Término</Label>
-                      <Input type="time" value={form.horaTermino} onChange={e => setForm(f => ({ ...f, horaTermino: e.target.value }))} />
-                    </div>
-                  </div>
+                  {/* Campos específicos para Declaração e Atestado */}
+                  {["declaracao", "atestado"].includes(form.tipoDocumento) && (
+                    <>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Data Atendimento *</Label>
+                          <Input type="date" value={form.dataAtendimento} onChange={e => setForm(f => ({ ...f, dataAtendimento: e.target.value }))} />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Hora Início</Label>
+                          <Input type="time" value={form.horaInicio} onChange={e => setForm(f => ({ ...f, horaInicio: e.target.value }))} />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Hora Término</Label>
+                          <Input type="time" value={form.horaTermino} onChange={e => setForm(f => ({ ...f, horaTermino: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tipo de Atendimento *</Label>
+                        <Select value={form.tipoAtendimento} onValueChange={v => setForm(f => ({ ...f, tipoAtendimento: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {TIPOS_ATENDIMENTO.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {form.tipoAtendimento === "Outro" && (
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Especifique o tipo</Label>
+                          <Input placeholder="Descreva o tipo de atendimento..." value={form.outroTipoAtendimento}
+                            onChange={e => setForm(f => ({ ...f, outroTipoAtendimento: e.target.value }))} />
+                        </div>
+                      )}
+                    </>
+                  )}
 
-                  {/* Tipo de Atendimento */}
-                  <div>
-                    <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tipo de Atendimento *</Label>
-                    <Select value={form.tipoAtendimento} onValueChange={v => setForm(f => ({ ...f, tipoAtendimento: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {TIPOS_ATENDIMENTO.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* Campos específicos para Receituário */}
+                  {form.tipoDocumento === "receituario" && (
+                    <>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Prescrição *</Label>
+                        <Textarea rows={5} placeholder={"Ex:\nAmoxicilina 500mg – 1 cápsula de 8/8h por 7 dias\nIbuprofeno 400mg – 1 comprimido de 12/12h se dor"}
+                          value={form.prescricao} onChange={e => setForm(f => ({ ...f, prescricao: e.target.value }))} />
+                      </div>
+                      <div className="w-40">
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Validade (dias)</Label>
+                        <Input type="number" min="1" value={form.validadePrescricao}
+                          onChange={e => setForm(f => ({ ...f, validadePrescricao: e.target.value }))} />
+                      </div>
+                    </>
+                  )}
 
-                  {form.tipoAtendimento === "Outro" && (
-                    <div>
-                      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Especifique o tipo</Label>
-                      <Input placeholder="Descreva o tipo de atendimento..." value={form.outroTipoAtendimento}
-                        onChange={e => setForm(f => ({ ...f, outroTipoAtendimento: e.target.value }))} />
-                    </div>
+                  {/* Campos específicos para Encaminhamento */}
+                  {form.tipoDocumento === "encaminhamento" && (
+                    <>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Especialidade / Clínica de Destino *</Label>
+                        <Input placeholder="Ex: Ortopedista, Clínica de Neurologia..." value={form.destinoEspecialidade}
+                          onChange={e => setForm(f => ({ ...f, destinoEspecialidade: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Motivo do Encaminhamento *</Label>
+                        <Textarea rows={3} placeholder="Descreva o motivo clínico do encaminhamento..."
+                          value={form.motivoEncaminhamento} onChange={e => setForm(f => ({ ...f, motivoEncaminhamento: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Urgência</Label>
+                        <Select value={form.urgencia} onValueChange={v => setForm(f => ({ ...f, urgencia: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Normal">Normal</SelectItem>
+                            <SelectItem value="Urgente">Urgente</SelectItem>
+                            <SelectItem value="Emergência">Emergência</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Campos específicos para Solicitação de Exames */}
+                  {form.tipoDocumento === "solicitacao_exames" && (
+                    <>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Exames Solicitados * (um por linha)</Label>
+                        <Textarea rows={4} placeholder={"Ex:\nHemograma completo\nRaio-X coluna lombar AP e Perfil\nRessonância magnética de ombro direito"}
+                          value={form.examesSolicitados} onChange={e => setForm(f => ({ ...f, examesSolicitados: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Justificativa Clínica</Label>
+                        <Textarea rows={2} placeholder="Justificativa para a solicitação..."
+                          value={form.justificativaExames} onChange={e => setForm(f => ({ ...f, justificativaExames: e.target.value }))} />
+                      </div>
+                    </>
                   )}
 
                   {/* Profissional */}
@@ -456,7 +571,7 @@ export default function Atestados() {
                   <Eye className="h-4 w-4 text-muted-foreground" />
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Pré-visualização</h2>
                 </div>
-                {selectedPatient && form.dataAtendimento ? (
+                {selectedPatient ? (
                   <DocumentPreview />
                 ) : (
                   <div className="h-[400px] border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -500,16 +615,22 @@ export default function Atestados() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className={doc.tipoDocumento === "declaracao"
-                                  ? "bg-blue-100 text-blue-800 border-blue-200"
-                                  : "bg-green-100 text-green-800 border-green-200"}>
+                                <Badge variant="outline" className={
+                                  doc.tipoDocumento === "declaracao" ? "bg-blue-100 text-blue-800 border-blue-200" :
+                                  doc.tipoDocumento === "atestado" ? "bg-green-100 text-green-800 border-green-200" :
+                                  doc.tipoDocumento === "receituario" ? "bg-purple-100 text-purple-800 border-purple-200" :
+                                  doc.tipoDocumento === "encaminhamento" ? "bg-orange-100 text-orange-800 border-orange-200" :
+                                  "bg-cyan-100 text-cyan-800 border-cyan-200"
+                                }>
                                   {tipoLabel(doc.tipoDocumento)}
                                 </Badge>
                                 <span className="font-medium text-sm">{patient?.name || `Paciente #${doc.patientId}`}</span>
                                 <span className="text-xs text-muted-foreground">· {tipoAtend}</span>
                               </div>
                               <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
-                                <span>Atendimento: {fmtDate(doc.dataAtendimento)} — {doc.horaInicio} às {doc.horaTermino}</span>
+                                {["declaracao", "atestado"].includes(doc.tipoDocumento) && doc.dataAtendimento && (
+                                  <span>Atendimento: {fmtDate(doc.dataAtendimento)} — {doc.horaInicio} às {doc.horaTermino}</span>
+                                )}
                                 <span>Profissional: {doc.profissionalResponsavel}</span>
                                 {doc.criadoPor && <span>Por: {doc.criadoPor}</span>}
                               </div>

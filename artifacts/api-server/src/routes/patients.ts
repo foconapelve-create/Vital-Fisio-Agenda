@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, sql } from "drizzle-orm";
-import { db, patientsTable, appointmentsTable, therapistsTable, financialTable } from "@workspace/db";
+import { db, pool, patientsTable, appointmentsTable, therapistsTable, financialTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -13,7 +13,45 @@ function requireAuth(req: any, res: any, next: any) {
 }
 
 router.get("/patients", requireAuth, async (req, res): Promise<void> => {
+  const userId = (req.session as any).userId as number;
   const search = req.query.search as string | undefined;
+
+  // Check if user is profissional — filter to only their patients
+  const { rows: userRows } = await pool.query("SELECT role, name FROM users WHERE id = $1", [userId]);
+  const user = userRows[0];
+  const isProfissional = user && (user.role === "profissional" || user.role === "fisioterapeuta");
+
+  if (isProfissional && user.name) {
+    // Find therapist records matching this user by name (first name match)
+    const firstName = user.name.split(" ")[0].toLowerCase();
+    const { rows: therapistRows } = await pool.query(
+      "SELECT id FROM therapists WHERE LOWER(name) LIKE $1",
+      [`%${firstName}%`]
+    );
+    if (therapistRows.length > 0) {
+      const therapistIds = therapistRows.map((t: any) => t.id);
+      const placeholders = therapistIds.map((_: any, i: number) => `$${i + 1}`).join(", ");
+      const searchFilter = search ? `AND LOWER(p.name) LIKE '%${search.replace(/'/g, "''")}%'` : "";
+      const { rows: patients } = await pool.query(
+        `SELECT DISTINCT p.* FROM patients p
+         INNER JOIN appointments a ON a.patient_id = p.id
+         WHERE a.therapist_id IN (${placeholders}) ${searchFilter}
+         ORDER BY p.name`,
+        therapistIds
+      );
+      res.json(patients.map((p: any) => ({
+        id: p.id, name: p.name, phone: p.phone, email: p.email,
+        birthDate: p.birth_date, insuranceType: p.insurance_type,
+        insuranceName: p.insurance_name, paymentMethod: p.payment_method,
+        totalSessions: p.total_sessions, remainingSessions: p.remaining_sessions,
+        amountPaid: p.amount_paid, notes: p.notes,
+        city: p.city, state: p.state,
+      })));
+      return;
+    }
+  }
+
+  // Default: return all patients (admin/financeiro or profissional with no therapist match)
   let patients;
   if (search) {
     patients = await db.select().from(patientsTable).where(ilike(patientsTable.name, `%${search}%`)).orderBy(patientsTable.name);

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Printer, FileText, Save, RefreshCw } from "lucide-react";
+import { Printer, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 type Patient = { id: number; name: string; phone: string; birthDate?: string | null; notes?: string | null };
 type Therapist = { id: number; name: string; specialty?: string | null };
+
+const TIPOS_RELATORIO = [
+  "Relatório Fisioterapêutico",
+  "Relatório Fonoaudiológico",
+  "Relatório Psicológico",
+  "Relatório Nutricional",
+  "Relatório Médico",
+  "Relatório de Enfermagem",
+  "Relatório de Terapia Ocupacional",
+  "Relatório Multiprofissional",
+  "Relatório Personalizado",
+];
 
 const fmtDate = (s?: string | null) => {
   if (!s) return "-";
@@ -35,18 +47,34 @@ export default function Relatorio() {
     queryFn: () => apiFetch("/api/therapists"),
   });
 
+  const { data: me } = useQuery<any>({
+    queryKey: ["me"],
+    queryFn: () => apiFetch("/api/auth/me"),
+  });
+
   const [form, setForm] = useState({
     clinicName: nomeClinica || systemName,
     patientId: "",
     therapistId: "",
     reportDate: new Date().toISOString().split("T")[0],
-    title: "Relatório de Fisioterapia",
+    tipoRelatorio: "Relatório Fisioterapêutico",
+    title: "",
     mainText: "",
     diagnosis: "",
     treatment: "",
     evolution: "",
     conclusion: "",
   });
+
+  useEffect(() => {
+    if (me && (me.role === "profissional" || me.role === "fisioterapeuta")) {
+      const matched = (therapists as Therapist[]).find(t =>
+        t.name.toLowerCase().includes((me.name || "").toLowerCase().split(" ")[0]) ||
+        (me.name || "").toLowerCase().includes(t.name.toLowerCase().split(" ")[0])
+      );
+      if (matched) setForm(f => ({ ...f, therapistId: String(matched.id) }));
+    }
+  }, [me, therapists]);
 
   const selectedPatient = (patients as Patient[]).find(p => p.id === parseInt(form.patientId));
   const selectedTherapist = (therapists as Therapist[]).find(t => t.id === parseInt(form.therapistId));
@@ -70,8 +98,8 @@ export default function Relatorio() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Relatório Fisioterapêutico</h1>
-          <p className="text-muted-foreground mt-1">Elabore e imprima relatórios profissionais</p>
+          <h1 className="text-3xl font-bold tracking-tight">Relatório Clínico</h1>
+          <p className="text-muted-foreground mt-1">Elabore e imprima relatórios clínicos profissionais</p>
         </div>
         <Button onClick={handlePrint} className="gap-2">
           <Printer className="h-4 w-4" /> Imprimir / PDF
@@ -85,12 +113,21 @@ export default function Relatorio() {
             <CardHeader><CardTitle className="text-base">Dados do Relatório</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div>
+                <Label>Tipo de Relatório</Label>
+                <Select value={form.tipoRelatorio} onValueChange={v => setForm(p => ({ ...p, tipoRelatorio: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TIPOS_RELATORIO.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label>Nome da Clínica</Label>
                 <Input value={form.clinicName} onChange={e => setForm(p => ({ ...p, clinicName: e.target.value }))} />
               </div>
               <div>
-                <Label>Título do Relatório</Label>
-                <Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
+                <Label>Título Personalizado <span className="text-muted-foreground text-xs">(opcional — usa o tipo se vazio)</span></Label>
+                <Input placeholder={form.tipoRelatorio} value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
               </div>
               <div>
                 <Label>Data</Label>
@@ -162,8 +199,10 @@ export default function Relatorio() {
                 {/* Cabeçalho */}
                 <div className="text-center border-b-2 border-gray-800 pb-4">
                   <h1 className="text-2xl font-bold uppercase">{form.clinicName || systemName}</h1>
-                  <p className="text-sm text-gray-600">Clínica de Fisioterapia</p>
-                  <h2 className="text-lg font-semibold mt-2">{form.title}</h2>
+                  {selectedTherapist?.specialty && (
+                    <p className="text-sm text-gray-600">{selectedTherapist.specialty}</p>
+                  )}
+                  <h2 className="text-lg font-semibold mt-2 uppercase">{form.title || form.tipoRelatorio}</h2>
                 </div>
 
                 {/* Dados do paciente */}
@@ -223,7 +262,7 @@ export default function Relatorio() {
                       <div className="border-t border-gray-600 pt-2 px-8">
                         <p className="font-semibold text-sm">{selectedTherapist?.name || "__________________________"}</p>
                         <p className="text-xs text-gray-600">
-                          {selectedTherapist?.specialty ? `Fisioterapeuta — ${selectedTherapist.specialty}` : "Fisioterapeuta Responsável"}
+                          {selectedTherapist?.specialty || "Profissional Responsável"}
                         </p>
                       </div>
                     </div>

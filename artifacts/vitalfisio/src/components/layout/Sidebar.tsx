@@ -19,8 +19,8 @@ const adminItems = [
   { href: "/financial", label: "Financeiro", icon: Wallet },
   { href: "/fiscal", label: "Nota Fiscal (NFSe)", icon: Receipt },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
-  { href: "/relatorio", label: "Rel. Fisioterapêutico", icon: FileText },
-  { href: "/atestados", label: "Atestados / Declarações", icon: ClipboardList },
+  { href: "/relatorio", label: "Relatório Clínico", icon: FileText },
+  { href: "/atestados", label: "Documentos Clínicos", icon: ClipboardList },
   { href: "/planner", label: "Planner de Conteúdo", icon: LayoutGrid },
   { href: "/users", label: "Usuários", icon: UserCog },
 ];
@@ -31,8 +31,8 @@ const profissionalItems = [
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
-  { href: "/relatorio", label: "Rel. Fisioterapêutico", icon: FileText },
-  { href: "/atestados", label: "Atestados / Declarações", icon: ClipboardList },
+  { href: "/relatorio", label: "Relatório Clínico", icon: FileText },
+  { href: "/atestados", label: "Documentos Clínicos", icon: ClipboardList },
   { href: "/planner", label: "Planner de Conteúdo", icon: LayoutGrid },
 ];
 
