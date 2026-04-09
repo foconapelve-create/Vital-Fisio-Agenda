@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, CalendarDays, Users, UserRound, FileBarChart,
-  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake, LayoutGrid, Receipt,
+  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake, LayoutGrid, Receipt, UserCog,
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -14,16 +14,17 @@ const adminItems = [
   { href: "/confirmacoes", label: "Confirmações", icon: CheckCircle2 },
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/patients", label: "Pacientes", icon: Users },
-  { href: "/therapists", label: "Fisioterapeutas", icon: UserRound },
+  { href: "/therapists", label: "Profissionais", icon: UserRound },
   { href: "/financial", label: "Financeiro", icon: Wallet },
   { href: "/fiscal", label: "Nota Fiscal (NFSe)", icon: Receipt },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
   { href: "/relatorio", label: "Rel. Fisioterapêutico", icon: FileText },
   { href: "/atestados", label: "Atestados / Declarações", icon: ClipboardList },
   { href: "/planner", label: "Planner de Conteúdo", icon: LayoutGrid },
+  { href: "/users", label: "Usuários", icon: UserCog },
 ];
 
-const fisioterapeutaItems = [
+const profissionalItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
@@ -45,9 +46,16 @@ const financeiroItems = [
 
 const roleLabels: Record<string, string> = {
   admin: "Administrador",
-  fisioterapeuta: "Fisioterapeuta",
+  profissional: "Profissional da Saúde",
+  fisioterapeuta: "Profissional da Saúde",
   financeiro: "Financeiro",
 };
+
+function getNavItems(role: string) {
+  if (role === "fisioterapeuta" || role === "profissional") return profissionalItems;
+  if (role === "financeiro") return financeiroItems;
+  return adminItems;
+}
 
 export function Sidebar({ isMobileOpen, setMobileOpen }: { isMobileOpen: boolean; setMobileOpen: (v: boolean) => void }) {
   const [location] = useLocation();
@@ -56,7 +64,7 @@ export function Sidebar({ isMobileOpen, setMobileOpen }: { isMobileOpen: boolean
   const [, setLoc] = useLocation();
 
   const role = (user as any)?.role || "admin";
-  const navItems = role === "fisioterapeuta" ? fisioterapeutaItems : role === "financeiro" ? financeiroItems : adminItems;
+  const navItems = getNavItems(role);
 
   const handleLogout = () => {
     logout.mutate(undefined, { onSuccess: () => setLoc("/login") });

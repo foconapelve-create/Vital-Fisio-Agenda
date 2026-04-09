@@ -12,6 +12,7 @@ import attestationsRouter from "./attestations";
 import birthdaysRouter from "./birthdays";
 import contentRouter from "./content";
 import fiscalRouter from "./fiscal";
+import usersRouter from "./users";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(attestationsRouter);
 router.use(birthdaysRouter);
 router.use(contentRouter);
 router.use(fiscalRouter);
+router.use(usersRouter);
 
 export default router;

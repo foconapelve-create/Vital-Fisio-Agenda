@@ -1,0 +1,179 @@
+ATUALIZAÇÃO DA ABA LOGIN E GESTÃO DE USUÁRIOS
+
+Objetivo:
+Melhorar o sistema de autenticação, permitindo recuperação de senha e criação de novos usuários com diferentes níveis de acesso.
+
+---
+
+1. TELA DE LOGIN
+
+Manter campos:
+- E-mail
+- Senha
+
+Adicionar opções:
+- Botão “Esqueci minha senha”
+- Botão “Criar conta / Novo usuário”
+
+---
+
+2. FUNCIONALIDADE “ESQUECI MINHA SENHA”
+
+Ao clicar:
+
+Abrir tela com:
+- Campo para digitar e-mail cadastrado
+
+Fluxo:
+
+1. Usuário informa e-mail
+2. Sistema valida se o e-mail existe
+3. Enviar link de redefinição de senha por e-mail
+
+Mensagem sugerida:
+“Enviamos um link para redefinição de senha no seu e-mail.”
+
+---
+
+3. LINK DE REDEFINIÇÃO
+
+- Link deve expirar em até 30 minutos
+- Ao clicar, abrir página:
+  “Redefinir senha”
+
+Campos:
+- Nova senha
+- Confirmar senha
+
+Regras:
+- Senha mínima de 6 caracteres
+- Confirmar igualdade
+
+Após salvar:
+- Mostrar mensagem de sucesso
+- Redirecionar para login
+
+---
+
+4. CRIAR NOVO USUÁRIO
+
+Botão:
+“Criar conta”
+
+Abrir formulário com:
+
+- Nome completo
+- E-mail
+- Telefone
+- Senha
+- Confirmar senha
+- Tipo de usuário
+
+---
+
+5. TIPOS DE USUÁRIO (PERFIS)
+
+Criar seleção:
+
+- Administrador
+- Profissional da Saúde
+
+(REMOVER uso exclusivo de “fisioterapeuta” — sistema deve ser multiprofissional)
+
+---
+
+6. PERMISSÕES POR PERFIL
+
+Administrador:
+- Acesso total ao sistema
+- Gerenciar usuários
+- Acesso financeiro
+- Configurações
+- Relatórios
+- Exclusões
+
+Profissional da Saúde:
+- Acesso à agenda própria
+- Visualizar pacientes vinculados
+- Criar evoluções
+- Criar documentos clínicos
+- Visualizar atendimentos
+- NÃO pode acessar financeiro completo
+- NÃO pode excluir dados críticos
+
+---
+
+7. VALIDAÇÕES
+
+- Não permitir cadastro com e-mail duplicado
+- Validar formato de e-mail
+- Senha obrigatória
+
+---
+
+8. GESTÃO DE USUÁRIOS (NOVA ABA)
+
+Criar aba:
+“Usuários”
+
+Funcionalidades:
+
+- Listar usuários cadastrados
+- Mostrar:
+  - Nome
+  - E-mail
+  - Tipo (Administrador ou Profissional)
+  - Status (ativo/inativo)
+
+Ações:
+- Criar novo usuário
+- Editar usuário
+- Redefinir senha manualmente
+- Ativar/desativar usuário
+- Excluir (com confirmação)
+
+---
+
+9. SEGURANÇA
+
+- Criptografar senha (hash)
+- Não exibir senha em nenhum momento
+- Criar sessão segura de login
+- Logout automático após inatividade (opcional)
+
+---
+
+10. EXPERIÊNCIA DO USUÁRIO
+
+- Tela limpa e moderna
+- Botões claros:
+  - Entrar
+  - Esqueci senha
+  - Criar conta
+
+- Feedback visual:
+  - Login incorreto
+  - E-mail não encontrado
+  - Senha redefinida com sucesso
+
+---
+
+11. INTEGRAÇÃO
+
+Garantir que:
+- Usuário logado tenha acesso apenas ao que é permitido
+- Sistema reconheça o perfil automaticamente
+- Dados sejam protegidos por permissão
+
+---
+
+12. CORRIGIR ERROS
+
+- Garantir que login funcione sem falhas
+- Corrigir erros de autenticação
+- Corrigir problemas de redirecionamento
+- Garantir envio de e-mail funcional
+
+---
+
+ENTREGAR FUNCIONALIDADE COMPLETA, SEGURA E 100% FUNCIONAL.
