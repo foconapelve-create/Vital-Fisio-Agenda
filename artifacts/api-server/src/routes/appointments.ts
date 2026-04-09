@@ -2,16 +2,15 @@ import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, sql, ne } from "drizzle-orm";
 import { db, appointmentsTable, patientsTable, therapistsTable } from "@workspace/db";
 import {
-  CreateAppointmentBody, UpdateAppointmentBody, GetAppointmentParams,
-  UpdateAppointmentParams, DeleteAppointmentParams, UpdateAppointmentStatusParams,
-  UpdateAppointmentStatusBody, RescheduleAppointmentParams, RescheduleAppointmentBody,
+  CreateAppointmentBody, UpdateAppointmentBody,
+  UpdateAppointmentStatusBody, RescheduleAppointmentBody,
   ListAppointmentsQueryParams,
 } from "@workspace/api-zod";
 import { randomUUID } from "crypto";
 
 const router: IRouter = Router();
 
-function buildAppointmentSelect() {
+function buildSelect() {
   return {
     id: appointmentsTable.id, patientId: appointmentsTable.patientId,
     therapistId: appointmentsTable.therapistId, date: appointmentsTable.date,
@@ -24,6 +23,16 @@ function buildAppointmentSelect() {
   };
 }
 
+async function getWithDetails(id: number) {
+  const [apt] = await db.select(buildSelect()).from(appointmentsTable)
+    .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
+    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+    .where(eq(appointmentsTable.id, id));
+  return apt;
+}
+
+// ─── LIST ─────────────────────────────────────────────────────────────────────
+
 router.get("/appointments", async (req, res): Promise<void> => {
   const query = ListAppointmentsQueryParams.safeParse(req.query);
   const filters = query.success ? query.data : {};
@@ -31,8 +40,7 @@ router.get("/appointments", async (req, res): Promise<void> => {
   const conditions = [];
   if (filters.date) conditions.push(eq(appointmentsTable.date, filters.date));
   if (filters.weekStart) {
-    const startDate = new Date(filters.weekStart + "T12:00:00");
-    const endDate = new Date(startDate);
+    const endDate = new Date(filters.weekStart + "T12:00:00");
     endDate.setDate(endDate.getDate() + 6);
     conditions.push(gte(appointmentsTable.date, filters.weekStart));
     conditions.push(lte(appointmentsTable.date, endDate.toISOString().split("T")[0]));
@@ -41,26 +49,27 @@ router.get("/appointments", async (req, res): Promise<void> => {
   if (filters.status) conditions.push(eq(appointmentsTable.status, filters.status));
   if (filters.patientId) conditions.push(eq(appointmentsTable.patientId, Number(filters.patientId)));
 
-  const baseQuery = db.select(buildAppointmentSelect()).from(appointmentsTable)
+  const base = db.select(buildSelect()).from(appointmentsTable)
     .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
     .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id));
 
-  const appointments = conditions.length > 0
-    ? await baseQuery.where(and(...conditions)).orderBy(appointmentsTable.date, appointmentsTable.time)
-    : await baseQuery.orderBy(appointmentsTable.date, appointmentsTable.time);
+  const apts = conditions.length > 0
+    ? await base.where(and(...conditions)).orderBy(appointmentsTable.date, appointmentsTable.time)
+    : await base.orderBy(appointmentsTable.date, appointmentsTable.time);
 
-  res.json(appointments);
+  res.json(apts);
 });
 
-// Get upcoming appointments for confirmation funnel (today + next days)
+// ─── UPCOMING (confirmation funnel) ───────────────────────────────────────────
+
 router.get("/appointments/upcoming", async (req, res): Promise<void> => {
-  const { days = "3" } = req.query as Record<string, string>;
+  const days = parseInt(String(req.query.days ?? "3"));
   const today = new Date().toISOString().split("T")[0];
   const future = new Date();
-  future.setDate(future.getDate() + parseInt(days));
+  future.setDate(future.getDate() + days);
   const futureStr = future.toISOString().split("T")[0];
 
-  const appointments = await db.select(buildAppointmentSelect()).from(appointmentsTable)
+  const apts = await db.select(buildSelect()).from(appointmentsTable)
     .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
     .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
     .where(and(
@@ -70,52 +79,78 @@ router.get("/appointments/upcoming", async (req, res): Promise<void> => {
     ))
     .orderBy(appointmentsTable.date, appointmentsTable.time);
 
-  res.json(appointments);
+  res.json(apts);
 });
+
+// ─── DELETE GROUP (must be before /:id to avoid conflict) ────────────────────
+
+router.delete("/appointments/group/:groupId", async (req, res): Promise<void> => {
+  const { groupId } = req.params;
+  if (!groupId) { res.status(400).json({ error: "groupId inválido" }); return; }
+
+  const deleted = await db.delete(appointmentsTable)
+    .where(and(
+      eq(appointmentsTable.recurringGroupId, groupId),
+      sql`${appointmentsTable.status} NOT IN ('presente', 'falta')`,
+    ))
+    .returning();
+
+  res.json({ deleted: deleted.length, message: `${deleted.length} sessões removidas` });
+});
+
+// ─── CREATE SINGLE ────────────────────────────────────────────────────────────
 
 router.post("/appointments", async (req, res): Promise<void> => {
   try {
     const parsed = CreateAppointmentBody.safeParse(req.body);
-    if (!parsed.success) { res.status(400).json({ error: "Dados inválidos: verifique os campos obrigatórios" }); return; }
+    if (!parsed.success) {
+      res.status(400).json({ error: "Dados inválidos: paciente, fisioterapeuta, data e horário são obrigatórios" });
+      return;
+    }
 
     const { patientId, therapistId, date, time, status, notes } = parsed.data;
 
-    const existing = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
+    // Conflict check
+    const conflict = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
       .where(and(
         eq(appointmentsTable.patientId, patientId),
         eq(appointmentsTable.date, date),
         eq(appointmentsTable.time, time),
-        sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`
+        sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`,
       ));
 
-    if (existing.length > 0) {
+    if (conflict.length > 0) {
       res.status(409).json({ error: "Paciente já possui agendamento neste horário" });
       return;
     }
 
-    const [appointment] = await db.insert(appointmentsTable).values({
+    const [apt] = await db.insert(appointmentsTable).values({
       patientId, therapistId, date, time,
       status: status ?? "agendado",
       notes: notes ?? null,
     }).returning();
 
-    const [withDetails] = await db.select(buildAppointmentSelect()).from(appointmentsTable)
-      .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
-      .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
-      .where(eq(appointmentsTable.id, appointment.id));
-
+    const withDetails = await getWithDetails(apt.id);
     res.status(201).json(withDetails);
   } catch (e: any) {
+    console.error("Create appointment error:", e);
     res.status(500).json({ error: e.message || "Erro ao criar agendamento" });
   }
 });
+
+// ─── CREATE RECURRING ─────────────────────────────────────────────────────────
 
 router.post("/appointments/recurring", async (req, res): Promise<void> => {
   try {
     const { patientId, therapistId, startDate, time, notes, recurrenceType, weekDays, totalCount, endDate } = req.body;
 
     if (!patientId || !therapistId || !startDate || !time || !recurrenceType) {
-      res.status(400).json({ error: "Campos obrigatórios: paciente, fisioterapeuta, data início, horário, tipo de recorrência" });
+      res.status(400).json({ error: "Preencha: paciente, fisioterapeuta, data de início, horário e tipo de recorrência" });
+      return;
+    }
+
+    if (recurrenceType === "dias_semana" && (!Array.isArray(weekDays) || weekDays.length === 0)) {
+      res.status(400).json({ error: "Selecione pelo menos um dia da semana para a recorrência" });
       return;
     }
 
@@ -123,38 +158,38 @@ router.post("/appointments/recurring", async (req, res): Promise<void> => {
     const dates: string[] = [];
     const start = new Date(startDate + "T12:00:00");
     const end = endDate ? new Date(endDate + "T23:59:59") : null;
-    const maxCount = totalCount ? parseInt(String(totalCount)) : 52;
+    const maxCount = totalCount ? Math.min(parseInt(String(totalCount)), 200) : 52;
 
     if (recurrenceType === "diaria") {
-      let current = new Date(start);
-      while (dates.length < maxCount && (!end || current <= end)) {
-        dates.push(current.toISOString().split("T")[0]);
-        current.setDate(current.getDate() + 1);
+      let curr = new Date(start);
+      while (dates.length < maxCount && (!end || curr <= end)) {
+        dates.push(curr.toISOString().split("T")[0]);
+        curr.setDate(curr.getDate() + 1);
       }
     } else if (recurrenceType === "semanal") {
-      let current = new Date(start);
-      while (dates.length < maxCount && (!end || current <= end)) {
-        dates.push(current.toISOString().split("T")[0]);
-        current.setDate(current.getDate() + 7);
+      let curr = new Date(start);
+      while (dates.length < maxCount && (!end || curr <= end)) {
+        dates.push(curr.toISOString().split("T")[0]);
+        curr.setDate(curr.getDate() + 7);
       }
     } else if (recurrenceType === "dias_semana") {
-      const days: number[] = Array.isArray(weekDays) ? weekDays.map(Number) : [start.getDay()];
-      let current = new Date(start);
-      for (let i = 0; i < 365 && dates.length < maxCount && (!end || current <= end); i++) {
-        if (days.includes(current.getDay())) {
-          dates.push(current.toISOString().split("T")[0]);
+      const days: number[] = weekDays.map(Number);
+      let curr = new Date(start);
+      for (let i = 0; i < 730 && dates.length < maxCount && (!end || curr <= end); i++) {
+        if (days.includes(curr.getDay())) {
+          dates.push(curr.toISOString().split("T")[0]);
         }
-        current.setDate(current.getDate() + 1);
+        curr.setDate(curr.getDate() + 1);
       }
     }
 
     if (dates.length === 0) {
-      res.status(400).json({ error: "Nenhuma data gerada com os parâmetros fornecidos" });
+      res.status(400).json({ error: "Nenhuma data gerada. Verifique os parâmetros de recorrência." });
       return;
     }
 
-    const created = [];
-    const skipped = [];
+    const created: number[] = [];
+    const skipped: string[] = [];
 
     for (const date of dates) {
       const conflict = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
@@ -162,43 +197,43 @@ router.post("/appointments/recurring", async (req, res): Promise<void> => {
           eq(appointmentsTable.patientId, Number(patientId)),
           eq(appointmentsTable.date, date),
           eq(appointmentsTable.time, time),
-          sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`
+          sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`,
         ));
 
       if (conflict.length === 0) {
-        const [appt] = await db.insert(appointmentsTable).values({
+        const [apt] = await db.insert(appointmentsTable).values({
           patientId: Number(patientId), therapistId: Number(therapistId),
           date, time, status: "agendado",
           notes: notes ?? null, recurringGroupId: groupId,
         }).returning();
-        created.push(appt);
+        created.push(apt.id);
       } else {
         skipped.push(date);
       }
     }
 
     res.status(201).json({
-      created: created.length, skipped: skipped.length,
-      groupId, appointments: created,
-      message: `${created.length} sessões criadas${skipped.length > 0 ? `, ${skipped.length} ignoradas por conflito` : ""}`,
+      created: created.length, skipped: skipped.length, groupId,
+      message: `${created.length} sessão(ões) criada(s)${skipped.length > 0 ? `, ${skipped.length} ignorada(s) por conflito de horário` : ""}`,
     });
   } catch (e: any) {
+    console.error("Recurring error:", e);
     res.status(500).json({ error: e.message || "Erro ao criar recorrência" });
   }
 });
+
+// ─── GET BY ID ────────────────────────────────────────────────────────────────
 
 router.get("/appointments/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-  const [appointment] = await db.select(buildAppointmentSelect()).from(appointmentsTable)
-    .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
-    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
-    .where(eq(appointmentsTable.id, id));
-
-  if (!appointment) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
-  res.json(appointment);
+  const apt = await getWithDetails(id);
+  if (!apt) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
+  res.json(apt);
 });
+
+// ─── UPDATE ───────────────────────────────────────────────────────────────────
 
 router.patch("/appointments/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
@@ -207,45 +242,33 @@ router.patch("/appointments/:id", async (req, res): Promise<void> => {
   const parsed = UpdateAppointmentBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Dados inválidos" }); return; }
 
-  const updateData: Record<string, unknown> = {};
   const d = parsed.data;
-  if (d.patientId !== undefined) updateData.patientId = d.patientId;
-  if (d.therapistId !== undefined) updateData.therapistId = d.therapistId;
-  if (d.date !== undefined) updateData.date = d.date;
-  if (d.time !== undefined) updateData.time = d.time;
-  if (d.status !== undefined) updateData.status = d.status;
-  if (d.notes !== undefined) updateData.notes = d.notes;
+  const update: Record<string, unknown> = {};
+  if (d.patientId !== undefined) update.patientId = d.patientId;
+  if (d.therapistId !== undefined) update.therapistId = d.therapistId;
+  if (d.date !== undefined) update.date = d.date;
+  if (d.time !== undefined) update.time = d.time;
+  if (d.status !== undefined) update.status = d.status;
+  if (d.notes !== undefined) update.notes = d.notes;
 
-  await db.update(appointmentsTable).set(updateData).where(eq(appointmentsTable.id, id));
-
-  const [appointment] = await db.select(buildAppointmentSelect()).from(appointmentsTable)
-    .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
-    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
-    .where(eq(appointmentsTable.id, id));
-
-  if (!appointment) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
-  res.json(appointment);
+  await db.update(appointmentsTable).set(update).where(eq(appointmentsTable.id, id));
+  const apt = await getWithDetails(id);
+  if (!apt) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
+  res.json(apt);
 });
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
 
 router.delete("/appointments/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-  const [appointment] = await db.delete(appointmentsTable).where(eq(appointmentsTable.id, id)).returning();
-  if (!appointment) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
+  const [apt] = await db.delete(appointmentsTable).where(eq(appointmentsTable.id, id)).returning();
+  if (!apt) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
   res.sendStatus(204);
 });
 
-router.delete("/appointments/group/:groupId", async (req, res): Promise<void> => {
-  const { groupId } = req.params;
-  if (!groupId) { res.status(400).json({ error: "groupId inválido" }); return; }
-
-  const deleted = await db.delete(appointmentsTable)
-    .where(and(eq(appointmentsTable.recurringGroupId, groupId), sql`${appointmentsTable.status} NOT IN ('presente', 'falta')`))
-    .returning();
-
-  res.json({ deleted: deleted.length });
-});
+// ─── UPDATE STATUS ────────────────────────────────────────────────────────────
 
 router.patch("/appointments/:id/status", async (req, res): Promise<void> => {
   try {
@@ -253,15 +276,16 @@ router.patch("/appointments/:id/status", async (req, res): Promise<void> => {
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
     const parsed = UpdateAppointmentStatusBody.safeParse(req.body);
-    if (!parsed.success) { res.status(400).json({ error: "Status inválido" }); return; }
+    if (!parsed.success) {
+      res.status(400).json({ error: "Status inválido. Use: agendado, confirmado, presente, falta, cancelado, remarcado, encaixe" });
+      return;
+    }
 
     const { status } = parsed.data;
-
     const [current] = await db.select().from(appointmentsTable).where(eq(appointmentsTable.id, id));
     if (!current) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
 
     const prevStatus = current.status;
-
     await db.update(appointmentsTable).set({ status }).where(eq(appointmentsTable.id, id));
 
     // Session count management
@@ -275,16 +299,15 @@ router.patch("/appointments/:id/status", async (req, res): Promise<void> => {
         .where(eq(patientsTable.id, current.patientId));
     }
 
-    const [appointment] = await db.select(buildAppointmentSelect()).from(appointmentsTable)
-      .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
-      .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
-      .where(eq(appointmentsTable.id, id));
-
-    res.json(appointment);
+    const apt = await getWithDetails(id);
+    res.json(apt);
   } catch (e: any) {
+    console.error("Status update error:", e);
     res.status(500).json({ error: e.message || "Erro ao atualizar status" });
   }
 });
+
+// ─── RESCHEDULE ───────────────────────────────────────────────────────────────
 
 router.post("/appointments/:id/reschedule", async (req, res): Promise<void> => {
   try {
@@ -292,31 +315,34 @@ router.post("/appointments/:id/reschedule", async (req, res): Promise<void> => {
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
     const parsed = RescheduleAppointmentBody.safeParse(req.body);
-    if (!parsed.success) { res.status(400).json({ error: "Dados de remarcação inválidos" }); return; }
+    if (!parsed.success) {
+      res.status(400).json({ error: "Informe a nova data e o novo horário para remarcar" });
+      return;
+    }
 
     const { date, time, therapistId } = parsed.data;
 
     const [original] = await db.select().from(appointmentsTable).where(eq(appointmentsTable.id, id));
     if (!original) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
 
-    const targetTherapistId = therapistId ?? original.therapistId;
+    const targetTherapistId = (therapistId != null ? therapistId : null) ?? original.therapistId;
 
-    // Check conflict (exclude same appointment ID)
+    // Conflict check (excluding self)
     const conflict = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
       .where(and(
         eq(appointmentsTable.patientId, original.patientId),
         eq(appointmentsTable.date, date),
         eq(appointmentsTable.time, time),
         ne(appointmentsTable.id, id),
-        sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`
+        sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`,
       ));
 
     if (conflict.length > 0) {
-      res.status(409).json({ error: "Conflito: paciente já tem agendamento neste horário" });
+      res.status(409).json({ error: "Conflito: o paciente já tem outra sessão neste horário" });
       return;
     }
 
-    // If original was "presente", add back session count before marking as remarcado
+    // Restore session count if original was "presente"
     if (original.status === "presente") {
       await db.update(patientsTable)
         .set({ remainingSessions: sql`${patientsTable.remainingSessions} + 1` })
@@ -328,8 +354,8 @@ router.post("/appointments/:id/reschedule", async (req, res): Promise<void> => {
       .set({ status: "remarcado" })
       .where(eq(appointmentsTable.id, id));
 
-    // Create new appointment preserving group if recurring
-    const [newAppointment] = await db.insert(appointmentsTable).values({
+    // Create new appointment
+    const [newApt] = await db.insert(appointmentsTable).values({
       patientId: original.patientId,
       therapistId: targetTherapistId,
       date, time,
@@ -339,13 +365,10 @@ router.post("/appointments/:id/reschedule", async (req, res): Promise<void> => {
       recurringGroupId: original.recurringGroupId ?? null,
     }).returning();
 
-    const [withDetails] = await db.select(buildAppointmentSelect()).from(appointmentsTable)
-      .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
-      .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
-      .where(eq(appointmentsTable.id, newAppointment.id));
-
+    const withDetails = await getWithDetails(newApt.id);
     res.json(withDetails);
   } catch (e: any) {
+    console.error("Reschedule error:", e);
     res.status(500).json({ error: e.message || "Erro ao remarcar sessão" });
   }
 });

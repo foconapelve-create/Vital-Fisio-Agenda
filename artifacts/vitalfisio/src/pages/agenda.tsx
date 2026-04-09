@@ -146,6 +146,8 @@ export default function Agenda() {
     queryClient.invalidateQueries({ queryKey: getListAppointmentsQueryKey(queryParams) });
     queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
     queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+    queryClient.invalidateQueries({ queryKey: ["appointments-upcoming"] });
+    queryClient.invalidateQueries({ queryKey: ["patients"] });
   }
 
   const apptsByDateAndTime = useMemo(() => {
@@ -178,8 +180,16 @@ export default function Agenda() {
     reschedule.mutate(
       { id: selectedAppointment.id, data: { date: data.date, time: data.time, therapistId: data.therapistId ?? null } },
       {
-        onSuccess: () => { toast({ title: "Sessão remarcada com sucesso" }); setIsRescheduleOpen(false); setSelectedAppointment(null); invalidate(); },
-        onError: (err: any) => toast({ title: err?.error?.error || "Erro ao remarcar", variant: "destructive" }),
+        onSuccess: () => {
+          toast({ title: "Sessão remarcada com sucesso!" });
+          setIsRescheduleOpen(false);
+          setSelectedAppointment(null);
+          invalidate();
+        },
+        onError: (err: any) => {
+          const msg = err?.message || err?.data?.error || "Erro ao remarcar sessão";
+          toast({ title: msg, variant: "destructive" });
+        },
       }
     );
   };
@@ -199,8 +209,11 @@ export default function Agenda() {
     createAppt.mutate(
       { data: { ...data, notes: data.notes || null } },
       {
-        onSuccess: () => { toast({ title: "Agendamento criado" }); setIsNewApptOpen(false); invalidate(); },
-        onError: (err: any) => toast({ title: err?.error?.error || "Erro ao criar agendamento", variant: "destructive" }),
+        onSuccess: () => { toast({ title: "Agendamento criado com sucesso!" }); setIsNewApptOpen(false); invalidate(); },
+        onError: (err: any) => {
+          const msg = err?.message || err?.data?.error || "Erro ao criar agendamento";
+          toast({ title: msg, variant: "destructive" });
+        },
       }
     );
   };
@@ -208,6 +221,14 @@ export default function Agenda() {
   const onCreateRecurring = () => {
     if (!recForm.patientId || !recForm.therapistId || !recForm.startDate || !recForm.time) {
       toast({ title: "Preencha paciente, fisioterapeuta, data de início e horário", variant: "destructive" });
+      return;
+    }
+    if (recForm.recurrenceType === "dias_semana" && recForm.weekDays.length === 0) {
+      toast({ title: "Selecione pelo menos um dia da semana", variant: "destructive" });
+      return;
+    }
+    if (recForm.totalCount && parseInt(recForm.totalCount) < 1) {
+      toast({ title: "A quantidade de sessões deve ser pelo menos 1", variant: "destructive" });
       return;
     }
     const payload: any = {
@@ -259,7 +280,12 @@ export default function Agenda() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={() => { setCreateMode("single"); setIsNewApptOpen(true); }} className="gap-2">
+          <Button onClick={() => {
+            setCreateMode("single");
+            newApptForm.reset({ patientId: 0, therapistId: 0, date: format(new Date(), "yyyy-MM-dd"), time: "08:00", status: "agendado", notes: null });
+            setRecForm({ patientId: "", therapistId: "", startDate: format(new Date(), "yyyy-MM-dd"), time: "08:00", recurrenceType: "semanal", weekDays: [], totalCount: "12", endDate: "", notes: "" });
+            setIsNewApptOpen(true);
+          }} className="gap-2">
             <Plus className="h-4 w-4" /> Novo Agendamento
           </Button>
         </div>
@@ -432,10 +458,10 @@ export default function Agenda() {
               <FormField control={rescheduleForm.control} name="therapistId" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Fisioterapeuta (opcional)</FormLabel>
-                  <Select onValueChange={v => field.onChange(v ? parseInt(v) : null)} value={field.value?.toString() ?? ""}>
+                  <Select onValueChange={v => field.onChange(v === "keep" ? null : parseInt(v))} value={field.value?.toString() ?? "keep"}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Manter o mesmo" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="">Manter o mesmo</SelectItem>
+                      <SelectItem value="keep">Manter o mesmo</SelectItem>
                       {(therapists as TherapistType[]).map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
                     </SelectContent>
                   </Select>

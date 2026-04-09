@@ -1,0 +1,115 @@
+
+Corrija imediatamente os seguintes erros e implemente os ajustes abaixo no app da clínica, garantindo que tudo fique 100% funcional, integrado e sem quebrar as funcionalidades já existentes:
+
+1. ERRO AO REMARCAR PACIENTE
+- Corrigir o fluxo de remarcação de paciente.
+- Garantir que ao remarcar uma sessão o sistema:
+  - atualize corretamente a agenda
+  - remova o horário antigo, se necessário
+  - mantenha o vínculo com o paciente
+  - mantenha o vínculo com o fisioterapeuta
+  - mantenha o histórico da sessão original como “remarcada”
+  - crie ou atualize corretamente a nova sessão
+- Garantir que a remarcação não duplique sessões.
+- Garantir que a remarcação não altere indevidamente número de sessões restantes.
+- Garantir que a remarcação funcione tanto para sessão avulsa quanto para sessão recorrente.
+- Criar validação para impedir conflito de dados ou perda de informações no processo de remarcação.
+
+2. ERRO NA RECORRÊNCIA DO PACIENTE
+- Corrigir toda a lógica da recorrência de sessões.
+- Garantir que o paciente possa ser agendado com recorrência sem gerar erros.
+- Corrigir problemas de duplicidade, falha de criação, falha de edição e falha de cancelamento da recorrência.
+- Permitir recorrência:
+  - semanal
+  - em dias específicos
+  - por quantidade de sessões
+  - até data final
+- Garantir que as sessões recorrentes fiquem corretamente conectadas ao paciente, ao fisioterapeuta e à agenda.
+- Ao editar uma recorrência, permitir escolher:
+  - apenas esta sessão
+  - esta e as próximas
+  - toda a série
+- Garantir que o cancelamento ou remarcação de uma sessão recorrente não quebre a série inteira sem necessidade.
+- Revisar o banco de dados da recorrência para garantir consistência.
+
+
+3. ERRO AO ADICIONAR NOVA RECEITA
+- Corrigir o erro ao adicionar nova receita no financeiro.
+- Garantir que o cadastro de receita funcione normalmente.
+- Permitir adicionar receita com os campos:
+  - paciente
+  - descrição
+  - categoria
+  - valor
+  - data
+  - forma de pagamento
+  - observações
+  - status
+- Garantir salvamento correto no banco.
+- Garantir edição e exclusão da receita.
+- Garantir exibição correta no financeiro e no dashboard.
+- Garantir que novas receitas sejam somadas corretamente nos relatórios e totais financeiros.
+- Corrigir qualquer erro de validação, botão sem ação, falha de carregamento ou quebra de tela nesse fluxo.
+
+4. NOVO CAMPO NO CADASTRO DE PACIENTE: VALOR PAGO
+- No cadastro de novo paciente, incluir o campo:
+  - valor pago
+- Esse campo deve ter conexão direta com as entradas de receitas do financeiro.
+- Ao cadastrar o paciente com valor pago preenchido, o sistema deve automaticamente:
+  - gerar uma entrada de receita no financeiro
+  - vincular essa receita ao paciente
+  - registrar forma de pagamento
+  - registrar data do pagamento
+- Criar vínculo entre:
+  - valor pago
+  - forma de pagamento
+  - número de sessões contratadas
+  - controle de sessões
+  - financeiro
+- Se o valor pago for alterado depois, atualizar a receita vinculada ou criar histórico de ajuste, sem perder rastreabilidade.
+- Garantir que não haja duplicação automática de receitas ao editar o cadastro.
+- Criar regra clara:
+  - na criação do paciente, gera a receita inicial
+  - em edições posteriores, atualizar com segurança sem duplicar lançamento financeiro
+
+5. INTEGRAÇÃO ENTRE PACIENTE, AGENDA E FINANCEIRO
+- Garantir que os módulos abaixo estejam totalmente conectados:
+  - cadastro do paciente
+  - agenda
+  - recorrência
+  - remarcação
+  - confirmação via WhatsApp
+  - presença
+  - evolução
+  - financeiro
+  - receitas
+- Toda alteração em um módulo vinculado deve refletir corretamente no outro quando necessário.
+
+6. REVISÃO TÉCNICA OBRIGATÓRIA
+- Revisar frontend, backend, banco de dados, automações e integrações.
+- Corrigir qualquer bug relacionado a:
+  - salvamento
+  - edição
+  - exclusão
+  - duplicidade
+  - status
+  - sincronização
+  - atualização de tela
+- Garantir mensagens de erro amigáveis.
+- Garantir mensagens de sucesso após ações concluídas.
+- Garantir que tudo funcione em desktop e mobile.
+
+7. TESTES OBRIGATÓRIOS
+Após corrigir, testar obrigatoriamente:
+- remarcação de paciente
+- criação de recorrência
+- edição de recorrência
+- cancelamento de recorrência
+- confirmação por WhatsApp
+- alteração automática de status após resposta
+- cadastro de nova receita
+- cadastro de novo paciente com valor pago
+- geração automática da entrada financeira
+- atualização do financeiro no dashboard
+
+Não entregue apenas a estrutura visual. Quero tudo funcional de verdade, revisado, testado e sem erros

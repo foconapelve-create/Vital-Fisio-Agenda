@@ -353,10 +353,10 @@ export default function Financial() {
             {form.type === "receita" && (
               <div>
                 <Label>Paciente</Label>
-                <Select value={form.patientId || ""} onValueChange={v => setForm(p => ({ ...p, patientId: v }))}>
+                <Select value={form.patientId || "none"} onValueChange={v => setForm(p => ({ ...p, patientId: v === "none" ? "" : v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecionar paciente..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {(patients as any[]).map((p: any) => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
