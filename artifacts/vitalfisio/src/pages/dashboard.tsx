@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PrintButton } from "@/components/print/PrintButton";
+import { PrintHeader } from "@/components/print/PrintHeader";
 
 type Summary = {
   totalToday: number; totalAbsences: number; totalCompleted: number;
@@ -58,11 +60,18 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Visão geral da clínica — {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-        </p>
+      <PrintHeader title="Dashboard — Visão Geral" />
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Visão geral da clínica — {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          </p>
+        </div>
+        <PrintButton
+          title="Dashboard"
+          filename={`dashboard-${format(new Date(), "yyyy-MM-dd")}.pdf`}
+        />
       </div>
 
       {/* Alertas financeiros */}

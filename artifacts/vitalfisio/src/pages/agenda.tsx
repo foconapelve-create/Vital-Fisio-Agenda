@@ -20,9 +20,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight, Plus, X, RefreshCw, MessageCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, RefreshCw, MessageCircle, Check, UserX, Ban, Search, Filter } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PrintButton } from "@/components/print/PrintButton";
+import { PrintHeader } from "@/components/print/PrintHeader";
 
 const STATUS_LABELS: Record<string, string> = {
   agendado: "Agendado",
@@ -115,6 +117,8 @@ const rescheduleSchema = z.object({
 
 type RescheduleFormData = z.infer<typeof rescheduleSchema>;
 
+const MAX_SLOT_CAPACITY = 40;
+
 export default function Agenda() {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [selectedTherapistId, setSelectedTherapistId] = useState<number | undefined>(undefined);
@@ -124,6 +128,8 @@ export default function Agenda() {
   const [createMode, setCreateMode] = useState<"single" | "recurring">("single");
   const [viewMode, setViewMode] = useState<"semanal" | "diaria">("semanal");
   const [dailyDate, setDailyDate] = useState<Date>(new Date());
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterPatient, setFilterPatient] = useState<string>("");
 
   // Recurrence state
   const [recForm, setRecForm] = useState({
@@ -183,15 +189,48 @@ export default function Agenda() {
     queryClient.invalidateQueries({ queryKey: ["patients"] });
   }
 
-  const apptsByDateAndTime = useMemo(() => {
+  const allAppts = appointments as AppointmentType[];
+
+  // All appointments mapped by date+time (for capacity display — no filter)
+  const allApptsByDateAndTime = useMemo(() => {
     const map = new Map<string, AppointmentType[]>();
-    for (const apt of appointments as AppointmentType[]) {
+    for (const apt of allAppts) {
       const key = `${apt.date}|${apt.time}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(apt);
     }
     return map;
-  }, [appointments]);
+  }, [allAppts]);
+
+  // Filtered appointments for display
+  const filteredAppts = useMemo(() => {
+    let list = allAppts;
+    if (filterStatus !== "all") list = list.filter(a => a.status === filterStatus);
+    if (filterPatient.trim()) {
+      const term = filterPatient.toLowerCase();
+      list = list.filter(a => a.patientName.toLowerCase().includes(term));
+    }
+    return list;
+  }, [allAppts, filterStatus, filterPatient]);
+
+  const apptsByDateAndTime = useMemo(() => {
+    const map = new Map<string, AppointmentType[]>();
+    for (const apt of filteredAppts) {
+      const key = `${apt.date}|${apt.time}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(apt);
+    }
+    return map;
+  }, [filteredAppts]);
+
+  // Day totals for weekly header (use filtered)
+  const dayTotals = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const apt of filteredAppts) {
+      map.set(apt.date, (map.get(apt.date) ?? 0) + 1);
+    }
+    return map;
+  }, [filteredAppts]);
 
   const handleStatusChange = (status: string) => {
     if (!selectedAppointment) return;
@@ -285,9 +324,25 @@ export default function Agenda() {
   const today = new Date();
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
+  const printTitle = viewMode === "semanal"
+    ? `Agenda Semanal — ${format(currentWeekStart, "dd/MM")} a ${format(addDays(currentWeekStart, 5), "dd/MM/yyyy")}`
+    : `Agenda Diária — ${format(dailyDate, "dd/MM/yyyy")}`;
+  const printFilename = viewMode === "semanal"
+    ? `agenda-semanal-${format(currentWeekStart, "yyyy-MM-dd")}.pdf`
+    : `agenda-diaria-${format(dailyDate, "yyyy-MM-dd")}.pdf`;
+
+  const hasFilters = filterStatus !== "all" || filterPatient.trim() !== "";
 
   return (
     <div className="space-y-4">
+      {/* Print-only header */}
+      <PrintHeader
+        title={viewMode === "semanal" ? "Agenda Semanal" : "Agenda Diária"}
+        subtitle={viewMode === "semanal"
+          ? `Semana de ${format(currentWeekStart, "dd/MM/yyyy", { locale: ptBR })} a ${format(addDays(currentWeekStart, 5), "dd/MM/yyyy", { locale: ptBR })}`
+          : format(dailyDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+      />
+
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -301,7 +356,7 @@ export default function Agenda() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {/* View Mode Toggle */}
-          <div className="flex rounded-lg border border-border overflow-hidden">
+          <div className="flex rounded-lg border border-border overflow-hidden no-print">
             <Button variant={viewMode === "semanal" ? "default" : "ghost"}
               size="sm" className="rounded-none h-9 px-3 text-xs"
               onClick={() => setViewMode("semanal")}>Semanal</Button>
@@ -309,14 +364,7 @@ export default function Agenda() {
               size="sm" className="rounded-none h-9 px-3 text-xs border-l"
               onClick={() => setViewMode("diaria")}>Diária</Button>
           </div>
-          <Select value={selectedTherapistId?.toString() ?? "all"} onValueChange={v => setSelectedTherapistId(v === "all" ? undefined : parseInt(v))}>
-            <SelectTrigger className="w-[190px]"><SelectValue placeholder="Todos os fisioterapeutas" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os fisioterapeutas</SelectItem>
-              {(therapists as TherapistType[]).map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 no-print">
             {viewMode === "semanal" ? (
               <>
                 <Button variant="outline" size="icon" onClick={() => setCurrentWeekStart(addDays(currentWeekStart, -7))}>
@@ -343,16 +391,57 @@ export default function Agenda() {
               </>
             )}
           </div>
-          <Button onClick={() => {
+          <PrintButton title={printTitle} filename={printFilename} />
+          <Button className="gap-2 no-print" onClick={() => {
             setCreateMode("single");
             const defaultDate = viewMode === "diaria" ? dailyDateStr : format(new Date(), "yyyy-MM-dd");
             newApptForm.reset({ patientId: 0, therapistId: 0, date: defaultDate, time: "08:00", status: "agendado", notes: null });
             setRecForm({ patientId: "", therapistId: "", startDate: defaultDate, time: "08:00", recurrenceType: "semanal", weekDays: [], totalCount: "12", endDate: "", notes: "" });
             setIsNewApptOpen(true);
-          }} className="gap-2">
+          }}>
             <Plus className="h-4 w-4" /> Novo Agendamento
           </Button>
         </div>
+      </div>
+
+      {/* Filters Row */}
+      <div className="flex flex-wrap gap-2 items-center no-print">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+          <Filter className="h-3.5 w-3.5" /> Filtros:
+        </div>
+        <Select value={selectedTherapistId?.toString() ?? "all"} onValueChange={v => setSelectedTherapistId(v === "all" ? undefined : parseInt(v))}>
+          <SelectTrigger className="h-8 text-xs w-[175px]"><SelectValue placeholder="Todos os fisios" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os fisioterapeutas</SelectItem>
+            {(therapists as TherapistType[]).map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="h-8 text-xs w-[155px]"><SelectValue placeholder="Todos os status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            className="h-8 text-xs pl-7 w-[160px]"
+            placeholder="Buscar paciente..."
+            value={filterPatient}
+            onChange={e => setFilterPatient(e.target.value)}
+          />
+        </div>
+        {hasFilters && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs px-2 text-muted-foreground"
+            onClick={() => { setFilterStatus("all"); setFilterPatient(""); setSelectedTherapistId(undefined); }}>
+            <X className="h-3.5 w-3.5 mr-1" /> Limpar
+          </Button>
+        )}
+        <span className="text-xs text-muted-foreground ml-auto">
+          {filteredAppts.length} agendamento{filteredAppts.length !== 1 ? "s" : ""}
+          {hasFilters ? " (filtrado)" : ""}
+        </span>
       </div>
 
       {/* Legend */}
@@ -367,14 +456,17 @@ export default function Agenda() {
         <div className="rounded-xl border border-border shadow-sm overflow-hidden">
           {/* Stats bar */}
           {!isLoadingAppts && (
-            <div className="flex gap-6 px-4 py-2 bg-muted/40 border-b border-border text-xs">
-              <span className="text-muted-foreground">Total: <strong className="text-foreground">{(appointments as AppointmentType[]).length}</strong></span>
+            <div className="flex gap-4 flex-wrap px-4 py-2 bg-muted/40 border-b border-border text-xs">
+              <span className="text-muted-foreground">Total do dia: <strong className="text-foreground">{allAppts.length}</strong></span>
+              {filteredAppts.length !== allAppts.length && (
+                <span className="text-muted-foreground">Exibindo: <strong className="text-foreground">{filteredAppts.length}</strong></span>
+              )}
               {["confirmado","confirmado_recepcao","presente"].map(s => {
-                const count = (appointments as AppointmentType[]).filter(a => a.status === s).length;
+                const count = allAppts.filter(a => a.status === s).length;
                 return count > 0 ? <span key={s} className={`px-2 py-0.5 rounded ${STATUS_COLORS[s]}`}>{STATUS_LABELS[s]}: {count}</span> : null;
               })}
               {["solicitou_remarcacao","nao_respondeu","falta"].map(s => {
-                const count = (appointments as AppointmentType[]).filter(a => a.status === s).length;
+                const count = allAppts.filter(a => a.status === s).length;
                 return count > 0 ? <span key={s} className={`px-2 py-0.5 rounded ${STATUS_COLORS[s]}`}>{STATUS_LABELS[s]}: {count}</span> : null;
               })}
             </div>
@@ -383,6 +475,8 @@ export default function Agenda() {
             {ALL_SLOTS.map((slot, slotIdx) => {
               const key = `${dailyDateStr}|${slot}`;
               const apts = apptsByDateAndTime.get(key) || [];
+              const totalInSlot = allApptsByDateAndTime.get(key)?.length ?? 0;
+              const remaining = MAX_SLOT_CAPACITY - totalInSlot;
               const isMorningBreak = slot === "13:30";
               return (
                 <div key={slot}>
@@ -392,28 +486,72 @@ export default function Agenda() {
                     </div>
                   )}
                   <div className={`flex gap-3 px-4 py-3 ${slotIdx % 2 === 0 ? "bg-background" : "bg-muted/10"} ${apts.length === 0 ? "min-h-[56px]" : ""}`}>
-                    <div className="w-14 shrink-0 text-xs font-mono text-muted-foreground font-medium pt-1">{slot}</div>
+                    {/* Time + capacity */}
+                    <div className="w-16 shrink-0 flex flex-col items-center pt-1 gap-1">
+                      <span className="text-xs font-mono text-muted-foreground font-medium">{slot}</span>
+                      {totalInSlot > 0 && (
+                        <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${remaining <= 0 ? "bg-red-100 text-red-700" : remaining <= 10 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                          {remaining > 0 ? `${remaining} vagas` : "Lotado"}
+                        </span>
+                      )}
+                    </div>
                     {isLoadingAppts ? (
                       <div className="flex-1 h-12 bg-muted rounded animate-pulse" />
                     ) : apts.length === 0 ? (
                       <div className="flex-1 flex items-center">
-                        <span className="text-xs text-muted-foreground/40 italic">Horário livre</span>
+                        <span className="text-xs text-muted-foreground/40 italic">
+                          {totalInSlot > 0 ? `${totalInSlot} agendamento(s) — oculto(s) pelo filtro` : "Horário livre"}
+                        </span>
                       </div>
                     ) : (
                       <div className="flex-1 flex flex-wrap gap-2">
                         {apts.map(apt => (
-                          <button key={apt.id} onClick={() => setSelectedAppointment(apt)}
-                            className={`text-left rounded-lg border p-3 transition-colors cursor-pointer flex-1 min-w-[180px] max-w-[280px] ${STATUS_BG_COLORS[apt.status] || "bg-gray-50 border-gray-200 hover:bg-gray-100"}`}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-sm leading-tight">{apt.patientName}</span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded border ${STATUS_COLORS[apt.status] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
-                                {STATUS_LABELS[apt.status] || apt.status}
-                              </span>
+                          <div key={apt.id}
+                            className={`text-left rounded-lg border transition-colors flex-1 min-w-[200px] max-w-[320px] print-avoid-break ${STATUS_BG_COLORS[apt.status] || "bg-gray-50 border-gray-200"}`}>
+                            {/* Card header — clickable for details */}
+                            <button className="w-full text-left p-3 pb-2" onClick={() => setSelectedAppointment(apt)}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-sm leading-tight">{apt.patientName}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${STATUS_COLORS[apt.status] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                                  {STATUS_LABELS[apt.status] || apt.status}
+                                </span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {apt.therapistName} {apt.patientPhone && <span>· {apt.patientPhone}</span>}
+                              </div>
+                            </button>
+                            {/* Quick actions row */}
+                            <div className="flex gap-1 px-2 pb-2 no-print">
+                              {apt.status !== "presente" && (
+                                <button onClick={() => { setSelectedAppointment(apt); handleStatusChange("presente"); }}
+                                  title="Marcar Presente"
+                                  className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 transition-colors font-medium">
+                                  <Check className="h-3 w-3" /> Presente
+                                </button>
+                              )}
+                              {apt.status !== "falta" && (
+                                <button onClick={() => { setSelectedAppointment(apt); handleStatusChange("falta"); }}
+                                  title="Registrar Falta"
+                                  className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-200 transition-colors font-medium">
+                                  <UserX className="h-3 w-3" /> Falta
+                                </button>
+                              )}
+                              {apt.status !== "confirmado" && apt.status !== "presente" && apt.status !== "falta" && (
+                                <button onClick={() => { setSelectedAppointment(apt); handleStatusChange("confirmado"); }}
+                                  title="Confirmar"
+                                  className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 hover:bg-teal-200 border border-teal-200 transition-colors font-medium">
+                                  <Check className="h-3 w-3" /> Confirmar
+                                </button>
+                              )}
+                              {apt.status !== "cancelado" && apt.status !== "presente" && (
+                                <button onClick={() => { setSelectedAppointment(apt); handleStatusChange("cancelado"); }}
+                                  title="Cancelar"
+                                  className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300 transition-colors font-medium">
+                                  <Ban className="h-3 w-3" /> Cancelar
+                                </button>
+                              )}
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {apt.therapistName} {apt.patientPhone && <span>· {apt.patientPhone}</span>}
-                            </div>
-                          </button>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -433,6 +571,8 @@ export default function Agenda() {
               <div className="py-3 px-3 text-xs font-semibold text-muted-foreground text-center border-r border-border">Horário</div>
               {weekDays.map(day => {
                 const isToday = isSameDay(day, today);
+                const dateStr = format(day, "yyyy-MM-dd");
+                const dayTotal = dayTotals.get(dateStr) ?? 0;
                 return (
                   <div key={day.toISOString()} className={`py-3 px-2 text-center border-r border-border last:border-r-0 cursor-pointer hover:bg-muted/80 transition-colors ${isToday ? "bg-primary/10" : ""}`}
                     onClick={() => { setDailyDate(day); setViewMode("diaria"); }}>
@@ -442,6 +582,11 @@ export default function Agenda() {
                     <div className={`text-lg font-bold mt-0.5 ${isToday ? "text-primary" : "text-foreground"}`}>
                       {format(day, "dd")}
                     </div>
+                    {dayTotal > 0 && (
+                      <div className={`text-[10px] mt-0.5 font-medium ${isToday ? "text-primary/70" : "text-muted-foreground"}`}>
+                        {dayTotal} pac.
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -462,6 +607,8 @@ export default function Agenda() {
                       const dateStr = format(day, "yyyy-MM-dd");
                       const key = `${dateStr}|${slot}`;
                       const apts = apptsByDateAndTime.get(key) || [];
+                      const totalInSlot = allApptsByDateAndTime.get(key)?.length ?? 0;
+                      const remaining = MAX_SLOT_CAPACITY - totalInSlot;
                       const isToday = isSameDay(day, today);
                       return (
                         <div key={dateStr} className={`py-1.5 px-1 border-r border-border last:border-r-0 ${isToday ? "bg-primary/5" : ""}`}>
@@ -477,6 +624,11 @@ export default function Agenda() {
                                   <div className="text-[10px] opacity-60 truncate">{apt.therapistName.split(" ")[0]}</div>
                                 </button>
                               ))}
+                              {totalInSlot > 0 && (
+                                <div className={`text-[9px] w-full text-center mt-0.5 font-medium ${remaining <= 0 ? "text-red-600" : remaining <= 10 ? "text-amber-600" : "text-green-600"}`}>
+                                  {remaining > 0 ? `${remaining} vagas` : "Lotado"}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

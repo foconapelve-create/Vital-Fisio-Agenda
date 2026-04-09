@@ -8,10 +8,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar isMobileOpen={isMobileOpen} setMobileOpen={setMobileOpen} />
+      <div className="sidebar-wrapper">
+        <Sidebar isMobileOpen={isMobileOpen} setMobileOpen={setMobileOpen} />
+      </div>
       
-      <div className="md:ml-64 flex flex-col min-h-screen">
-        <header className="md:hidden sticky top-0 z-30 flex items-center h-16 px-4 bg-card border-b border-border shadow-sm">
+      <div className="content-wrapper md:ml-64 flex flex-col min-h-screen">
+        <header className="mobile-header md:hidden sticky top-0 z-30 flex items-center h-16 px-4 bg-card border-b border-border shadow-sm">
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="mr-2">
             <Menu className="h-5 w-5" />
           </Button>

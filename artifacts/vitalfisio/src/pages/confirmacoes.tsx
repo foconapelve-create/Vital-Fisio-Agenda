@@ -13,6 +13,8 @@ import {
   MessageCircle, Phone, CheckCircle2, AlertTriangle, Clock, Calendar, UserRound,
   RefreshCw, TrendingDown, Users, X, BarChart2, Zap, ChevronDown, ChevronUp, Send, AlarmClock
 } from "lucide-react";
+import { PrintButton } from "@/components/print/PrintButton";
+import { PrintHeader } from "@/components/print/PrintHeader";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -565,6 +567,7 @@ export default function Confirmacoes() {
 
   return (
     <div className="space-y-5">
+      <PrintHeader title="Funil de Confirmações" subtitle={`Próximos ${days} dias`} />
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -572,14 +575,15 @@ export default function Confirmacoes() {
           <p className="text-muted-foreground mt-1">Acompanhe, confirme e otimize a agenda da clínica</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Próximos:</span>
+          <span className="text-sm text-muted-foreground no-print">Próximos:</span>
           {[1, 2, 3, 5, 7].map(d => (
             <Button key={d} size="sm" variant={days === d ? "default" : "outline"}
-              className="h-8 w-8 p-0 text-xs" onClick={() => setDays(d)}>{d}d</Button>
+              className="h-8 w-8 p-0 text-xs no-print" onClick={() => setDays(d)}>{d}d</Button>
           ))}
-          <Button variant="outline" size="sm" onClick={() => { upcomingQuery.refetch(); encaixeQuery.refetch(); }} className="gap-1 h-8">
+          <Button variant="outline" size="sm" onClick={() => { upcomingQuery.refetch(); encaixeQuery.refetch(); }} className="gap-1 h-8 no-print">
             <RefreshCw className="h-3.5 w-3.5" /> Atualizar
           </Button>
+          <PrintButton title={`Confirmações — ${days} dias`} filename={`confirmacoes-${format(new Date(), "yyyy-MM-dd")}.pdf`} />
         </div>
       </div>
 

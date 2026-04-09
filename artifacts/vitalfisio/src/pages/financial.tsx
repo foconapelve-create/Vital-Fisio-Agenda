@@ -13,7 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown, Wallet, AlertTriangle, Plus, Pencil, Trash2, CheckCircle2, Loader2, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/apiFetch";
-import { getMonth, getYear } from "date-fns";
+import { getMonth, getYear, format } from "date-fns";
+import { PrintButton } from "@/components/print/PrintButton";
+import { PrintHeader } from "@/components/print/PrintHeader";
 
 type FinancialRecord = {
   id: number; description: string; type: "receita" | "despesa";
@@ -189,11 +191,16 @@ export default function Financial() {
 
   return (
     <div className="space-y-6">
+      <PrintHeader title="Controle Financeiro" subtitle={`Mês ${summaryMonth}/${summaryYear}`} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Financeiro</h1>
           <p className="text-muted-foreground mt-1">Controle de receitas e contas a pagar</p>
         </div>
+        <PrintButton
+          title={`Financeiro ${summaryMonth}/${summaryYear}`}
+          filename={`financeiro-${summaryYear}-${summaryMonth}-${format(new Date(), "yyyy-MM-dd")}.pdf`}
+        />
       </div>
 
       {/* Resumo */}

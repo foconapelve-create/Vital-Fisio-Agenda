@@ -230,6 +230,66 @@
   }
 }
 
+/* ── PRINT STYLES ─────────────────────────────────────────────────────────── */
+@media print {
+  /* Hide interactive/navigation elements */
+  .no-print,
+  .sidebar-wrapper,
+  header.mobile-header {
+    display: none !important;
+  }
+
+  /* Remove sidebar offset */
+  .content-wrapper {
+    margin-left: 0 !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4 portrait;
+    margin: 16mm 14mm;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Avoid page breaks inside cards and table rows */
+  .print-avoid-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Ensure tables print correctly */
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+
+  /* Full width main content */
+  main {
+    padding: 0 !important;
+  }
+
+  /* Remove shadows/borders for cleaner print */
+  .shadow-sm, .shadow { box-shadow: none !important; }
+
+  /* Ensure colored backgrounds show in print */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* Print-only elements are hidden by default */
+.print-only {
+  display: none;
+}
+
 @layer utilities {
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;

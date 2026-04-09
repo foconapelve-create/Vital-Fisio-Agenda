@@ -14,6 +14,8 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { PrintButton } from "@/components/print/PrintButton";
+import { PrintHeader } from "@/components/print/PrintHeader";
 import {
   Dialog,
   DialogContent,
@@ -161,15 +163,19 @@ export default function Therapists() {
 
   return (
     <div className="space-y-6">
+      <PrintHeader title="Cadastro de Fisioterapeutas" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Fisioterapeutas</h1>
           <p className="text-muted-foreground mt-1">Equipe clínica cadastrada</p>
         </div>
-        <Button onClick={openCreateDialog} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Fisioterapeuta
-        </Button>
+        <div className="flex gap-2">
+          <PrintButton title="Fisioterapeutas" filename="fisioterapeutas.pdf" showPdfButton={false} />
+          <Button onClick={openCreateDialog} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Fisioterapeuta
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

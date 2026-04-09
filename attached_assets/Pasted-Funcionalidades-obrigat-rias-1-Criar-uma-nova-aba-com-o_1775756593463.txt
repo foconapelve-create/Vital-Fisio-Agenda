@@ -1,0 +1,190 @@
+Funcionalidades obrigatórias:
+
+1. Criar uma nova aba com o nome:
+   - Atestado / Declaração
+
+2. Criar formulário com os seguintes campos:
+   - Nome do paciente
+   - Data do atendimento
+   - Hora de início
+   - Hora de término
+   - Hora total / período do atendimento
+   - Nome do profissional responsável
+   - Número do registro profissional
+   - Tipo de documento:
+     - Declaração de comparecimento
+     - Atestado
+   - Tipo de atendimento realizado
+   - Observações adicionais
+   - Data de emissão do documento
+   - Cidade
+   - Campo de assinatura digital ou nome do profissional no rodapé
+
+3. No campo "Tipo de atendimento realizado", criar opções prontas para seleção:
+   - Consulta
+   - Avaliação fisioterapêutica
+   - Reavaliação fisioterapêutica
+   - Atendimento fisioterapêutico
+   - Sessão de fisioterapia
+   - Atendimento de fisioterapia pélvica
+   - Atendimento de reabilitação
+   - Procedimento terapêutico
+   - Orientação terapêutica
+   - Atendimento clínico
+   - Acompanhamento terapêutico
+   - Atendimento ambulatorial
+   - Atendimento domiciliar
+   - Retorno
+   - Triagem
+   - Avaliação funcional
+   - Atendimento multiprofissional
+   - Consulta de acompanhamento
+   - Sessão de tratamento
+   - Atendimento individual
+
+4. Permitir também opção "Outro":
+   - Se selecionar "Outro", abrir campo de texto para digitar manualmente o tipo de atendimento
+
+5. Modelo automático do documento:
+   - O sistema deve gerar automaticamente o texto do documento com base nos campos preenchidos
+
+6. Modelo de texto para DECLARAÇÃO DE COMPARECIMENTO:
+   "Declaro, para os devidos fins, que o(a) paciente [NOME DO PACIENTE] compareceu a atendimento de [TIPO DE ATENDIMENTO] no dia [DATA], no horário de [HORA INÍCIO] às [HORA TÉRMINO], nesta unidade de saúde."
+
+7. Modelo de texto para ATESTADO:
+   "Atesto, para os devidos fins, que o(a) paciente [NOME DO PACIENTE] esteve em atendimento de [TIPO DE ATENDIMENTO] no dia [DATA], no horário de [HORA INÍCIO] às [HORA TÉRMINO], necessitando de afastamento conforme avaliação profissional, se aplicável."
+
+8. Layout do documento:
+   - Visual limpo e profissional
+   - Cabeçalho com nome da clínica
+   - Data de emissão
+   - Nome do paciente em destaque
+   - Rodapé com nome do profissional, registro e espaço para assinatura
+   - Formato pronto para impressão em A4
+   - Compatível com exportação em PDF
+
+9. Botões obrigatórios:
+   - Gerar documento
+   - Salvar
+   - Imprimir
+   - Salvar em PDF
+   - Limpar formulário
+
+10. Histórico:
+   - Salvar cada atestado/declaração emitido no cadastro do paciente
+   - Exibir lista com:
+     - data
+     - tipo de documento
+     - tipo de atendimento
+     - profissional responsável
+     - botão visualizar
+     - botão imprimir
+     - botão PDF
+
+11. Banco de dados:
+   Criar Data Type: "AtestadoPaciente"
+   Campos:
+   - paciente
+   - tipo_documento
+   - data_atendimento
+   - hora_inicio
+   - hora_termino
+   - tipo_atendimento
+   - outro_tipo_atendimento
+   - observacoes
+   - profissional_responsavel
+   - registro_profissional
+   - data_emissao
+   - cidade
+   - texto_gerado
+   - criado_por
+   - ativo
+
+12. Regras de negócio:
+   - Puxar automaticamente o nome do paciente ao abrir a aba dentro do cadastro
+   - Permitir editar antes de gerar o documento
+   - Permitir reutilizar modelo anterior
+   - Permitir preencher automaticamente nome do profissional logado
+   - Permitir imprimir e exportar sem quebrar o layout
+
+13. Segurança:
+   - Apenas usuários autorizados podem gerar ou editar atestados
+   - Fisioterapeuta visualiza e gera apenas para seus próprios pacientes, se permitido
+   - Gestor tem acesso completo
+   - Proteger os documentos contra acesso indevido
+
+14. Corrigir possíveis erros:
+   - erro ao salvar atestado
+   - erro ao puxar nome do paciente
+   - erro ao gerar PDF
+   - erro na impressão
+   - erro de layout
+   - erro ao salvar no histórico
+   - erro ao abrir documento antigo
+
+15. Objetivo final:
+   Criar uma aba profissional e funcional para emissão de atestados e declarações, com preenchimento rápido, histórico do paciente, impressão e PDF.
+
+
+Atualize a funcionalidade da aba "Atestado / Declaração" para incluir o campo de endereço da clínica no documento.
+
+Objetivo:
+Garantir que todos os atestados e declarações emitidos contenham o endereço completo da clínica, aumentando a validade e profissionalismo do documento.
+
+1. Atualizar formulário de atestado:
+   Adicionar campo:
+   - endereço_da_clinica (text)
+
+2. Criar comportamento automático:
+   - Preencher automaticamente o campo com o endereço padrão da clínica (definido nas configurações do sistema)
+   - Permitir edição manual caso necessário
+
+3. Criar área de configurações da clínica (se ainda não existir):
+   Data Type: "ConfiguracaoClinica"
+   Campos:
+   - nome_clinica (text)
+   - endereco_clinica (text)
+   - telefone (text)
+   - email (text)
+   - logo (imagem - opcional)
+
+4. Ao abrir o atestado:
+   - Buscar automaticamente o endereço salvo nas configurações
+   - Preencher o campo endereço_da_clinica
+
+5. Atualizar modelo do documento:
+
+   Para DECLARAÇÃO:
+   "Declaro, para os devidos fins, que o(a) paciente [NOME DO PACIENTE] compareceu a atendimento de [TIPO DE ATENDIMENTO] no dia [DATA], no horário de [HORA INÍCIO] às [HORA TÉRMINO], nesta unidade localizada em [ENDEREÇO DA CLÍNICA]."
+
+   Para ATESTADO:
+   "Atesto, para os devidos fins, que o(a) paciente [NOME DO PACIENTE] esteve em atendimento de [TIPO DE ATENDIMENTO] no dia [DATA], no horário de [HORA INÍCIO] às [HORA TÉRMINO], na clínica localizada em [ENDEREÇO DA CLÍNICA]."
+
+6. Layout do documento:
+   - Exibir o endereço também no cabeçalho ou rodapé do documento
+   - Manter padrão profissional
+   - Garantir boa visualização em impressão e PDF
+
+7. Histórico:
+   - Salvar o endereço utilizado no momento da emissão
+   - Garantir que documentos antigos mantenham o endereço original mesmo se alterado depois
+
+8. Segurança:
+   - Apenas gestor pode editar o endereço padrão da clínica
+   - Fisioterapeuta apenas visualiza ou usa o padrão
+
+9. Corrigir possíveis erros:
+   - erro ao puxar endereço automático
+   - erro ao salvar endereço no atestado
+   - erro ao gerar PDF com endereço
+   - erro de layout no documento
+   - erro ao editar manualmente
+
+10. Extras importantes:
+   - Permitir incluir automaticamente também:
+     - nome da clínica
+     - telefone
+   - Exibir essas informações no cabeçalho do documento
+
+Objetivo final:
+Garantir que todos os atestados e declarações tenham identificação completa da clínica, incluindo endereço, tornando o documento mais profissional e válido.

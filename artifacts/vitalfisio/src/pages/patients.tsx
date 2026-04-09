@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Search, Plus, UserRound, History, Pencil, Trash2, Phone, Activity, Mail, MapPin, Loader2 } from "lucide-react";
+import { PrintButton } from "@/components/print/PrintButton";
+import { PrintHeader } from "@/components/print/PrintHeader";
 
 type Patient = {
   id: number; name: string; phone: string; email?: string | null;
@@ -155,14 +157,18 @@ export default function Patients() {
 
   return (
     <div className="space-y-6">
+      <PrintHeader title="Cadastro de Pacientes" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Pacientes</h1>
           <p className="text-muted-foreground mt-1">Gerencie os cadastros de pacientes da clínica</p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Paciente
-        </Button>
+        <div className="flex gap-2">
+          <PrintButton title="Lista de Pacientes" filename="pacientes.pdf" showPdfButton={false} />
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Paciente
+          </Button>
+        </div>
       </div>
 
       <div className="relative">

@@ -16,6 +16,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } fro
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { FileBarChart2, Calendar, UserX, Activity } from "lucide-react";
+import { PrintButton } from "@/components/print/PrintButton";
+import { PrintHeader } from "@/components/print/PrintHeader";
 
 function formatDate(str: string) {
   const [y, m, d] = str.split("-");
@@ -75,9 +77,16 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Relatórios</h1>
-        <p className="text-muted-foreground mt-1">Análise de atendimentos e sessões</p>
+      <PrintHeader title="Relatórios Clínicos" />
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Relatórios</h1>
+          <p className="text-muted-foreground mt-1">Análise de atendimentos e sessões</p>
+        </div>
+        <PrintButton
+          title="Relatórios"
+          filename={`relatorios-${format(new Date(), "yyyy-MM-dd")}.pdf`}
+        />
       </div>
 
       <Tabs defaultValue="daily" className="space-y-6">
