@@ -177,6 +177,7 @@ function AppointmentCard({ apt, onAction, isPending }: {
   onAction: (action: string, apt: Appointment) => void;
   isPending: boolean;
 }) {
+  const appName = useAppName();
   const risk = usePatientRisk(apt.patientId);
   const isToday = apt.date === todayStr();
   const isTomorrow = apt.date === tomorrowStr();
