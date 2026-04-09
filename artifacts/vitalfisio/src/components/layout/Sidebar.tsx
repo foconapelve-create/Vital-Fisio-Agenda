@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, CalendarDays, Users, UserRound, FileBarChart,
-  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList,
+  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake,
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ const adminItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/confirmacoes", label: "Confirmações", icon: CheckCircle2 },
+  { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/therapists", label: "Fisioterapeutas", icon: UserRound },
   { href: "/financial", label: "Financeiro", icon: Wallet },
@@ -23,6 +24,7 @@ const adminItems = [
 const fisioterapeutaItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
+  { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
   { href: "/relatorio", label: "Rel. Fisioterapêutico", icon: FileText },
@@ -31,6 +33,7 @@ const fisioterapeutaItems = [
 
 const financeiroItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/financial", label: "Financeiro", icon: Wallet },
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },

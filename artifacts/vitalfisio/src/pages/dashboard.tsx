@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Users, CalendarX, CheckCircle, CalendarCheck, XCircle, Clock,
-  Wallet, TrendingUp, AlertTriangle, Bell, DollarSign
+  Wallet, TrendingUp, AlertTriangle, Bell, DollarSign, Cake, PartyPopper,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -56,6 +56,18 @@ export default function Dashboard() {
     refetchInterval: 60000,
   });
 
+  const { data: birthdaysToday = [] } = useQuery<any[]>({
+    queryKey: ["birthdays-today"],
+    queryFn: () => apiFetch("/api/birthdays/today"),
+    refetchInterval: 300000,
+  });
+
+  const { data: birthdaysMonth = [] } = useQuery<any[]>({
+    queryKey: ["birthdays-month"],
+    queryFn: () => apiFetch("/api/birthdays/month"),
+    refetchInterval: 300000,
+  });
+
   const fin = summary?.financialSummary;
 
   return (
@@ -73,6 +85,33 @@ export default function Dashboard() {
           filename={`dashboard-${format(new Date(), "yyyy-MM-dd")}.pdf`}
         />
       </div>
+
+      {/* Alertas de aniversário */}
+      {(birthdaysToday.length > 0 || birthdaysMonth.length > 0) && (
+        <div className="space-y-2">
+          {birthdaysToday.length > 0 && (
+            <Alert className="border-pink-300 bg-pink-50 text-pink-900 cursor-pointer" onClick={() => setLocation("/aniversariantes")}>
+              <PartyPopper className="h-4 w-4 text-pink-500" />
+              <AlertTitle className="text-pink-800">🎂 Aniversariantes de Hoje ({birthdaysToday.length})</AlertTitle>
+              <AlertDescription className="text-pink-700">
+                {birthdaysToday.map((p: any) => p.name).slice(0, 5).join(", ")}
+                {birthdaysToday.length > 5 && ` e mais ${birthdaysToday.length - 5}`}
+                {" "} — <span className="underline">Clique para parabenizar</span>
+              </AlertDescription>
+            </Alert>
+          )}
+          {birthdaysMonth.length > birthdaysToday.length && (
+            <Alert className="border-blue-200 bg-blue-50 text-blue-900 cursor-pointer" onClick={() => setLocation("/aniversariantes")}>
+              <Cake className="h-4 w-4 text-blue-500" />
+              <AlertTitle className="text-blue-800">Aniversariantes do Mês ({birthdaysMonth.length})</AlertTitle>
+              <AlertDescription className="text-blue-700">
+                Este mês há {birthdaysMonth.length} paciente{birthdaysMonth.length !== 1 ? "s" : ""} fazendo aniversário.
+                {" "} — <span className="underline">Ver lista completa</span>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
 
       {/* Alertas financeiros */}
       {fin && (fin.overdueCount > 0 || fin.upcomingBillsCount > 0) && (

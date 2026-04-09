@@ -1,0 +1,629 @@
+Crie uma nova aba no sistema chamada “Planner de Conteúdo”.
+
+Objetivo da aba:
+Permitir o planejamento, organização e acompanhamento da criação de conteúdo da clínica, com visual profissional, calendário interativo e integração com IA para auxiliar na produção de roteiros, legendas e ideias de posts.
+
+A aba “Planner de Conteúdo” deve ser 100% funcional e conter:
+
+1. VISUALIZAÇÕES DO CALENDÁRIO
+Criar opção de visualização do planner por:
+- Dia
+- Semana
+- Mês
+- Ano
+
+Essas visualizações devem funcionar como um calendário interativo, permitindo navegar entre períodos anteriores e futuros com botões:
+- Hoje
+- Próximo
+- Anterior
+
+2. CADASTRO DE TAREFAS DE CONTEÚDO
+Permitir criar tarefas dentro do calendário com os seguintes campos:
+- Título da tarefa
+- Tipo de conteúdo
+- Objetivo do conteúdo
+- Descrição/briefing
+- Data
+- Hora
+- Responsável
+- Status
+- Prioridade
+- Canal
+- Tema
+- Público-alvo
+- CTA
+- Observações
+
+Tipos de conteúdo:
+- Reels
+- Story
+- Carrossel
+- Post estático
+- Vídeo
+- Texto
+- Campanha
+- Anúncio
+- Outro
+
+Objetivos:
+- Engajamento
+- Autoridade
+- Conversão
+- Relacionamento
+- Venda
+- Captação de leads
+
+Status:
+- Pendente
+- Em criação
+- Em revisão
+- Aprovado
+- Agendado
+- Publicado
+- Cancelado
+
+Prioridade:
+- Baixa
+- Média
+- Alta
+- Urgente
+
+Canais:
+- Instagram
+- WhatsApp
+- Facebook
+- TikTok
+- Blog
+- E-mail
+- Outro
+
+3. AÇÕES SOBRE AS TAREFAS
+Cada tarefa deve permitir:
+- Criar
+- Editar
+- Excluir
+- Duplicar
+- Arrastar para outra data
+- Alterar status rapidamente
+- Marcar como concluída
+- Reagendar
+- Adicionar observações
+
+4. FILTROS DO PLANNER
+Criar filtros por:
+- Período
+- Responsável
+- Tipo de conteúdo
+- Status
+- Prioridade
+- Canal
+- Objetivo
+- Tema
+
+5. PAINEL RESUMO NO TOPO
+No topo da aba mostrar indicadores:
+- Total de conteúdos do dia
+- Total da semana
+- Total do mês
+- Quantos pendentes
+- Quantos em criação
+- Quantos publicados
+- Quantos atrasados
+
+6. EXCLUSÃO E CONTROLE DO CALENDÁRIO
+Permitir:
+- Excluir tarefa individual
+- Excluir tarefas em lote
+- Excluir um dia inteiro de tarefas
+- Limpar calendário por período com confirmação de segurança
+- Não excluir sem pedir confirmação
+
+7. ORGANIZAÇÃO VISUAL
+Layout moderno, elegante e intuitivo.
+Mostrar tarefas em formato:
+- Cards
+ou
+- Blocos dentro do calendário
+
+Cada status deve ter identificação visual clara.
+Deixar fácil para a recepção, gestor ou marketing visualizar tudo rapidamente.
+
+8. ABA INTERLIGADA COM IA
+Criar dentro do Planner um painel lateral ou botão chamado:
+“Assistente IA de Conteúdo”
+
+Esse assistente deve abrir um chat interno no sistema para auxiliar na criação de conteúdo.
+
+9. FUNÇÕES DO CHAT COM IA
+O chat da IA deve ajudar o usuário a gerar:
+- Ideias de posts
+- Roteiros para Reels
+- Legendas prontas
+- Sequências de Stories
+- Chamadas para CTA
+- Títulos chamativos
+- Calendário editorial
+- Conteúdo por tema
+- Conteúdo por objetivo de marketing
+- Conteúdo para datas comemorativas
+- Conteúdo voltado para fisioterapia e clínica de saúde
+
+10. PROMPTS RÁPIDOS DENTRO DO CHAT IA
+Criar botões prontos no chat com sugestões rápidas:
+- Criar roteiro para Reels
+- Criar legenda
+- Criar carrossel
+- Criar sequência de stories
+- Criar campanha promocional
+- Criar conteúdo para engajamento
+- Criar conteúdo para autoridade
+- Criar conteúdo para vendas
+- Melhorar texto
+- Resumir ideia
+- Transformar ideia em calendário semanal
+
+11. INTEGRAÇÃO ENTRE PLANNER E IA
+A IA deve conseguir usar os dados da tarefa selecionada no calendário para gerar conteúdo automaticamente.
+Exemplo:
+Se eu clicar em uma tarefa “Post sobre dor lombar”, o chat já deve puxar esse contexto e oferecer:
+- legenda
+- roteiro
+- CTA
+- ideia de imagem
+- objetivo do post
+
+12. BOTÃO “GERAR CONTEÚDO COM IA”
+Dentro de cada tarefa, criar botão:
+“Gerar com IA”
+
+Ao clicar, abrir opções:
+- Gerar legenda
+- Gerar roteiro
+- Gerar ideia de carrossel
+- Gerar CTA
+- Gerar sequência de stories
+- Gerar variações do conteúdo
+
+13. CAMPO PARA SALVAR O MATERIAL GERADO
+Dentro de cada tarefa, criar campos para armazenar:
+- Roteiro
+- Legenda
+- CTA
+- Ideia visual
+- Hashtags
+- Observações estratégicas
+
+14. BANCO DE IDEIAS
+Criar uma subaba chamada “Banco de Ideias” para salvar ideias futuras de conteúdo, com:
+- Título da ideia
+- Tema
+- Objetivo
+- Canal
+- Observação
+- Botão “Transformar em tarefa”
+
+15. MODELOS PRONTOS
+Criar uma subaba “Modelos” com templates prontos de conteúdo para facilitar a produção:
+- Reels de autoridade
+- Reels de conexão
+- Reels de vendas
+- Story de bastidor
+- Story com enquete
+- Carrossel educativo
+- Post de prova social
+- Post de oferta
+
+16. EXPORTAÇÃO E IMPRESSÃO
+Permitir:
+- Exportar planner em PDF
+- Exportar planner em Excel
+- Imprimir calendário
+- Imprimir tarefas do período
+
+17. PERMISSÕES DE ACESSO
+Criar acessos diferentes:
+- Gestor: acesso total
+- Marketing: criar, editar, organizar e usar IA
+- Recepção: apenas visualizar, se necessário
+
+18. REGRAS DE NEGÓCIO
+- Não permitir tarefa sem data
+- Não permitir exclusão sem confirmação
+- Salvar histórico de alterações
+- Salvar quem criou, editou ou excluiu a tarefa
+- Mostrar tarefas atrasadas com alerta visual
+- Permitir repetição de tarefas recorrentes
+- Permitir anexar referências, imagens, PDFs e links
+
+19. ALERTAS E LEMBRETES
+Criar lembretes automáticos de tarefas:
+- Tarefa do dia
+- Tarefas atrasadas
+- Conteúdos que precisam de aprovação
+- Conteúdos programados para hoje
+
+20. DASHBOARD DE CONTEÚDO
+Criar um mini dashboard com:
+- Quantidade de conteúdos criados por período
+- Quantidade publicados
+- Quantidade pendentes
+- Distribuição por canal
+- Distribuição por tipo de conteúdo
+- Produtividade por responsável
+
+21. DESEMPENHO TÉCNICO
+Deixar a aba:
+- Rápida
+- Responsiva
+- Organizada
+- Sem erros
+- Integrada ao restante do sistema
+- Preparada para futura integração com redes sociais e agendamento de posts
+
+22. EXPERIÊNCIA DO USUÁRIO
+Quero uma experiência visual profissional, moderna e prática, como um planner de marketing de alto nível, fácil de usar no desktop e no celular.
+
+23. IMPORTANTE
+Corrigir qualquer erro que impedir:
+- criação da tarefa
+- edição
+- exclusão
+- visualização por semana, mês ou ano
+- abertura do chat de IA
+- salvamento do conteúdo gerado
+
+Entregar tudo funcionando de ponta a ponta.
+
+Atualize a aba “Aniversariantes” para permitir o envio de mensagens de parabéns também por e-mail, além do WhatsApp.
+
+Objetivo:
+Dar à clínica a opção de parabenizar os pacientes aniversariantes do dia e do mês por dois canais:
+- WhatsApp
+- E-mail
+
+Funcionalidades obrigatórias:
+
+1. No cadastro do paciente, garantir os campos:
+- Telefone
+- E-mail
+- Preferência de contato:
+  - WhatsApp
+  - E-mail
+  - Ambos
+
+2. Na aba “Aniversariantes”, adicionar botões:
+- Enviar parabéns por WhatsApp
+- Enviar parabéns por e-mail
+- Enviar pelos dois canais
+
+3. Na lista de aniversariantes do dia e do mês, mostrar:
+- Nome do paciente
+- Telefone
+- E-mail
+- Preferência de contato
+- Status do envio por WhatsApp
+- Status do envio por e-mail
+
+4. Criar mensagem padrão de parabéns para e-mail com assunto e corpo editáveis.
+
+Assunto sugerido:
+Feliz aniversário! Temos um presente especial para você 🎉
+
+Corpo do e-mail:
+Olá, [Nome do Paciente]!
+
+Hoje é um momento especial e toda a nossa equipe quer te desejar um feliz aniversário, com muita saúde, felicidade e bem-estar.
+
+Para comemorar essa data, preparamos um presente para você:
+🎁 10% de desconto nos nossos planos de tratamento.
+
+Será um prazer cuidar de você nesse novo ciclo com toda atenção e qualidade que você merece.
+
+Se quiser saber mais, é só responder este e-mail ou entrar em contato com a nossa equipe.
+
+Com carinho,
+[Nome da Clínica]
+
+5. Permitir editar os modelos de mensagem:
+- Modelo WhatsApp
+- Modelo E-mail
+- Modelo aniversariante do dia
+- Modelo aniversariante do mês
+
+6. Criar regras automáticas:
+- Se o paciente tiver só telefone, mostrar apenas WhatsApp
+- Se tiver só e-mail, mostrar apenas e-mail
+- Se tiver os dois, mostrar os dois botões
+- Se não tiver nenhum, mostrar alerta de cadastro incompleto
+
+7. Histórico de envios:
+Registrar separadamente:
+- Data e hora
+- Paciente
+- Canal usado (WhatsApp ou e-mail)
+- Usuário responsável
+- Status do envio
+- Tipo de mensagem (aniversário do dia ou do mês)
+
+8. Dashboard/resumo:
+Mostrar no topo:
+- Quantos parabéns foram enviados por WhatsApp hoje
+- Quantos foram enviados por e-mail hoje
+- Quantos pacientes ainda faltam ser contatados
+
+9. Regras de segurança:
+- Não permitir envio duplicado pelo mesmo canal no mesmo dia sem confirmação
+- Confirmar antes de reenviar
+- Mostrar aviso se o e-mail estiver inválido ou em branco
+
+10. Permissões:
+- Recepção pode enviar WhatsApp e e-mail
+- Gestor pode editar modelos, acompanhar histórico e relatórios
+
+11. Exportação:
+Permitir exportar relatório com:
+- Paciente
+- Canal de envio
+- Data
+- Responsável
+- Status
+
+12. Integração:
+Deixar essa funcionalidade integrada com:
+- Cadastro do paciente
+- Aba de aniversariantes
+- Histórico de relacionamento
+- Dashboard da clínica
+
+Entregar tudo funcionando corretamente, com visual profissional, simples e rápido.
+
+
+ATUALIZAÇÃO GLOBAL DO SISTEMA
+
+1. PADRONIZAÇÃO DO SISTEMA
+Substituir todos os termos:
+- “Fisioterapeuta” → “Profissional da Saúde”
+- “Clínica de Fisioterapia” → “Clínica de Saúde” (quando aplicável)
+
+Garantir que todo o sistema funcione para múltiplas especialidades.
+
+---
+
+2. CADASTRO DE PROFISSIONAIS DA SAÚDE
+
+Criar/atualizar cadastro com os campos:
+
+- Nome completo
+- Especialidade (campo selecionável)
+- Registro profissional (ex: CREFITO, CRM, CRP, COREN, etc.)
+- Telefone
+- E-mail
+- Horários de atendimento
+- Status (ativo/inativo)
+
+Criar campo de seleção de especialidade (dropdown):
+- Fisioterapia
+- Psicologia
+- Medicina
+- Enfermagem
+- Nutrição
+- Fonoaudiologia
+- Terapia Ocupacional
+- Estética
+- Outro (com campo livre)
+
+---
+
+3. VINCULAÇÃO EM TODO O SISTEMA
+
+Adicionar campo obrigatório “Profissional da Saúde responsável” em:
+
+- Agendamentos
+- Cadastro do paciente
+- Evolução/prontuário
+- Receituários
+- Encaminhamentos
+- Solicitação de exames
+- Financeiro (opcional, se vincular receita ao profissional)
+
+Permitir filtro por profissional em todas as telas:
+- Agenda
+- Relatórios
+- Aniversariantes
+- Financeiro
+- Planner de conteúdo
+
+---
+
+4. NOVA ABA: “DOCUMENTOS CLÍNICOS”
+
+Criar uma aba principal chamada:
+“Documentos Clínicos”
+
+Subabas obrigatórias:
+- Receituários
+- Encaminhamentos
+- Solicitação de Exames
+
+---
+
+5. SUBABA: RECEITUÁRIOS
+
+Campos obrigatórios:
+
+- Nome do paciente
+- Data
+- Profissional da saúde responsável
+- Especialidade
+- Texto do receituário (campo grande editável)
+- Orientações adicionais
+- Assinatura (nome do profissional + registro)
+
+Opções adicionais:
+- Modelos prontos de receituário
+- Campo para adicionar medicamentos/orientações
+- Opção de imprimir
+- Opção de exportar em PDF
+- Histórico de receituários por paciente
+
+---
+
+6. SUBABA: ENCAMINHAMENTOS
+
+Campos:
+
+- Nome do paciente
+- Data
+- Profissional solicitante
+- Especialidade de destino
+- Profissional/serviço de destino (campo livre)
+- Motivo do encaminhamento
+- Observações clínicas
+- Assinatura do profissional
+
+Opções:
+- Gerar documento formatado
+- Imprimir
+- Exportar PDF
+- Histórico por paciente
+
+---
+
+7. SUBABA: SOLICITAÇÃO DE EXAMES
+
+Campos:
+
+- Nome do paciente
+- Data
+- Profissional solicitante
+- Tipo de exame
+- Lista de exames (campo múltipla escolha + campo livre)
+- Justificativa clínica
+- Observações
+- Assinatura do profissional
+
+Tipos de exames (sugestão):
+- Laboratoriais
+- Imagem (RX, USG, RM, TC)
+- Funcionais
+- Outros
+
+Funcionalidades:
+- Gerar documento pronto
+- Imprimir
+- Exportar PDF
+- Histórico por paciente
+
+---
+
+8. MODELOS PRONTOS
+
+Criar biblioteca de modelos editáveis para:
+- Receituário padrão
+- Encaminhamento padrão
+- Solicitação de exames padrão
+
+Permitir:
+- Editar modelos
+- Salvar novos modelos
+- Duplicar modelos
+
+---
+
+9. INTEGRAÇÃO COM PACIENTE
+
+Dentro do cadastro do paciente, criar aba:
+“Documentos”
+
+Mostrar:
+- Receituários emitidos
+- Encaminhamentos realizados
+- Exames solicitados
+- Opção de visualizar/baixar PDF
+
+---
+
+10. ASSINATURA AUTOMÁTICA
+
+Ao gerar qualquer documento, preencher automaticamente:
+
+- Nome do profissional
+- Especialidade
+- Registro profissional
+
+---
+
+11. PERMISSÕES
+
+- Profissional da saúde:
+  Pode criar e visualizar documentos próprios
+
+- Recepção:
+  Pode visualizar e imprimir
+
+- Gestor:
+  Acesso total + edição de modelos
+
+---
+
+12. PADRÃO VISUAL DOS DOCUMENTOS
+
+Todos os documentos devem conter:
+
+- Nome da clínica
+- Endereço
+- Telefone
+- Logo (se houver)
+- Dados do paciente
+- Dados do profissional
+- Corpo do documento
+- Assinatura
+- Data
+
+Layout profissional, limpo e pronto para impressão.
+
+---
+
+13. FILTROS E BUSCA
+
+Permitir busca por:
+- Paciente
+- Profissional
+- Tipo de documento
+- Data
+
+---
+
+14. HISTÓRICO E SEGURANÇA
+
+Registrar:
+- Quem criou
+- Data e hora
+- Alterações realizadas
+
+Não permitir exclusão sem confirmação.
+
+---
+
+15. CORRIGIR SISTEMA
+
+Garantir que:
+- Não haja erros ao selecionar profissional
+- Não haja erros ao gerar documentos
+- PDFs funcionem corretamente
+- Impressão funcione corretamente
+- Todos os dados sejam salvos corretamente
+
+---
+
+16. EXPERIÊNCIA DO USUÁRIO
+
+Sistema deve ser:
+- Intuitivo
+- Rápido
+- Responsivo (funcionar bem no celular)
+- Profissional (nível software de clínica premium)
+
+---
+
+ENTREGAR TUDO FUNCIONANDO DE PONTA A PONTA.

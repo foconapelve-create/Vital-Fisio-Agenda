@@ -1,0 +1,275 @@
+Crie uma nova aba no sistema chamada “Planner de Conteúdo”.
+
+Objetivo da aba:
+Permitir o planejamento, organização e acompanhamento da criação de conteúdo da clínica, com visual profissional, calendário interativo e integração com IA para auxiliar na produção de roteiros, legendas e ideias de posts.
+
+A aba “Planner de Conteúdo” deve ser 100% funcional e conter:
+
+1. VISUALIZAÇÕES DO CALENDÁRIO
+Criar opção de visualização do planner por:
+- Dia
+- Semana
+- Mês
+- Ano
+
+Essas visualizações devem funcionar como um calendário interativo, permitindo navegar entre períodos anteriores e futuros com botões:
+- Hoje
+- Próximo
+- Anterior
+
+2. CADASTRO DE TAREFAS DE CONTEÚDO
+Permitir criar tarefas dentro do calendário com os seguintes campos:
+- Título da tarefa
+- Tipo de conteúdo
+- Objetivo do conteúdo
+- Descrição/briefing
+- Data
+- Hora
+- Responsável
+- Status
+- Prioridade
+- Canal
+- Tema
+- Público-alvo
+- CTA
+- Observações
+
+Tipos de conteúdo:
+- Reels
+- Story
+- Carrossel
+- Post estático
+- Vídeo
+- Texto
+- Campanha
+- Anúncio
+- Outro
+
+Objetivos:
+- Engajamento
+- Autoridade
+- Conversão
+- Relacionamento
+- Venda
+- Captação de leads
+
+Status:
+- Pendente
+- Em criação
+- Em revisão
+- Aprovado
+- Agendado
+- Publicado
+- Cancelado
+
+Prioridade:
+- Baixa
+- Média
+- Alta
+- Urgente
+
+Canais:
+- Instagram
+- WhatsApp
+- Facebook
+- TikTok
+- Blog
+- E-mail
+- Outro
+
+3. AÇÕES SOBRE AS TAREFAS
+Cada tarefa deve permitir:
+- Criar
+- Editar
+- Excluir
+- Duplicar
+- Arrastar para outra data
+- Alterar status rapidamente
+- Marcar como concluída
+- Reagendar
+- Adicionar observações
+
+4. FILTROS DO PLANNER
+Criar filtros por:
+- Período
+- Responsável
+- Tipo de conteúdo
+- Status
+- Prioridade
+- Canal
+- Objetivo
+- Tema
+
+5. PAINEL RESUMO NO TOPO
+No topo da aba mostrar indicadores:
+- Total de conteúdos do dia
+- Total da semana
+- Total do mês
+- Quantos pendentes
+- Quantos em criação
+- Quantos publicados
+- Quantos atrasados
+
+6. EXCLUSÃO E CONTROLE DO CALENDÁRIO
+Permitir:
+- Excluir tarefa individual
+- Excluir tarefas em lote
+- Excluir um dia inteiro de tarefas
+- Limpar calendário por período com confirmação de segurança
+- Não excluir sem pedir confirmação
+
+7. ORGANIZAÇÃO VISUAL
+Layout moderno, elegante e intuitivo.
+Mostrar tarefas em formato:
+- Cards
+ou
+- Blocos dentro do calendário
+
+Cada status deve ter identificação visual clara.
+Deixar fácil para a recepção, gestor ou marketing visualizar tudo rapidamente.
+
+8. ABA INTERLIGADA COM IA
+Criar dentro do Planner um painel lateral ou botão chamado:
+“Assistente IA de Conteúdo”
+
+Esse assistente deve abrir um chat interno no sistema para auxiliar na criação de conteúdo.
+
+9. FUNÇÕES DO CHAT COM IA
+O chat da IA deve ajudar o usuário a gerar:
+- Ideias de posts
+- Roteiros para Reels
+- Legendas prontas
+- Sequências de Stories
+- Chamadas para CTA
+- Títulos chamativos
+- Calendário editorial
+- Conteúdo por tema
+- Conteúdo por objetivo de marketing
+- Conteúdo para datas comemorativas
+- Conteúdo voltado para fisioterapia e clínica de saúde
+
+10. PROMPTS RÁPIDOS DENTRO DO CHAT IA
+Criar botões prontos no chat com sugestões rápidas:
+- Criar roteiro para Reels
+- Criar legenda
+- Criar carrossel
+- Criar sequência de stories
+- Criar campanha promocional
+- Criar conteúdo para engajamento
+- Criar conteúdo para autoridade
+- Criar conteúdo para vendas
+- Melhorar texto
+- Resumir ideia
+- Transformar ideia em calendário semanal
+
+11. INTEGRAÇÃO ENTRE PLANNER E IA
+A IA deve conseguir usar os dados da tarefa selecionada no calendário para gerar conteúdo automaticamente.
+Exemplo:
+Se eu clicar em uma tarefa “Post sobre dor lombar”, o chat já deve puxar esse contexto e oferecer:
+- legenda
+- roteiro
+- CTA
+- ideia de imagem
+- objetivo do post
+
+12. BOTÃO “GERAR CONTEÚDO COM IA”
+Dentro de cada tarefa, criar botão:
+“Gerar com IA”
+
+Ao clicar, abrir opções:
+- Gerar legenda
+- Gerar roteiro
+- Gerar ideia de carrossel
+- Gerar CTA
+- Gerar sequência de stories
+- Gerar variações do conteúdo
+
+13. CAMPO PARA SALVAR O MATERIAL GERADO
+Dentro de cada tarefa, criar campos para armazenar:
+- Roteiro
+- Legenda
+- CTA
+- Ideia visual
+- Hashtags
+- Observações estratégicas
+
+14. BANCO DE IDEIAS
+Criar uma subaba chamada “Banco de Ideias” para salvar ideias futuras de conteúdo, com:
+- Título da ideia
+- Tema
+- Objetivo
+- Canal
+- Observação
+- Botão “Transformar em tarefa”
+
+15. MODELOS PRONTOS
+Criar uma subaba “Modelos” com templates prontos de conteúdo para facilitar a produção:
+- Reels de autoridade
+- Reels de conexão
+- Reels de vendas
+- Story de bastidor
+- Story com enquete
+- Carrossel educativo
+- Post de prova social
+- Post de oferta
+
+16. EXPORTAÇÃO E IMPRESSÃO
+Permitir:
+- Exportar planner em PDF
+- Exportar planner em Excel
+- Imprimir calendário
+- Imprimir tarefas do período
+
+17. PERMISSÕES DE ACESSO
+Criar acessos diferentes:
+- Gestor: acesso total
+- Marketing: criar, editar, organizar e usar IA
+- Recepção: apenas visualizar, se necessário
+
+18. REGRAS DE NEGÓCIO
+- Não permitir tarefa sem data
+- Não permitir exclusão sem confirmação
+- Salvar histórico de alterações
+- Salvar quem criou, editou ou excluiu a tarefa
+- Mostrar tarefas atrasadas com alerta visual
+- Permitir repetição de tarefas recorrentes
+- Permitir anexar referências, imagens, PDFs e links
+
+19. ALERTAS E LEMBRETES
+Criar lembretes automáticos de tarefas:
+- Tarefa do dia
+- Tarefas atrasadas
+- Conteúdos que precisam de aprovação
+- Conteúdos programados para hoje
+
+20. DASHBOARD DE CONTEÚDO
+Criar um mini dashboard com:
+- Quantidade de conteúdos criados por período
+- Quantidade publicados
+- Quantidade pendentes
+- Distribuição por canal
+- Distribuição por tipo de conteúdo
+- Produtividade por responsável
+
+21. DESEMPENHO TÉCNICO
+Deixar a aba:
+- Rápida
+- Responsiva
+- Organizada
+- Sem erros
+- Integrada ao restante do sistema
+- Preparada para futura integração com redes sociais e agendamento de posts
+
+22. EXPERIÊNCIA DO USUÁRIO
+Quero uma experiência visual profissional, moderna e prática, como um planner de marketing de alto nível, fácil de usar no desktop e no celular.
+
+23. IMPORTANTE
+Corrigir qualquer erro que impedir:
+- criação da tarefa
+- edição
+- exclusão
+- visualização por semana, mês ou ano
+- abertura do chat de IA
+- salvamento do conteúdo gerado
+
+Entregar tudo funcionando de ponta a ponta

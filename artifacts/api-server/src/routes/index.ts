@@ -9,6 +9,7 @@ import reportsRouter from "./reports";
 import evolutionsRouter from "./evolutions";
 import financialRouter from "./financial";
 import attestationsRouter from "./attestations";
+import birthdaysRouter from "./birthdays";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(reportsRouter);
 router.use(evolutionsRouter);
 router.use(financialRouter);
 router.use(attestationsRouter);
+router.use(birthdaysRouter);
 
 export default router;
