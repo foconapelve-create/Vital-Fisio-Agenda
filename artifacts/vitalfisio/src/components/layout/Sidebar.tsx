@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 const adminItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -62,9 +63,11 @@ export function Sidebar({ isMobileOpen, setMobileOpen }: { isMobileOpen: boolean
   const { data: user } = useGetMe();
   const logout = useLogout();
   const [, setLoc] = useLocation();
+  const { systemName, logoUrl } = useAppSettings();
 
   const role = (user as any)?.role || "admin";
   const navItems = getNavItems(role);
+  const initial = systemName.charAt(0).toUpperCase();
 
   const handleLogout = () => {
     logout.mutate(undefined, { onSuccess: () => setLoc("/login") });
@@ -74,10 +77,14 @@ export function Sidebar({ isMobileOpen, setMobileOpen }: { isMobileOpen: boolean
     <div className="flex h-full flex-col bg-sidebar border-r border-sidebar-border">
       <div className="p-5 flex items-center justify-between">
         <h2 className="text-xl font-bold text-sidebar-primary flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center text-primary-foreground">
-            <span className="font-bold text-lg leading-none">V</span>
-          </div>
-          VitalFisio
+          {logoUrl ? (
+            <img src={logoUrl} alt={systemName} className="w-8 h-8 rounded-lg object-contain bg-white" />
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center text-primary-foreground">
+              <span className="font-bold text-lg leading-none">{initial}</span>
+            </div>
+          )}
+          {systemName}
         </h2>
         <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileOpen(false)}>
           <X className="h-5 w-5" />
@@ -103,41 +110,37 @@ export function Sidebar({ isMobileOpen, setMobileOpen }: { isMobileOpen: boolean
         })}
       </div>
 
-      <div className="p-4 border-t border-sidebar-border mt-auto">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-sidebar-accent flex items-center justify-center font-bold text-sidebar-foreground shrink-0">
-              {user?.name?.[0]?.toUpperCase() || "U"}
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name || "Usuário"}</p>
-              <p className="text-xs text-muted-foreground truncate">{roleLabels[role] || role}</p>
-            </div>
-          </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-destructive shrink-0">
-            <LogOut className="h-4 w-4" />
-          </Button>
+      <div className="p-3 border-t border-sidebar-border">
+        <div className="px-3 py-2 mb-1">
+          <p className="text-sm font-medium text-sidebar-foreground">{(user as any)?.name || "Usuário"}</p>
+          <p className="text-xs text-sidebar-foreground/60">{roleLabels[role] || role}</p>
         </div>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-2 text-sidebar-foreground hover:text-red-600 hover:bg-red-50"
+          onClick={handleLogout}
+          disabled={logout.isPending}
+        >
+          <LogOut className="h-4 w-4" />
+          Sair
+        </Button>
       </div>
     </div>
   );
 
   return (
     <>
-      <div className="hidden md:flex w-64 h-screen fixed top-0 left-0 z-40">
+      <div className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col">
         {SidebarContent}
       </div>
-
       {isMobileOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-40 flex md:hidden">
+          <div className="fixed inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
+          <div className="relative flex w-64 flex-col">
+            {SidebarContent}
+          </div>
+        </div>
       )}
-
-      <div className={cn(
-        "fixed top-0 left-0 h-screen w-64 z-50 md:hidden transition-transform duration-300 ease-in-out transform",
-        isMobileOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        {SidebarContent}
-      </div>
     </>
   );
 }

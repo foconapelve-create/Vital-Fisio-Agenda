@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Printer, FileText, Save, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 type Patient = { id: number; name: string; phone: string; birthDate?: string | null; notes?: string | null };
 type Therapist = { id: number; name: string; specialty?: string | null };
@@ -21,6 +22,7 @@ const fmtDate = (s?: string | null) => {
 
 export default function Relatorio() {
   const { toast } = useToast();
+  const { systemName, nomeClinica } = useAppSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
   const { data: patients = [] } = useQuery<Patient[]>({
@@ -34,7 +36,7 @@ export default function Relatorio() {
   });
 
   const [form, setForm] = useState({
-    clinicName: "VitalFisio",
+    clinicName: nomeClinica || systemName,
     patientId: "",
     therapistId: "",
     reportDate: new Date().toISOString().split("T")[0],
@@ -159,7 +161,7 @@ export default function Relatorio() {
               <div ref={printRef} id="print-area" className="bg-white text-black p-6 border border-gray-200 rounded text-sm space-y-5 font-serif">
                 {/* Cabeçalho */}
                 <div className="text-center border-b-2 border-gray-800 pb-4">
-                  <h1 className="text-2xl font-bold uppercase">{form.clinicName || "VitalFisio"}</h1>
+                  <h1 className="text-2xl font-bold uppercase">{form.clinicName || systemName}</h1>
                   <p className="text-sm text-gray-600">Clínica de Fisioterapia</p>
                   <h2 className="text-lg font-semibold mt-2">{form.title}</h2>
                 </div>

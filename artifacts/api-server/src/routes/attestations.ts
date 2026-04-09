@@ -19,7 +19,7 @@ router.get("/clinic-settings", requireAuth, async (req, res) => {
     const rows = await db.select().from(clinicSettingsTable).limit(1);
     if (rows.length === 0) {
       // Create default row
-      const [created] = await db.insert(clinicSettingsTable).values({ nomeClinica: "VitalFisio", enderecoClinica: "" }).returning();
+      const [created] = await db.insert(clinicSettingsTable).values({ nomeClinica: "CliniSmart", enderecoClinica: "" }).returning();
       return res.json(created);
     }
     return res.json(rows[0]);

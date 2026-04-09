@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { useAppName } from "@/contexts/AppSettingsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -104,6 +105,7 @@ function ContactBadge({ pref }: { pref?: string | null }) {
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function Aniversariantes() {
+  const appName = useAppName();
   const [tab, setTab] = useState<"dia" | "mes" | "historico">("dia");
   const [search, setSearch] = useState("");
   const [filterDay, setFilterDay] = useState("");
@@ -204,7 +206,7 @@ export default function Aniversariantes() {
     return template
       .replace(/\{nome\}/gi, p.name)
       .replace(/\{desconto\}/gi, discountText(settings))
-      .replace(/\{clinica\}/gi, clinicSettings?.nomeClinica || "VitalFisio");
+      .replace(/\{clinica\}/gi, clinicSettings?.nomeClinica || appName);
   };
 
   const buildEmailBody = (p: BirthdayPatient) => {
@@ -212,7 +214,7 @@ export default function Aniversariantes() {
     return template
       .replace(/\{nome\}/gi, p.name)
       .replace(/\{desconto\}/gi, discountText(settings))
-      .replace(/\{clinica\}/gi, clinicSettings?.nomeClinica || "VitalFisio");
+      .replace(/\{clinica\}/gi, clinicSettings?.nomeClinica || appName);
   };
 
   const buildEmailSubject = () => settings?.emailSubject || DEFAULT_EMAIL_SUBJECT;

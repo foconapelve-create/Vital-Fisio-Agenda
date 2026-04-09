@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { useAppName } from "@/contexts/AppSettingsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -93,10 +94,10 @@ function isSettingsComplete(s?: FiscalSettings) {
 
 // ── Invoice Print ──────────────────────────────────────────────────────────────
 
-function printInvoice(inv: Invoice, settings?: FiscalSettings) {
+function printInvoice(inv: Invoice, settings?: FiscalSettings, fallbackName = "CliniSmart") {
   const w = window.open("", "_blank", "width=800,height=600");
   if (!w) return;
-  const clinicName = settings?.razaoSocial || settings?.nomeFantasia || "VitalFisio";
+  const clinicName = settings?.razaoSocial || settings?.nomeFantasia || fallbackName;
   w.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
 <title>NFS-e ${inv.numero || inv.id}</title>
 <style>
@@ -175,6 +176,7 @@ ${inv.observacoes ? `<div class="section"><h3>Observações</h3><p>${inv.observa
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function Fiscal() {
+  const appName = useAppName();
   const [tab, setTab] = useState("notas");
   const [filterFrom, setFilterFrom] = useState(startOfMonth());
   const [filterTo, setFilterTo] = useState(today());
@@ -371,7 +373,7 @@ export default function Fiscal() {
     if (!inv.pacienteEmail) {
       toast({ title: "Paciente sem e-mail cadastrado", variant: "destructive" }); return;
     }
-    const clinicName = settings?.razaoSocial || settings?.nomeFantasia || "VitalFisio";
+    const clinicName = settings?.razaoSocial || settings?.nomeFantasia || appName;
     const subject = `Sua nota fiscal - ${clinicName}`;
     const body = `Olá, ${inv.pacienteNome}!
 
@@ -591,7 +593,7 @@ ${settings?.emailFiscal || ""}`;
 
                           {/* Print */}
                           {inv.status === "emitida" && (
-                            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => printInvoice(inv, settings)}>
+                            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => printInvoice(inv, settings, appName)}>
                               <Printer className="h-3 w-3" /> PDF
                             </Button>
                           )}
@@ -726,7 +728,7 @@ ${settings?.emailFiscal || ""}`;
                   </div>
                   <div>
                     <Label>Nome Fantasia</Label>
-                    <Input placeholder="VitalFisio" value={settingsForm.nomeFantasia||""} onChange={e => setSettingsForm(f => ({...f, nomeFantasia: e.target.value}))} />
+                    <Input placeholder={appName} value={settingsForm.nomeFantasia||""} onChange={e => setSettingsForm(f => ({...f, nomeFantasia: e.target.value}))} />
                   </div>
                   <div>
                     <Label>CNPJ <span className="text-red-500">*</span></Label>
@@ -1136,7 +1138,7 @@ ${settings?.emailFiscal || ""}`;
               <div className="flex gap-2 border-t pt-4 flex-wrap">
                 {selectedInv.status === "emitida" && (
                   <>
-                    <Button className="gap-1.5 flex-1" onClick={() => printInvoice(selectedInv, settings)}>
+                    <Button className="gap-1.5 flex-1" onClick={() => printInvoice(selectedInv, settings, appName)}>
                       <Printer className="h-4 w-4" /> Imprimir / PDF
                     </Button>
                     {selectedInv.pacienteEmail && (

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { useAppName } from "@/contexts/AppSettingsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,7 @@ const emptyForm: FormState = {
 };
 
 export default function Atestados() {
+  const appName = useAppName();
   const [form, setForm] = useState<FormState>(emptyForm);
   const [activeTab, setActiveTab] = useState("emitir");
   const [previewDoc, setPreviewDoc] = useState<Attestation | null>(null);
@@ -228,7 +230,7 @@ export default function Atestados() {
         <div className="border-b-2 border-gray-800 pb-4 mb-6 px-8 pt-8">
           <div className="flex justify-between items-start">
             <div>
-              <div className="font-bold text-xl text-gray-800">{settings?.nomeClinica || "VitalFisio"}</div>
+              <div className="font-bold text-xl text-gray-800">{settings?.nomeClinica || appName}</div>
               <div className="text-sm text-gray-600 mt-0.5">Clínica de Fisioterapia</div>
               {settings?.enderecoClinica && (
                 <div className="text-xs text-gray-500 mt-0.5">{settings.enderecoClinica}</div>

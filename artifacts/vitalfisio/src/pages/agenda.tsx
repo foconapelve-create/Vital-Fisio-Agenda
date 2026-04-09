@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiFetch } from "@/lib/apiFetch";
+import { useAppName } from "@/contexts/AppSettingsContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -120,6 +121,7 @@ type RescheduleFormData = z.infer<typeof rescheduleSchema>;
 const MAX_SLOT_CAPACITY = 40;
 
 export default function Agenda() {
+  const appName = useAppName();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [selectedTherapistId, setSelectedTherapistId] = useState<number | undefined>(undefined);
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null);
@@ -316,7 +318,7 @@ export default function Agenda() {
 
   const whatsappLink = (phone: string, name: string, date: string, time: string, therapist: string) => {
     const d = date ? (() => { const [y, m, day] = date.split("-"); return `${day}/${m}/${y}`; })() : "";
-    const msg = encodeURIComponent(`Olá ${name}! Lembrando sua sessão de fisioterapia dia ${d} às ${time} com ${therapist}. Confirme sua presença respondendo esta mensagem. VitalFisio.`);
+    const msg = encodeURIComponent(`Olá ${name}! Lembrando sua sessão de fisioterapia dia ${d} às ${time} com ${therapist}. Confirme sua presença respondendo esta mensagem. ${appName}.`);
     const cleanPhone = phone.replace(/\D/g, "");
     return `https://wa.me/55${cleanPhone}?text=${msg}`;
   };

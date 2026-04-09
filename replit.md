@@ -2,7 +2,16 @@
 
 ## Overview
 
+**CliniSmart** — Sistema Inteligente para Profissionais da Saúde.
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+
+## App Name & Dynamic Settings
+- App is named **CliniSmart** (previously "VitalFisio") — all hardcoded references have been replaced with dynamic values
+- `system_name` and `logo_url` are stored in `clinic_settings` table (defaulting to "CliniSmart")
+- `GET /api/settings/public` — public endpoint (no auth) returns systemName, logoUrl, nomeClinica, telefone, email
+- `PUT /api/settings/system` — admin-only endpoint to update system name, logo, clinic name
+- `AppSettingsProvider` context wraps the entire app and provides `useAppName()` / `useAppSettings()` hooks
+- Admin can change the system name via the "Configurações do Sistema" section at the bottom of the /users page (no code changes needed)
 
 ## Stack
 

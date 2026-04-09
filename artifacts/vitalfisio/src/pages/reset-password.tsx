@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Activity, Eye, EyeOff, CheckCircle2, XCircle, Loader2, ArrowLeft } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { useToast } from "@/hooks/use-toast";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 export default function ResetPassword() {
   const { token } = useParams<{ token: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { systemName, logoUrl } = useAppSettings();
 
   const [valid, setValid] = useState<boolean | null>(null);
   const [userName, setUserName] = useState("");
@@ -50,11 +52,15 @@ export default function ResetPassword() {
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-primary/10 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4 shadow-lg">
-            <Activity className="h-8 w-8" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">VitalFisio</h1>
-          <p className="text-muted-foreground mt-2">Sistema de Gestão Clínica</p>
+          {logoUrl ? (
+            <img src={logoUrl} alt={systemName} className="w-16 h-16 rounded-2xl object-contain mx-auto mb-4 shadow-lg bg-white" />
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4 shadow-lg">
+              <Activity className="h-8 w-8" />
+            </div>
+          )}
+          <h1 className="text-3xl font-bold tracking-tight">{systemName}</h1>
+          <p className="text-muted-foreground mt-2">Sistema Inteligente para Profissionais da Saúde</p>
         </div>
 
         <Card className="border-none shadow-xl">

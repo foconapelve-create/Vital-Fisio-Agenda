@@ -1,6 +1,7 @@
 import { Printer, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { useAppName } from "@/contexts/AppSettingsContext";
 
 interface PrintButtonProps {
   title?: string;
@@ -19,10 +20,12 @@ export function PrintButton({
   className = "",
   showPdfButton = true,
 }: PrintButtonProps) {
+  const appName = useAppName();
+
   const handlePrint = () => {
     const originalTitle = document.title;
     if (filename) document.title = filename;
-    else if (title) document.title = `VitalFisio - ${title} - ${format(new Date(), "yyyy-MM-dd")}`;
+    else if (title) document.title = `${appName} - ${title} - ${format(new Date(), "yyyy-MM-dd")}`;
     window.print();
     document.title = originalTitle;
   };

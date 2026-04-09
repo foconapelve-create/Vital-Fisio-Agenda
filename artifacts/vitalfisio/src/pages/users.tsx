@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import {
   Users, Plus, Edit2, Trash2, ToggleLeft, ToggleRight, KeyRound,
   Search, CheckCircle2, XCircle, Eye, EyeOff, Shield, UserCheck, Wallet,
-  Stethoscope, UserCog,
+  Stethoscope, UserCog, Settings2, ImageIcon, Save,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -60,6 +61,30 @@ export default function UsersPage() {
 
   const { toast } = useToast();
   const qc = useQueryClient();
+  const appSettings = useAppSettings();
+
+  // ── System Settings ───────────────────────────────────────────────────────────
+  const [sysForm, setSysForm] = useState({
+    systemName: appSettings.systemName,
+    logoUrl: appSettings.logoUrl || "",
+    nomeClinica: appSettings.nomeClinica || "",
+  });
+
+  useEffect(() => {
+    setSysForm({
+      systemName: appSettings.systemName,
+      logoUrl: appSettings.logoUrl || "",
+      nomeClinica: appSettings.nomeClinica || "",
+    });
+  }, [appSettings.systemName, appSettings.logoUrl, appSettings.nomeClinica]);
+
+  const saveSettingsMut = useMutation({
+    mutationFn: (data: any) => apiFetch("/api/settings/system", { method: "PUT", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      toast({ title: "✅ Configurações salvas! Recarregue para ver o novo nome." });
+    },
+    onError: (e: any) => toast({ title: e.message || "Erro ao salvar", variant: "destructive" }),
+  });
 
   // ── Queries ──────────────────────────────────────────────────────────────────
 
@@ -376,6 +401,55 @@ export default function UsersPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── System Settings ───────────────────────────────────────────────── */}
+      <Card className="border shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Settings2 className="h-5 w-5 text-purple-600" /> Configurações do Sistema
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Nome e identidade visual do sistema exibidos em todo o aplicativo.</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Nome do Sistema <span className="text-red-500">*</span></Label>
+              <Input className="mt-1" placeholder="CliniSmart" value={sysForm.systemName}
+                onChange={e => setSysForm(f => ({ ...f, systemName: e.target.value }))} />
+              <p className="text-xs text-muted-foreground mt-1">Aparece na sidebar, login, documentos e e-mails.</p>
+            </div>
+            <div>
+              <Label>Nome da Clínica</Label>
+              <Input className="mt-1" placeholder="Nome da sua clínica" value={sysForm.nomeClinica}
+                onChange={e => setSysForm(f => ({ ...f, nomeClinica: e.target.value }))} />
+              <p className="text-xs text-muted-foreground mt-1">Usado em atestados e documentos clínicos.</p>
+            </div>
+          </div>
+          <div>
+            <Label className="flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> URL da Logo (opcional)</Label>
+            <Input className="mt-1" type="url" placeholder="https://seusite.com/logo.png" value={sysForm.logoUrl}
+              onChange={e => setSysForm(f => ({ ...f, logoUrl: e.target.value }))} />
+            <p className="text-xs text-muted-foreground mt-1">Cole o link direto de uma imagem PNG/SVG. Deixe vazio para usar o ícone padrão.</p>
+          </div>
+          {sysForm.logoUrl && (
+            <div className="flex items-center gap-3 p-3 bg-muted/40 rounded-lg">
+              <img src={sysForm.logoUrl} alt="Preview" className="w-12 h-12 rounded-lg object-contain bg-white border" onError={e => (e.currentTarget.style.display = "none")} />
+              <div>
+                <p className="text-sm font-medium">{sysForm.systemName || "CliniSmart"}</p>
+                <p className="text-xs text-muted-foreground">Prévia da logo na sidebar</p>
+              </div>
+            </div>
+          )}
+          <Button className="gap-2" onClick={() => saveSettingsMut.mutate({
+            systemName: sysForm.systemName || "CliniSmart",
+            logoUrl: sysForm.logoUrl || null,
+            nomeClinica: sysForm.nomeClinica || null,
+          })} disabled={!sysForm.systemName.trim() || saveSettingsMut.isPending}>
+            <Save className="h-4 w-4" />
+            {saveSettingsMut.isPending ? "Salvando..." : "Salvar configurações"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* ── Delete Confirm ────────────────────────────────────────────────── */}
       <AlertDialog open={!!deleteUser} onOpenChange={o => !o && setDeleteUser(null)}>

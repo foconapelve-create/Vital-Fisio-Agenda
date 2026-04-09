@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
+import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Patients from "@/pages/patients";
@@ -126,10 +127,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
+        <AppSettingsProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </AppSettingsProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

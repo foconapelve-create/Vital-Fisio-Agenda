@@ -13,6 +13,7 @@ import birthdaysRouter from "./birthdays";
 import contentRouter from "./content";
 import fiscalRouter from "./fiscal";
 import usersRouter from "./users";
+import settingsRouter from "./settings";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(birthdaysRouter);
 router.use(contentRouter);
 router.use(fiscalRouter);
 router.use(usersRouter);
+router.use(settingsRouter);
 
 export default router;

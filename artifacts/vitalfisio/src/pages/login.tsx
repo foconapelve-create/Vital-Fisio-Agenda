@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Activity, Eye, EyeOff, Mail, ArrowLeft, UserPlus, KeyRound, CheckCircle2, Loader2, Copy, ExternalLink } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Usuário é obrigatório"),
@@ -28,6 +29,7 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const login = useLogin();
+  const { systemName, logoUrl } = useAppSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [modal, setModal] = useState<Modal>("none");
@@ -100,8 +102,8 @@ export default function Login() {
     if (!resetToken || !resetEmail) return;
     const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
     const link = `${base}/reset-password/${resetToken}`;
-    const subject = "Redefinição de senha — VitalFisio";
-    const body = `Olá!\n\nClique no link abaixo para redefinir sua senha (válido por 30 minutos):\n\n${link}\n\nSe não solicitou, ignore este e-mail.\n\nEquipe VitalFisio`;
+    const subject = `Redefinição de senha — ${systemName}`;
+    const body = `Olá!\n\nClique no link abaixo para redefinir sua senha (válido por 30 minutos):\n\n${link}\n\nSe não solicitou, ignore este e-mail.\n\nEquipe ${systemName}`;
     window.open(`mailto:${resetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
   };
 
@@ -128,11 +130,15 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4 shadow-lg">
-            <Activity className="h-8 w-8" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">VitalFisio</h1>
-          <p className="text-muted-foreground mt-2">Sistema de Gestão Clínica</p>
+          {logoUrl ? (
+            <img src={logoUrl} alt={systemName} className="w-16 h-16 rounded-2xl object-contain mx-auto mb-4 shadow-lg bg-white" />
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4 shadow-lg">
+              <Activity className="h-8 w-8" />
+            </div>
+          )}
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{systemName}</h1>
+          <p className="text-muted-foreground mt-2">Sistema Inteligente para Profissionais da Saúde</p>
         </div>
 
         <Card className="border-none shadow-xl">
@@ -184,7 +190,7 @@ export default function Login() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          © {new Date().getFullYear()} VitalFisio · Todos os direitos reservados
+          © {new Date().getFullYear()} {systemName} · Todos os direitos reservados
         </p>
       </div>
 

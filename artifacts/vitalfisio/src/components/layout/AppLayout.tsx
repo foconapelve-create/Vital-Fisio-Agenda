@@ -2,9 +2,12 @@ import { useState, ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [isMobileOpen, setMobileOpen] = useState(false);
+  const { systemName, logoUrl } = useAppSettings();
+  const initial = systemName.charAt(0).toUpperCase();
 
   return (
     <div className="min-h-screen bg-background">
@@ -18,8 +21,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="font-bold text-lg text-primary flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center text-primary-foreground text-sm">V</div>
-            VitalFisio
+            {logoUrl ? (
+              <img src={logoUrl} alt={systemName} className="w-6 h-6 rounded object-contain" />
+            ) : (
+              <div className="w-6 h-6 rounded bg-primary flex items-center justify-center text-primary-foreground text-sm">{initial}</div>
+            )}
+            {systemName}
           </div>
         </header>
         

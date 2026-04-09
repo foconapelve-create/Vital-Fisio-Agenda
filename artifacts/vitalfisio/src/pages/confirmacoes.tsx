@@ -17,6 +17,7 @@ import { PrintButton } from "@/components/print/PrintButton";
 import { PrintHeader } from "@/components/print/PrintHeader";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useAppName } from "@/contexts/AppSettingsContext";
 
 type Appointment = {
   id: number; patientId: number; therapistId: number; date: string; time: string;
@@ -200,7 +201,7 @@ function AppointmentCard({ apt, onAction, isPending }: {
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
-          <a href={buildWhatsApp24h(apt.patientPhone, apt.patientName, apt.date, apt.time, apt.therapistName)}
+          <a href={buildWhatsApp24h(apt.patientPhone, apt.patientName, apt.date, apt.time, apt.therapistName, appName)}
             target="_blank" rel="noopener noreferrer" onClick={() => onAction("whatsapp_24h", apt)}
             className="flex items-center gap-1 text-xs text-white bg-green-500 hover:bg-green-600 px-2.5 py-1.5 rounded-md transition-colors">
             <MessageCircle className="h-3 w-3" /> WhatsApp
@@ -258,6 +259,7 @@ function DaySection({ label, apts, onAction, isPending, isUrgent }: {
 
 export default function Confirmacoes() {
   const { toast } = useToast();
+  const appName = useAppName();
   const queryClient = useQueryClient();
   const [days, setDays] = useState(3);
   const [obsDialog, setObsDialog] = useState<ObsDialogState>({ open: false, appointmentId: null, patientName: "" });
@@ -440,7 +442,7 @@ export default function Confirmacoes() {
                   <p className="text-sm font-medium">{apt.patientName}</p>
                   <p className="text-xs text-muted-foreground">{fmtDate(apt.date)} às {apt.time} · {apt.therapistName}</p>
                 </div>
-                <a href={buildWhatsApp24h(apt.patientPhone, apt.patientName, apt.date, apt.time, apt.therapistName)}
+                <a href={buildWhatsApp24h(apt.patientPhone, apt.patientName, apt.date, apt.time, apt.therapistName, appName)}
                   target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1 text-xs text-white bg-green-500 hover:bg-green-600 px-2.5 py-1.5 rounded-md transition-colors">
                   <MessageCircle className="h-3 w-3" /> WhatsApp
@@ -467,7 +469,7 @@ export default function Confirmacoes() {
                       <p className="text-xs text-muted-foreground">{p.remainingSessions} sessão(ões) restante(s) · {p.phone}</p>
                     </div>
                     {firstFreeSlot && (
-                      <a href={buildWhatsAppEncaixe(p.phone, p.name, firstFreeSlot.date, firstFreeSlot.time)}
+                      <a href={buildWhatsAppEncaixe(p.phone, p.name, firstFreeSlot.date, firstFreeSlot.time, appName)}
                         target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-1 text-xs text-white bg-amber-500 hover:bg-amber-600 px-2.5 py-1.5 rounded-md transition-colors">
                         <MessageCircle className="h-3 w-3" /> Oferecer {fmtDate(firstFreeSlot.date)} {firstFreeSlot.time}
