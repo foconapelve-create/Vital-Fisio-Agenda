@@ -1,0 +1,68 @@
+Corrija o erro ao abrir a agenda no modo diário.
+
+Objetivo:
+Ao clicar em “modo diário”, a agenda deve abrir normalmente, carregando os horários e agendamentos do dia selecionado, sem tela em branco, erro de renderização, travamento ou falha de rota.
+
+Verifique e corrija os seguintes pontos:
+
+1. Rota / navegação
+- conferir se a rota do modo diário está criada corretamente
+- corrigir links quebrados entre agenda semanal e agenda diária
+- garantir que ao clicar no dia o sistema navegue para a tela correta
+- validar parâmetros enviados na navegação, como data, profissional e unidade
+
+2. Estado e carregamento da data
+- garantir que a agenda diária sempre receba uma data válida
+- se nenhuma data for enviada, usar a data atual como padrão
+- evitar erro de undefined/null ao abrir a tela
+- validar formatação da data no frontend e backend
+
+3. Renderização dos horários
+- exibir corretamente todos os blocos de horários configurados da clínica
+- manter os horários de 40 em 40 minutos
+- manhã: 08:00 às 12:00
+- tarde: 13:30 às 17:00
+- garantir que o modo diário monte a grade com os horários mesmo sem pacientes agendados
+
+4. Carregamento dos agendamentos
+- corrigir a busca dos agendamentos do dia selecionado
+- filtrar corretamente por data
+- se houver filtro por profissional, mostrar apenas os atendimentos daquele profissional
+- se não houver filtro por profissional, mostrar todos os agendamentos do dia
+- impedir duplicação de registros
+- impedir que a agenda quebre quando não houver atendimentos
+
+5. Tratamento de erros
+- remover qualquer erro de tela branca
+- adicionar fallback visual: “Nenhum agendamento encontrado para este dia”
+- tratar erros de API, loading infinito e estados vazios
+- garantir que nenhum campo obrigatório ausente derrube a tela
+
+6. Layout
+- deixar o modo diário visualmente organizado e responsivo
+- mostrar:
+  - horário
+  - paciente
+  - profissional
+  - status
+  - tipo de atendimento
+- manter coerência visual com a agenda semanal
+
+7. Backend / banco de dados
+- revisar a query que busca os agendamentos do dia
+- garantir compatibilidade entre timezone, data salva e data exibida
+- corrigir possíveis erros de comparação de datas
+- verificar se o sistema está buscando pelo campo correto da tabela de agendamentos
+
+8. Testes obrigatórios
+- testar abertura da agenda diária com dia contendo agendamentos
+- testar abertura da agenda diária com dia sem agendamentos
+- testar com 1 profissional
+- testar com vários profissionais
+- testar navegação de um dia para outro
+- testar retorno do modo diário para semanal
+
+9. Entrega
+- corrigir tudo que estiver causando falha no modo diário
+- deixar o modo diário 100% funcional
+- no final, me mostrar quais arquivos foram alterados e o que foi corrigido
