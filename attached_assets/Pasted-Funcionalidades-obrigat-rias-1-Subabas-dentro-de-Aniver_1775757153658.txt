@@ -1,0 +1,97 @@
+Funcionalidades obrigatórias:
+
+1. Subabas dentro de “Aniversariantes”:
+- “Aniversariantes do Dia”
+- “Aniversariantes do Mês”
+
+2. No cadastro do paciente, garantir que exista o campo:
+- Data de nascimento
+
+3. Na aba “Aniversariantes do Dia”, mostrar automaticamente todos os pacientes que fazem aniversário na data atual.
+Exibir:
+- Nome do paciente
+- Telefone
+- Data de nascimento
+- Idade que está completando
+- Último atendimento
+- Próximo agendamento
+- Botão “Enviar parabéns”
+- Botão “Oferecer desconto”
+- Status: “Parabéns enviado” / “Desconto oferecido”
+
+4. Na aba “Aniversariantes do Mês”, listar todos os pacientes que fazem aniversário no mês atual.
+Exibir:
+- Nome do paciente
+- Dia do aniversário
+- Telefone
+- Idade que vai completar
+- Botão “Enviar mensagem”
+- Botão “Registrar oferta”
+
+5. Criar filtro de busca por:
+- Nome
+- Dia
+- Mês
+- Fisioterapeuta responsável
+
+6. Criar automação visual:
+- Destacar em primeiro lugar os aniversariantes do dia
+- Mostrar contador no topo:
+  - Total de aniversariantes do dia
+  - Total de aniversariantes do mês
+
+7. Criar botão de WhatsApp:
+Ao clicar em “Enviar parabéns”, abrir mensagem pronta com texto editável:
+“🎉 O mês é seu, [Nome]!  
+
+Queremos celebrar esse momento especial com você 💙  
+Desejamos um novo ciclo cheio de saúde, conquistas e bem-estar!  
+
+E claro… não poderia faltar um presente da nossa equipe:  
+🎁 10% de desconto nos nossos planos de tratamento durante todo o seu mês de aniversário!  
+
+É o momento ideal para investir em você, cuidar do seu corpo e da sua saúde com quem realmente se importa com o seu resultado.  
+
+Me chama aqui que te explico como aproveitar esse benefício 👇💬  
+
+Feliz aniversário e conte sempre com a gente! ✨  
+Equipe [Nome da Clínica]
+
+8. Criar campo para configurar o desconto promocional:
+- Percentual de desconto
+ou
+- Valor fixo de desconto
+- Validade da oferta
+- Observações
+
+9. Registrar histórico da ação:
+Sempre que a equipe enviar parabéns ou oferecer desconto, salvar:
+- Data
+- Hora
+- Usuário responsável
+- Paciente
+- Tipo de ação realizada
+
+10. Criar alerta automático no dashboard:
+- “Hoje há X aniversariantes para parabenizar”
+- “Este mês há X pacientes aniversariantes”
+
+11. Criar opção de exportar lista de aniversariantes em PDF e Excel.
+
+12. Layout:
+- Visual profissional
+- Organizado em cards ou tabela
+- Fácil de usar pela recepção e gestão
+
+13. Regras importantes:
+- Não mostrar pacientes sem data de nascimento cadastrada
+- Evitar duplicidade de envio no mesmo dia
+- Permitir marcar manualmente se o parabéns já foi enviado fora do sistema
+- Permitir editar a mensagem padrão de aniversário
+
+14. Criar permissões:
+- Recepção pode visualizar, enviar parabéns e registrar desconto
+- Gestor pode visualizar, editar regras de desconto, exportar relatórios e acompanhar histórico
+
+15. Deixar essa aba 100% funcional e integrada ao cadastro de pacientes, agenda e WhatsApp.
+

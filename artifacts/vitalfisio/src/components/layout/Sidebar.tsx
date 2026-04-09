@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, CalendarDays, Users, UserRound, FileBarChart,
-  Wallet, FileText, LogOut, X, CheckCircle2,
+  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList,
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ const adminItems = [
   { href: "/financial", label: "Financeiro", icon: Wallet },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
   { href: "/relatorio", label: "Rel. Fisioterapêutico", icon: FileText },
+  { href: "/atestados", label: "Atestados / Declarações", icon: ClipboardList },
 ];
 
 const fisioterapeutaItems = [
@@ -25,6 +26,7 @@ const fisioterapeutaItems = [
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
   { href: "/relatorio", label: "Rel. Fisioterapêutico", icon: FileText },
+  { href: "/atestados", label: "Atestados / Declarações", icon: ClipboardList },
 ];
 
 const financeiroItems = [
