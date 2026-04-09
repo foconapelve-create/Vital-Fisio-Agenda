@@ -63,11 +63,23 @@ Full-stack physiotherapy clinic management system (Brazilian Portuguese).
 - Patient risk scoring: alto (>=3 faltas or >=40% falta+cancelado rate), medio (>=1 falta or >=20%), baixo
 - patients.adhesionProfile column available for future use
 
+### Additional Modules
+- `/atestados` — Atestados e Declarações: create/print medical certificates and declarations (admin + fisioterapeuta). Tables: attestations, clinic_settings.
+- `/aniversariantes` — Aniversariantes: birthday tracking with WhatsApp deeplink, discount dialog, CSV/PDF export, dashboard birthday alerts. Tables: birthday_actions, birthday_settings.
+- `/planner` — Planner de Conteúdo: full content calendar with month/week/day/year views, task CRUD, AI assistant (OpenAI SSE streaming via Replit AI Integrations), Banco de Ideias, 8 content templates, stats dashboard. Tables: content_tasks, content_ideas, content_task_history. Dependency: @workspace/integrations-openai-ai-server.
+
 ### DB Tables
 - appointments: core appointment table with all 13 statuses
 - appointment_contacts: contact history per appointment (type, content, performedBy, createdAt)
 - patients: includes adhesionProfile column
 - user_sessions: PostgreSQL-backed express-session store (connect-pg-simple)
+- attestations: medical certificates and declarations
+- clinic_settings: clinic info for atestados
+- birthday_actions: birthday contact/discount actions taken
+- birthday_settings: birthday module configuration
+- content_tasks: content planner tasks (tipo, objetivo, status, prioridade, canal, data, etc)
+- content_ideas: idea bank for content
+- content_task_history: audit log for content task changes
 
 ### Session Store
 - connect-pg-simple, tableName: "user_sessions", createTableIfMissing: false (created via raw SQL)
