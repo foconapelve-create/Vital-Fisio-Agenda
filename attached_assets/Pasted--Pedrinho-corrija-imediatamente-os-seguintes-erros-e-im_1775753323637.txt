@@ -1,0 +1,1631 @@
+
+Pedrinho, corrija imediatamente os seguintes erros e implemente os ajustes abaixo no app da clínica, garantindo que tudo fique 100% funcional, integrado e sem quebrar as funcionalidades já existentes:
+
+1. ERRO AO REMARCAR PACIENTE
+- Corrigir o fluxo de remarcação de paciente.
+- Garantir que ao remarcar uma sessão o sistema:
+  - atualize corretamente a agenda
+  - remova o horário antigo, se necessário
+  - mantenha o vínculo com o paciente
+  - mantenha o vínculo com o fisioterapeuta
+  - mantenha o histórico da sessão original como “remarcada”
+  - crie ou atualize corretamente a nova sessão
+- Garantir que a remarcação não duplique sessões.
+- Garantir que a remarcação não altere indevidamente número de sessões restantes.
+- Garantir que a remarcação funcione tanto para sessão avulsa quanto para sessão recorrente.
+- Criar validação para impedir conflito de dados ou perda de informações no processo de remarcação.
+
+2. ERRO NA RECORRÊNCIA DO PACIENTE
+- Corrigir toda a lógica da recorrência de sessões.
+- Garantir que o paciente possa ser agendado com recorrência sem gerar erros.
+- Corrigir problemas de duplicidade, falha de criação, falha de edição e falha de cancelamento da recorrência.
+- Permitir recorrência:
+  - semanal
+  - em dias específicos
+  - por quantidade de sessões
+  - até data final
+- Garantir que as sessões recorrentes fiquem corretamente conectadas ao paciente, ao fisioterapeuta e à agenda.
+- Ao editar uma recorrência, permitir escolher:
+  - apenas esta sessão
+  - esta e as próximas
+  - toda a série
+- Garantir que o cancelamento ou remarcação de uma sessão recorrente não quebre a série inteira sem necessidade.
+- Revisar o banco de dados da recorrência para garantir consistência.
+
+
+3. ERRO AO ADICIONAR NOVA RECEITA
+- Corrigir o erro ao adicionar nova receita no financeiro.
+- Garantir que o cadastro de receita funcione normalmente.
+- Permitir adicionar receita com os campos:
+  - paciente
+  - descrição
+  - categoria
+  - valor
+  - data
+  - forma de pagamento
+  - observações
+  - status
+- Garantir salvamento correto no banco.
+- Garantir edição e exclusão da receita.
+- Garantir exibição correta no financeiro e no dashboard.
+- Garantir que novas receitas sejam somadas corretamente nos relatórios e totais financeiros.
+- Corrigir qualquer erro de validação, botão sem ação, falha de carregamento ou quebra de tela nesse fluxo.
+
+4. NOVO CAMPO NO CADASTRO DE PACIENTE: VALOR PAGO
+- No cadastro de novo paciente, incluir o campo:
+  - valor pago
+- Esse campo deve ter conexão direta com as entradas de receitas do financeiro.
+- Ao cadastrar o paciente com valor pago preenchido, o sistema deve automaticamente:
+  - gerar uma entrada de receita no financeiro
+  - vincular essa receita ao paciente
+  - registrar forma de pagamento
+  - registrar data do pagamento
+- Criar vínculo entre:
+  - valor pago
+  - forma de pagamento
+  - número de sessões contratadas
+  - controle de sessões
+  - financeiro
+- Se o valor pago for alterado depois, atualizar a receita vinculada ou criar histórico de ajuste, sem perder rastreabilidade.
+- Garantir que não haja duplicação automática de receitas ao editar o cadastro.
+- Criar regra clara:
+  - na criação do paciente, gera a receita inicial
+  - em edições posteriores, atualizar com segurança sem duplicar lançamento financeiro
+
+5. INTEGRAÇÃO ENTRE PACIENTE, AGENDA E FINANCEIRO
+- Garantir que os módulos abaixo estejam totalmente conectados:
+  - cadastro do paciente
+  - agenda
+  - recorrência
+  - remarcação
+  - confirmação via WhatsApp
+  - presença
+  - evolução
+  - financeiro
+  - receitas
+- Toda alteração em um módulo vinculado deve refletir corretamente no outro quando necessário.
+
+6. REVISÃO TÉCNICA OBRIGATÓRIA
+- Revisar frontend, backend, banco de dados, automações e integrações.
+- Corrigir qualquer bug relacionado a:
+  - salvamento
+  - edição
+  - exclusão
+  - duplicidade
+  - status
+  - sincronização
+  - atualização de tela
+- Garantir mensagens de erro amigáveis.
+- Garantir mensagens de sucesso após ações concluídas.
+- Garantir que tudo funcione em desktop e mobile.
+
+7. TESTES OBRIGATÓRIOS
+Após corrigir, testar obrigatoriamente:
+- remarcação de paciente
+- criação de recorrência
+- edição de recorrência
+- cancelamento de recorrência
+- confirmação por WhatsApp
+- alteração automática de status após resposta
+- cadastro de nova receita
+- cadastro de novo paciente com valor pago
+- geração automática da entrada financeira
+- atualização do financeiro no dashboard
+
+Não entregue apenas a estrutura visual. Quero tudo funcional de verdade, revisado, testado e sem erros.
+
+
+
+
+Implemente no app da clínica um FUNIL COMPLETO DE CONFIRMAÇÃO E REDUÇÃO DE FALTAS, com lógica profissional, automatizada e pensada para clínica de alto faturamento. Quero um fluxo inteligente para diminuir faltas, aumentar confirmações, facilitar remarcações e melhorar a ocupação da agenda.
+
+OBJETIVO GERAL
+Criar um sistema automático que acompanhe o paciente antes da sessão, classifique o nível de confirmação, gere alertas para a recepção, facilite remarcações e permita ações rápidas para evitar horários vazios na agenda.
+
+ESTRUTURA DO FUNIL
+
+1. STATUS INTELIGENTES DE CONFIRMAÇÃO
+Criar os seguintes status de jornada do agendamento:
+- agendado
+- mensagem enviada
+- aguardando confirmação
+- confirmado
+- solicitou remarcação
+- não respondeu
+- confirmado pela recepção
+- cancelado
+- faltou
+- reagendado
+- encaixe preenchido
+
+Todos esses status devem ficar visíveis na agenda, no cadastro do paciente e em uma aba de acompanhamento operacional.
+
+2. DISPARO AUTOMÁTICO EM 24 HORAS
+O sistema deve enviar automaticamente mensagem via WhatsApp 24 horas antes da sessão.
+
+Mensagem padrão:
+"Olá, [Nome]! Aqui é da clínica [Nome da Clínica]. Sua sessão está agendada para [data] às [horário].
+
+Para facilitar seu atendimento, responda:
+1 - Confirmar presença
+2 - Remarcar horário"
+
+Ao enviar a mensagem:
+- alterar status para “mensagem enviada”
+- depois para “aguardando confirmação”
+- registrar data e hora do envio
+- salvar histórico de disparo no agendamento
+
+3. LEITURA AUTOMÁTICA DAS RESPOSTAS
+O sistema deve interpretar automaticamente a resposta do paciente.
+
+Respostas que significam confirmação:
+- 1
+- sim
+- confirmo
+- confirmado
+- ok
+- estarei aí
+
+Ação:
+- mudar status para “confirmado”
+- registrar data e hora da resposta
+- destacar em verde na agenda
+
+Respostas que significam remarcação:
+- 2
+- remarcar
+- não posso
+- outro horário
+- preciso mudar
+- não consigo ir
+
+Ação:
+- mudar status para “solicitou remarcação”
+- gerar alerta automático para recepção
+- destacar em vermelho na agenda
+- criar pendência operacional
+
+Respostas não reconhecidas:
+- manter como “aguardando confirmação” ou “não respondeu”
+- sinalizar para conferência manual da recepção
+
+4. SEGUNDO DISPARO AUTOMÁTICO PARA QUEM NÃO RESPONDEU
+Se o paciente não responder dentro de um prazo configurável, criar uma segunda tentativa automática.
+
+Regra sugerida:
+- primeira mensagem: 24h antes
+- segunda mensagem: 12h antes, apenas para quem ainda estiver sem resposta
+
+Mensagem da segunda tentativa:
+"Olá, [Nome]! Não identificamos sua confirmação para a sessão de [data] às [horário]. Responda:
+1 - Confirmar presença
+2 - Remarcar horário"
+
+Ao enviar a segunda mensagem:
+- registrar nova tentativa
+- marcar que o paciente recebeu reforço de confirmação
+- manter rastreabilidade no histórico
+
+5. ALERTA AUTOMÁTICO PARA RECEPÇÃO
+Criar um painel de alertas para a recepção com os seguintes grupos:
+
+A. pacientes que pediram remarcação
+B. pacientes sem resposta
+C. pacientes com alto risco de falta
+D. horários vagos gerados por cancelamento
+
+Cada alerta deve mostrar:
+- nome do paciente
+- telefone
+- data e horário da sessão
+- fisioterapeuta
+- tempo desde o último contato
+- status atual
+- botão de ação rápida
+
+Botões de ação:
+- abrir WhatsApp
+- ligar
+- remarcar
+- marcar como resolvido
+- registrar observação
+
+6. CLASSIFICAÇÃO DE RISCO DE FALTA
+Criar um score simples de risco de ausência do paciente com base no histórico.
+
+Exemplos de critérios:
+- já faltou antes
+- costuma responder tarde
+- já cancelou em cima da hora
+- não respondeu desta vez
+- possui histórico de baixa adesão
+
+Classificação:
+- baixo risco
+- médio risco
+- alto risco
+
+Ações sugeridas:
+- baixo risco: seguir fluxo normal
+- médio risco: recepção acompanha
+- alto risco: criar alerta prioritário e contato ativo da recepção
+
+Esse risco deve aparecer:
+- no cadastro do paciente
+- no agendamento
+- no painel da recepção
+
+7. CONFIRMAÇÃO ATIVA PELA RECEPÇÃO
+Se o paciente não responder automaticamente, a recepção deve conseguir atuar manualmente.
+
+Criar ação:
+- “confirmado pela recepção”
+
+Quando a recepção entrar em contato e confirmar manualmente:
+- mudar status para “confirmado pela recepção”
+- registrar usuário responsável
+- registrar data e hora
+- manter histórico da interação
+
+8. FLUXO DE REMARCAÇÃO INTELIGENTE
+Quando o paciente escolher “2 - remarcar”:
+- não cancelar automaticamente sem controle
+- criar pendência para recepção
+- manter horário original com status “solicitou remarcação” até a recepção resolver
+- permitir oferecer novo horário
+- após definir novo horário:
+  - marcar sessão antiga como “remarcada”
+  - criar ou atualizar sessão nova
+  - atualizar agenda
+  - atualizar histórico
+  - remover pendência da recepção
+
+Garantir que a remarcação:
+- não duplique sessão
+- não mexa incorretamente nas sessões restantes
+- preserve rastreabilidade
+
+9. PREENCHIMENTO DE HORÁRIOS VAGOS
+Quando houver cancelamento, pedido de remarcação ou ausência prevista, criar lógica para reduzir prejuízo na agenda.
+
+Criar uma aba chamada:
+“OPORTUNIDADES DE ENCAIXE”
+
+Nessa aba, mostrar:
+- horários vagos do dia
+- horários vagos do dia seguinte
+- pacientes elegíveis para encaixe
+- pacientes da fila de espera
+- pacientes que querem antecipar atendimento
+- pacientes em tratamento com frequência alta
+
+Criar ações rápidas:
+- enviar mensagem de encaixe
+- registrar encaixe feito
+- vincular encaixe ao horário vago
+- marcar horário como preenchido
+
+Mensagem modelo de encaixe:
+"Olá, [Nome]! Surgiu um horário disponível na clínica para [data] às [horário]. Caso tenha interesse, responda esta mensagem para agendarmos."
+
+Se o encaixe for preenchido:
+- mudar status do horário para “encaixe preenchido”
+- registrar qual paciente ocupou a vaga
+- atualizar agenda em tempo real
+
+10. DASHBOARD OPERACIONAL DE REDUÇÃO DE FALTAS
+Criar um dashboard com os seguintes indicadores:
+
+- total de sessões do dia
+- total confirmado
+- total aguardando resposta
+- total solicitando remarcação
+- total sem resposta
+- total de faltas no dia
+- taxa de confirmação
+- taxa de faltas
+- taxa de remarcação
+- horários recuperados por encaixe
+- pacientes de alto risco no dia
+
+Criar filtros por:
+- dia
+- semana
+- mês
+- fisioterapeuta
+- unidade, se houver
+
+11. HISTÓRICO COMPLETO DE CONTATO
+Cada agendamento deve possuir histórico com:
+- mensagens enviadas
+- respostas recebidas
+- alteração de status
+- contato manual da recepção
+- remarcações
+- cancelamentos
+- encaixes
+
+Cada evento precisa registrar:
+- data
+- hora
+- usuário ou automação responsável
+- observação
+
+12. VISUAL NA AGENDA
+Aplicar padrão visual por cor:
+- confirmado = verde
+- confirmado pela recepção = azul
+- aguardando confirmação = amarelo
+- solicitou remarcação = vermelho
+- não respondeu = cinza
+- cancelado = preto ou cinza escuro
+- encaixe preenchido = roxo
+
+13. REGRAS DE NEGÓCIO IMPORTANTES
+- Não duplicar agendamentos.
+- Não perder histórico.
+- Não alterar sessões restantes de forma errada.
+- Toda alteração de status deve refletir na agenda em tempo real.
+- Toda resposta do WhatsApp deve buscar o agendamento correto.
+- O fisioterapeuta deve ver apenas o que for operacional/clínico, sem acesso ao financeiro.
+- A recepção deve ver pendências, confirmações, remarcações e encaixes.
+- O administrador deve ver tudo.
+
+14. AUTOMAÇÕES EXTRAS PARA CLÍNICA DE ALTO FATURAMENTO
+Criar automações adicionais:
+
+A. paciente com 2 faltas ou mais
+- gerar alerta de baixa adesão
+- sinalizar no cadastro
+- avisar recepção para contato ativo
+
+B. paciente que falta muito
+- marcar perfil como “risco de evasão”
+
+C. paciente que responde e confirma sempre
+- marcar perfil como “boa adesão”
+
+D. paciente sem retorno após cancelamento
+- criar lembrete para recepção retomar contato em X dias
+
+15. TESTES OBRIGATÓRIOS
+Testar de ponta a ponta:
+- envio 24h antes
+- interpretação da resposta “1”
+- interpretação da resposta “2”
+- segunda tentativa 12h antes
+- paciente sem resposta
+- alerta para recepção
+- confirmação manual pela recepção
+- remarcação
+- cancelamento
+- encaixe em vaga livre
+- atualização na agenda
+- atualização no dashboard
+- manutenção do histórico
+- funcionamento em desktop e mobile
+
+16. RESULTADO FINAL ESPERADO
+Quero um funil operacional completo, automático, com foco em:
+- reduzir faltas
+- aumentar confirmações
+- facilitar remarcações
+- recuperar horários vagos
+- melhorar ocupação da agenda
+- dar previsibilidade para recepção
+- profissionalizar o relacionamento com o paciente
+
+Não quero só layout. Quero tudo funcional, integrado, testado e pronto para uso real no app.
+
+
+
+
+Atualize o sistema da clínica para incluir visualização da agenda em dois modos: DIÁRIA e SEMANAL.
+
+Objetivo:
+Permitir que a recepção e a gestão visualizem os agendamentos de forma prática, podendo alternar entre a agenda do dia e a agenda da semana inteira.
+
+Funcionalidades obrigatórias:
+
+1. Criar um seletor de visualização da agenda com 2 opções:
+   - Agenda Diária
+   - Agenda Semanal
+
+2. Agenda Diária:
+   - Mostrar apenas os agendamentos do dia selecionado
+   - Exibir os horários em blocos de 40 minutos
+   - Mostrar em cada horário:
+     - nome do paciente
+     - fisioterapeuta
+     - status do atendimento
+     - tipo de atendimento
+   - Permitir ações rápidas:
+     - confirmar presença
+     - remarcar
+     - cancelar
+     - registrar falta
+     - marcar como concluído
+
+3. Agenda Semanal:
+   - Mostrar a semana completa de segunda a sábado
+   - Exibir colunas por dia da semana
+   - Exibir linhas por horário em blocos de 40 minutos
+   - Mostrar todos os pacientes agendados em cada horário
+   - Permitir visualizar os 21 pacientes por horário quando houver lotação máxima
+   - Destacar visualmente horários com vagas disponíveis, horários cheios, cancelamentos e faltas
+
+4. Navegação da agenda:
+   - Botão “Hoje” para voltar ao dia atual
+   - Botão “Semana Atual”
+   - Setas para avançar e voltar dias
+   - Setas para avançar e voltar semanas
+
+5. Filtros:
+   - Filtrar por fisioterapeuta
+   - Filtrar por status
+   - Filtrar por tipo de atendimento
+   - Filtrar por paciente
+
+6. Layout:
+   - Interface moderna, limpa e responsiva
+   - Cards ou tabela organizada
+   - Cores diferentes para cada status:
+     - confirmado
+     - pendente
+     - falta
+     - cancelado
+     - concluído
+     - remarcar
+   - Manter visual profissional de clínica
+
+7. Regras da agenda:
+   - Horários da manhã: 08:00 às 12:00
+   - Horários da tarde: 13:30 às 17:00
+   - Intervalos fixos de 40 em 40 minutos
+   - Cada horário pode comportar ate 40 pacientes
+   - Cada paciente deve estar vinculado a um fisioterapeuta e a um status de sessão 
+-não limitar número de pacientes por fisioterapeuta 
+
+8. Banco de dados:
+   Garantir que cada agendamento tenha os campos:
+   - paciente
+   - fisioterapeuta
+   - data
+   - horário
+   - status
+   - tipo de atendimento
+   - observações
+   - presença_confirmada (sim/não)
+
+9. Comportamento do sistema:
+   - Ao alternar entre agenda diária e semanal, os dados devem carregar corretamente sem erros
+   - Atualizar a agenda em tempo real após novo agendamento, remarcação ou cancelamento
+   - Corrigir qualquer erro de sincronização entre cadastro, agenda e status do paciente
+
+10. Extras importantes:
+   - Na agenda diária, mostrar total de pacientes do dia
+   - Na agenda semanal, mostrar total de agendamentos por dia
+   - Mostrar quantidade de vagas restantes em cada horário
+   - Permitir clicar no agendamento para abrir os detalhes do paciente
+
+11. Corrigir possíveis erros:
+   - erro ao exibir horários
+   - erro ao trocar entre visualização diária e semanal
+   - erro de atualização após remarcar paciente
+   - erro na recorrência dos agendamentos
+   - erro no carregamento da agenda
+
+Objetivo final:
+Deixar a agenda do sistema completa, funcional, visualmente profissional e com opção clara de visualização diária e semanal para facilitar a rotina da clínica.
+
+
+
+Atualize o sistema completo para permitir IMPRIMIR e SALVAR EM PDF em todas as áreas principais do app, com layout profissional, organizado e pronto para uso em clínica.
+
+Objetivo:
+Permitir que a usuária consiga imprimir ou salvar em PDF qualquer tela importante do sistema com apenas um clique, incluindo agenda, financeiro, cadastro e relatórios.
+
+Funcionalidades obrigatórias:
+
+1. Adicionar botões visíveis em todas as áreas principais do sistema:
+   - Botão “Imprimir”
+   - Botão “Salvar em PDF”
+
+2. Áreas que devem ter essa função:
+   - Dashboard
+   - Agenda diária
+   - Agenda semanal
+   - Cadastro de pacientes
+   - Cadastro de fisioterapeutas
+   - Controle financeiro
+   - Contas a pagar
+   - Relatórios
+   - Histórico de atendimentos
+   - Ficha individual do paciente
+   - Resumo de faturamento diário, semanal e mensal
+
+3. Função de impressão:
+   - Abrir visualização limpa para impressão
+   - Ocultar menus laterais, botões de edição, cabeçalho desnecessário e elementos que não precisam aparecer no papel
+   - Mostrar apenas o conteúdo principal da tela
+   - Ajustar automaticamente para formato A4
+   - Permitir impressão em retrato ou paisagem conforme a área
+   - Manter boa quebra de página para não cortar tabelas ou cards no meio
+
+4. Função de salvar em PDF:
+   - Gerar PDF com o mesmo layout da impressão
+   - Nomear o arquivo automaticamente conforme a área e a data
+   - Exemplos:
+     - agenda-diaria-2026-04-08.pdf
+     - agenda-semanal-2026-04-08.pdf
+     - financeiro-semanal-2026-04-08.pdf
+     - ficha-paciente-nome-do-paciente.pdf
+   - Garantir que o PDF seja baixado corretamente sem quebrar o layout
+
+5. Layout do PDF e impressão:
+   - Visual profissional
+   - Cabeçalho com nome da clínica e data de emissão
+   - Título da página impressa
+   - Tabelas organizadas
+   - Fontes legíveis
+   - Espaçamento adequado
+   - Paginação no rodapé
+   - Manter identidade visual limpa e moderna
+
+6. Regras por área:
+   - Agenda diária:
+     - mostrar data
+     - horários
+     - pacientes
+     - fisioterapeuta
+     - status
+   - Agenda semanal:
+     - mostrar semana completa
+     - agendamentos por dia
+     - horários
+     - vagas restantes
+   - Financeiro:
+     - mostrar receitas
+     - despesas
+     - forma de pagamento
+     - totais
+   - Cadastro de pacientes:
+     - permitir imprimir ficha individual
+     - permitir salvar histórico em PDF
+   - Relatórios:
+     - permitir impressão de relatórios completos com filtros aplicados
+
+7. Comportamento do sistema:
+   - Os botões devem funcionar em desktop e mobile
+   - O sistema deve respeitar os filtros ativos ao imprimir ou gerar PDF
+   - Exemplo:
+     - se filtrar por fisioterapeuta, imprimir apenas os dados filtrados
+     - se filtrar por período, gerar PDF apenas daquele período
+   - Atualizar os dados antes da exportação para evitar PDF com informação desatualizada
+
+8. Estrutura técnica:
+   - Criar componente reutilizável de impressão/exportação
+   - Criar versão print-friendly de cada tela
+   - Garantir compatibilidade com tabelas, cards e listas
+   - Corrigir problemas de corte de conteúdo
+   - Corrigir problemas de alinhamento no PDF
+   - Corrigir problemas de quebra de página
+   - Corrigir erro de exportação de telas grandes
+
+9. Segurança e controle:
+   - Apenas usuários autorizados podem imprimir ou salvar PDF de dados sensíveis
+   - Garantir que dados do paciente só apareçam para perfis com permissão
+
+10. Extras importantes:
+   - Adicionar opção de imprimir ou salvar PDF de:
+     - um único paciente
+     - um único dia
+     - uma semana inteira
+     - um período financeiro
+   - Adicionar visualização prévia antes de imprimir ou salvar
+   - Garantir que logos, títulos e informações não fiquem distorcidos
+
+11. Corrigir possíveis erros:
+   - erro ao gerar PDF em telas com muitos dados
+   - erro de corte de tabela
+   - erro de layout na impressão
+   - erro ao exportar agenda semanal
+   - erro ao exportar ficha do paciente
+   - erro ao gerar PDF no celular
+   - erro ao aplicar filtros antes de exportar
+
+Objetivo final:
+Deixar o sistema totalmente preparado para impressão e exportação em PDF em todas as áreas, com qualidade profissional, boa organização visual e funcionamento estável.
+
+
+Atualize o sistema para implementar controle de acesso com dois tipos de usuário: GESTOR e FISIOTERAPEUTA.
+
+Objetivo:
+Criar um sistema seguro onde cada tipo de usuário tenha acesso apenas às funcionalidades permitidas.
+
+1. Criar no banco de dados (Data Type: "Usuario"):
+   - id (automático)
+   - nome (text)
+   - email (text)
+   - senha (password criptografada)
+   - tipo_usuario (text: "gestor" ou "fisioterapeuta")
+   - fisioterapeuta_vinculado (referência ao cadastro de fisioterapeuta - opcional)
+   - ativo (sim/não)
+
+2. Tela de login:
+   - Campo de email
+   - Campo de senha
+   - Botão "Entrar"
+   - Validação de login
+   - Mensagem de erro se login inválido
+
+3. Após login:
+   - Redirecionar automaticamente conforme tipo de usuário:
+     - Gestor → Dashboard completo
+     - Fisioterapeuta → Dashboard restrito
+
+4. Permissões do GESTOR:
+   - Acesso total ao sistema
+   - Agenda completa (todos os pacientes e profissionais)
+   - Financeiro (receitas, despesas, relatórios)
+   - Cadastro de pacientes
+   - Cadastro de fisioterapeutas
+   - Controle de usuários
+   - Relatórios completos
+   - Impressão e PDF
+   - Configurações do sistema
+
+5. Permissões do FISIOTERAPEUTA:
+   - Acesso apenas à própria agenda
+   - Visualizar apenas seus pacientes
+   - Atualizar status da sessão:
+       - confirmado
+       - falta
+       - concluído
+       - remarcar
+   - Visualizar dados básicos do paciente
+   - NÃO pode:
+       - ver financeiro
+       - editar valores
+       - acessar outros fisioterapeutas
+       - acessar configurações
+       - excluir dados
+
+6. Regras de acesso:
+   - Bloquear acesso direto por URL a páginas não permitidas
+   - Verificar tipo de usuário em todas as páginas
+   - Redirecionar automaticamente se tentar acessar área proibida
+
+7. Interface:
+   - Mostrar nome do usuário logado
+   - Mostrar tipo de usuário (Gestor ou Fisioterapeuta)
+   - Botão "Sair" (logout)
+
+8. Segurança:
+   - Senha criptografada
+   - Sessão segura
+   - Logout automático após inatividade (opcional)
+   - Bloquear usuário inativo
+
+9. Extras importantes:
+   - Permitir que o gestor crie novos usuários
+   - Permitir ativar/desativar usuários
+   - Permitir reset de senha
+   - Vincular fisioterapeuta ao usuário automaticamente
+
+10. Corrigir possíveis erros:
+   - erro de login
+   - erro de redirecionamento
+   - erro de permissão
+   - erro de sessão
+   - erro ao vincular fisioterapeuta
+
+Objetivo final:
+Criar um sistema com controle de acesso profissional, onde o gestor tenha visão completa da clínica e o fisioterapeuta tenha acesso apenas ao que precisa para atender.
+
+
+Corrigir o erro ao remover fisioterapeuta no sistema.
+
+Problema:
+Ao tentar excluir/remover um fisioterapeuta, o sistema está dando erro. Identifique a causa e corrija sem quebrar as outras funções do app.
+
+Objetivo:
+Permitir remover fisioterapeuta com segurança, mantendo a integridade dos agendamentos, pacientes, usuários e histórico.
+
+Regras obrigatórias para correção:
+
+1. Verificar dependências antes de excluir:
+   - agendamentos vinculados ao fisioterapeuta
+   - pacientes vinculados
+   - usuário/login vinculado
+   - histórico de atendimentos
+   - recorrências futuras
+   - bloqueios de agenda
+   - metas, relatórios ou registros ligados ao fisioterapeuta
+
+2. Implementar regra segura de remoção:
+   - Se o fisioterapeuta tiver vínculos ativos, NÃO excluir direto do banco
+   - Exibir mensagem clara informando o motivo do bloqueio
+   - Oferecer 3 opções:
+     1. cancelar exclusão
+     2. transferir vínculos para outro fisioterapeuta
+     3. desativar fisioterapeuta em vez de excluir
+
+3. Criar exclusão lógica (soft delete):
+   - adicionar campo `ativo` = true/false no cadastro do fisioterapeuta
+   - ao “remover”, marcar como inativo em vez de apagar definitivamente
+   - fisioterapeuta inativo não deve aparecer:
+     - no agendamento
+     - nos filtros
+     - em novos cadastros
+     - em listas da agenda
+   - mas deve continuar preservado em históricos antigos
+
+4. Se não houver vínculos:
+   - permitir exclusão definitiva com segurança
+   - pedir confirmação antes de apagar
+   - atualizar listas em tempo real após exclusão
+
+5. Corrigir backend e frontend:
+   - tratar erro null/undefined
+   - tratar erro de chave estrangeira/relacionamento
+   - impedir quebra da interface ao excluir
+   - garantir recarregamento correto da lista após remover ou desativar
+   - mostrar mensagem de sucesso ou erro amigável
+
+6. Ajustar a lógica do usuário vinculado:
+   - se existir login vinculado ao fisioterapeuta:
+     - desativar o usuário automaticamente
+     - ou remover o vínculo antes da exclusão
+   - nunca deixar usuário órfão no sistema
+
+7. Ajustar a lógica da agenda:
+   - se houver agendamentos futuros:
+     - bloquear exclusão definitiva
+     - permitir transferência para outro fisioterapeuta
+     - ou desativação do profissional
+   - manter histórico de atendimentos passados intacto
+
+8. Criar modal de confirmação com as opções:
+   - “Excluir definitivamente”
+   - “Desativar fisioterapeuta”
+   - “Transferir agenda e vínculos”
+   - “Cancelar”
+
+9. Melhorar mensagens do sistema:
+   - “Não é possível excluir este fisioterapeuta porque existem agendamentos ou vínculos ativos.”
+   - “Deseja desativar o profissional para ocultá-lo das agendas futuras?”
+   - “Fisioterapeuta removido com sucesso.”
+   - “Fisioterapeuta desativado com sucesso.”
+
+10. Corrigir possíveis causas técnicas:
+   - erro ao deletar registro relacionado
+   - erro de integridade referencial
+   - erro de estado da interface
+   - erro ao atualizar tabela/lista
+   - erro ao excluir usuário vinculado
+   - erro em agenda recorrente
+   - erro de cache após exclusão
+
+11. Fazer testes e garantir funcionamento:
+   - remover fisioterapeuta sem vínculos
+   - remover fisioterapeuta com agenda futura
+   - remover fisioterapeuta com usuário/login vinculado
+   - desativar fisioterapeuta
+   - transferir agendamentos para outro fisioterapeuta
+   - confirmar que históricos continuam visíveis
+   - confirmar que fisioterapeuta inativo não aparece em novos agendamentos
+
+12. Entregar o sistema corrigido sem quebrar:
+   - login
+   - agenda diária e semanal
+   - cadastro de pacientes
+   - vínculo com usuário fisioterapeuta
+   - relatórios
+   - filtros
+   - recorrência
+   - dashboard
+
+Objetivo final:
+Corrigir totalmente o erro ao remover fisioterapeuta, implementar remoção segura com desativação e preservar a integridade de todo o sistema.
+
+
+Atualize o sistema para incluir no cadastro do paciente o campo "Valor Pago", com integração direta ao controle financeiro.
+
+Objetivo:
+Permitir registrar pagamentos diretamente no cadastro do paciente e conectar automaticamente com o fluxo de receitas da clínica.
+
+1. Atualizar Data Type: "Paciente"
+   Adicionar os campos:
+   - valor_pago (number)
+   - forma_pagamento (text: "pix", "cartão", "dinheiro")
+   - data_pagamento (date)
+   - status_pagamento (text: "pago", "pendente", "parcial")
+   - observacao_pagamento (text - opcional)
+
+2. Atualizar formulário de cadastro/edição do paciente:
+   - Campo "Valor Pago"
+   - Campo "Forma de Pagamento" (dropdown)
+   - Campo "Data do Pagamento"
+   - Campo "Status do Pagamento"
+   - Campo "Observação"
+
+3. Regras de negócio:
+   - Se valor_pago > 0:
+       → status_pagamento = "pago"
+   - Se valor_pago = 0:
+       → status_pagamento = "pendente"
+   - Permitir pagamento parcial
+
+4. Integração automática com o financeiro:
+   - Ao salvar valor pago:
+       → Criar automaticamente um registro no Data Type "Financeiro"
+       com:
+         - tipo = "receita"
+         - valor = valor_pago
+         - forma_pagamento
+         - data = data_pagamento (ou data atual)
+         - paciente vinculado
+         - descrição: "Pagamento de paciente"
+
+5. Evitar duplicidade:
+   - Se o pagamento já foi registrado anteriormente:
+       → não duplicar automaticamente
+       → permitir atualização com controle
+
+6. Atualização automática:
+   - Sempre que o valor pago for editado:
+       → atualizar o registro financeiro correspondente
+
+7. Exibição no sistema:
+   - Mostrar no perfil do paciente:
+       - total pago
+       - forma de pagamento
+       - status
+   - Mostrar indicador visual:
+       - verde: pago
+       - amarelo: parcial
+       - vermelho: pendente
+
+8. Relatórios:
+   - Incluir dados de pagamento nos relatórios financeiros
+   - Permitir filtro por:
+       - forma de pagamento
+       - período
+       - status de pagamento
+
+9. Segurança:
+   - Apenas usuários GESTOR podem editar valores financeiros
+   - Fisioterapeutas apenas visualizam (sem edição)
+
+10. Corrigir possíveis erros:
+   - erro ao salvar valor
+   - erro de duplicação no financeiro
+   - erro de sincronização entre paciente e financeiro
+   - erro ao editar pagamento
+   - erro ao exibir status
+
+11. Interface:
+   - Layout limpo e intuitivo
+   - Campos organizados dentro de um bloco "Financeiro do Paciente"
+
+Objetivo final:
+Transformar o cadastro do paciente em um ponto central de controle financeiro, garantindo integração automática com receitas da clínica e evitando retrabalho da recepção.
+
+
+Atualize o sistema para criar uma aba específica no cadastro do paciente chamada "Exames e Documentos", permitindo anexar, visualizar e organizar arquivos do paciente.
+
+Objetivo:
+Permitir armazenar no cadastro do paciente exames, laudos, solicitações médicas e outros documentos em formato PDF, imagem ou arquivo DOC, de forma segura e organizada.
+
+Funcionalidades obrigatórias:
+
+1. Criar uma nova aba dentro do cadastro do paciente com o nome:
+   - Exames e Documentos
+
+2. Nessa aba, permitir upload dos seguintes tipos de arquivo:
+   - PDF
+   - JPG
+   - JPEG
+   - PNG
+   - DOC
+   - DOCX
+
+3. Criar estrutura no banco de dados para armazenar os anexos:
+   Data Type: "DocumentoPaciente"
+   Campos:
+   - id (automático)
+   - paciente (referência ao cadastro do paciente)
+   - nome_arquivo (text)
+   - tipo_arquivo (text)
+   - arquivo_url ou arquivo_upload (file)
+   - categoria_documento (text: "exame", "laudo", "receita", "pedido médico", "foto", "outro")
+   - data_upload (date)
+   - observacao (text - opcional)
+   - enviado_por (usuário)
+   - ativo (sim/não)
+
+4. Interface da aba:
+   - Botão “Anexar arquivo”
+   - Campo para selecionar categoria do documento
+   - Campo de observação
+   - Lista de documentos já anexados
+   - Exibir:
+     - nome do arquivo
+     - tipo do arquivo
+     - categoria
+     - data de envio
+     - botão visualizar
+     - botão baixar
+     - botão excluir
+
+5. Regras de upload:
+   - Permitir anexar mais de um arquivo por paciente
+   - Limitar tamanho máximo por arquivo para evitar lentidão
+   - Validar formatos aceitos
+   - Exibir mensagem amigável se o formato não for permitido
+   - Exibir progresso do upload
+
+6. Visualização:
+   - PDF deve abrir para visualização no sistema ou em nova aba
+   - Imagens devem abrir com preview
+   - DOC/DOCX devem ficar disponíveis para download e visualização quando possível
+   - Permitir clique no arquivo para abrir rapidamente
+
+7. Organização:
+   - Ordenar arquivos do mais recente para o mais antigo
+   - Permitir filtro por categoria
+   - Permitir busca por nome do arquivo
+   - Exibir total de documentos anexados no cadastro do paciente
+
+8. Segurança:
+   - Apenas usuários autorizados podem visualizar, anexar ou excluir documentos
+   - Gestor pode ver, anexar e excluir
+   - Fisioterapeuta pode visualizar apenas documentos dos próprios pacientes, sem excluir se não tiver permissão
+   - Proteger documentos por paciente, sem permitir acesso cruzado por URL direta
+   - Garantir privacidade dos dados
+
+9. Exclusão:
+   - Ao excluir, pedir confirmação
+   - Preferir exclusão lógica (soft delete), marcando o documento como inativo
+   - Não apagar permanentemente sem confirmação
+   - Atualizar lista em tempo real após exclusão
+
+10. Integração com o cadastro:
+   - Mostrar a aba “Exames e Documentos” dentro da ficha do paciente
+   - Permitir abrir documentos direto da ficha
+   - Manter tudo vinculado corretamente ao paciente certo
+
+11. Melhorias visuais:
+   - Layout limpo, profissional e responsivo
+   - Ícones diferentes para PDF, imagem e DOC
+   - Exibir miniatura para fotos quando possível
+   - Destacar documentos recentes
+
+12. Corrigir possíveis erros:
+   - erro no upload do arquivo
+   - erro ao salvar vínculo com paciente
+   - erro ao abrir PDF
+   - erro ao baixar DOC
+   - erro ao excluir documento
+   - erro de permissão
+   - erro ao listar arquivos
+   - erro de tamanho de arquivo
+   - erro ao atualizar a tela após novo anexo
+
+13. Extras importantes:
+   - Permitir anexar exames diretamente pela edição do paciente
+   - Permitir anexar fotos clínicas com segurança
+   - Criar contador de documentos por paciente
+   - Criar campo de categoria para melhor organização
+   - Exibir data e usuário que fez o upload
+
+Objetivo final:
+Transformar o cadastro do paciente em um prontuário mais completo, permitindo armazenar exames e documentos em PDF, imagem ou DOC de forma segura, organizada e fácil de acessar.
+
+
+
+Atualize o sistema para criar uma nova aba no cadastro do paciente chamada "Atestado / Declaração".
+
+Objetivo:
+Permitir gerar, preencher, salvar, imprimir e exportar em PDF atestados ou declarações de comparecimento de forma rápida, organizada e profissional.
+
+Funcionalidades obrigatórias:
+
+1. Criar uma nova aba com o nome:
+   - Atestado / Declaração
+
+2. Criar formulário com os seguintes campos:
+   - Nome do paciente
+   - Data do atendimento
+   - Hora de início
+   - Hora de término
+   - Hora total / período do atendimento
+   - Nome do profissional responsável
+   - Número do registro profissional
+   - Tipo de documento:
+     - Declaração de comparecimento
+     - Atestado
+   - Tipo de atendimento realizado
+   - Observações adicionais
+   - Data de emissão do documento
+   - Cidade
+   - Campo de assinatura digital ou nome do profissional no rodapé
+
+3. No campo "Tipo de atendimento realizado", criar opções prontas para seleção:
+   - Consulta
+   - Avaliação fisioterapêutica
+   - Reavaliação fisioterapêutica
+   - Atendimento fisioterapêutico
+   - Sessão de fisioterapia
+   - Atendimento de fisioterapia pélvica
+   - Atendimento de reabilitação
+   - Procedimento terapêutico
+   - Orientação terapêutica
+   - Atendimento clínico
+   - Acompanhamento terapêutico
+   - Atendimento ambulatorial
+   - Atendimento domiciliar
+   - Retorno
+   - Triagem
+   - Avaliação funcional
+   - Atendimento multiprofissional
+   - Consulta de acompanhamento
+   - Sessão de tratamento
+   - Atendimento individual
+
+4. Permitir também opção "Outro":
+   - Se selecionar "Outro", abrir campo de texto para digitar manualmente o tipo de atendimento
+
+5. Modelo automático do documento:
+   - O sistema deve gerar automaticamente o texto do documento com base nos campos preenchidos
+
+6. Modelo de texto para DECLARAÇÃO DE COMPARECIMENTO:
+   "Declaro, para os devidos fins, que o(a) paciente [NOME DO PACIENTE] compareceu a atendimento de [TIPO DE ATENDIMENTO] no dia [DATA], no horário de [HORA INÍCIO] às [HORA TÉRMINO], nesta unidade de saúde."
+
+7. Modelo de texto para ATESTADO:
+   "Atesto, para os devidos fins, que o(a) paciente [NOME DO PACIENTE] esteve em atendimento de [TIPO DE ATENDIMENTO] no dia [DATA], no horário de [HORA INÍCIO] às [HORA TÉRMINO], necessitando de afastamento conforme avaliação profissional, se aplicável."
+
+8. Layout do documento:
+   - Visual limpo e profissional
+   - Cabeçalho com nome da clínica
+   - Data de emissão
+   - Nome do paciente em destaque
+   - Rodapé com nome do profissional, registro e espaço para assinatura
+   - Formato pronto para impressão em A4
+   - Compatível com exportação em PDF
+
+9. Botões obrigatórios:
+   - Gerar documento
+   - Salvar
+   - Imprimir
+   - Salvar em PDF
+   - Limpar formulário
+
+10. Histórico:
+   - Salvar cada atestado/declaração emitido no cadastro do paciente
+   - Exibir lista com:
+     - data
+     - tipo de documento
+     - tipo de atendimento
+     - profissional responsável
+     - botão visualizar
+     - botão imprimir
+     - botão PDF
+
+11. Banco de dados:
+   Criar Data Type: "AtestadoPaciente"
+   Campos:
+   - paciente
+   - tipo_documento
+   - data_atendimento
+   - hora_inicio
+   - hora_termino
+   - tipo_atendimento
+   - outro_tipo_atendimento
+   - observacoes
+   - profissional_responsavel
+   - registro_profissional
+   - data_emissao
+   - cidade
+   - texto_gerado
+   - criado_por
+   - ativo
+
+12. Regras de negócio:
+   - Puxar automaticamente o nome do paciente ao abrir a aba dentro do cadastro
+   - Permitir editar antes de gerar o documento
+   - Permitir reutilizar modelo anterior
+   - Permitir preencher automaticamente nome do profissional logado
+   - Permitir imprimir e exportar sem quebrar o layout
+
+13. Segurança:
+   - Apenas usuários autorizados podem gerar ou editar atestados
+   - Fisioterapeuta visualiza e gera apenas para seus próprios pacientes, se permitido
+   - Gestor tem acesso completo
+   - Proteger os documentos contra acesso indevido
+
+14. Corrigir possíveis erros:
+   - erro ao salvar atestado
+   - erro ao puxar nome do paciente
+   - erro ao gerar PDF
+   - erro na impressão
+   - erro de layout
+   - erro ao salvar no histórico
+   - erro ao abrir documento antigo
+
+15. Objetivo final:
+   Criar uma aba profissional e funcional para emissão de atestados e declarações, com preenchimento rápido, histórico do paciente, impressão e PDF.
+
+
+Atualize a funcionalidade da aba "Atestado / Declaração" para incluir o campo de endereço da clínica no documento.
+
+Objetivo:
+Garantir que todos os atestados e declarações emitidos contenham o endereço completo da clínica, aumentando a validade e profissionalismo do documento.
+
+1. Atualizar formulário de atestado:
+   Adicionar campo:
+   - endereço_da_clinica (text)
+
+2. Criar comportamento automático:
+   - Preencher automaticamente o campo com o endereço padrão da clínica (definido nas configurações do sistema)
+   - Permitir edição manual caso necessário
+
+3. Criar área de configurações da clínica (se ainda não existir):
+   Data Type: "ConfiguracaoClinica"
+   Campos:
+   - nome_clinica (text)
+   - endereco_clinica (text)
+   - telefone (text)
+   - email (text)
+   - logo (imagem - opcional)
+
+4. Ao abrir o atestado:
+   - Buscar automaticamente o endereço salvo nas configurações
+   - Preencher o campo endereço_da_clinica
+
+5. Atualizar modelo do documento:
+
+   Para DECLARAÇÃO:
+   "Declaro, para os devidos fins, que o(a) paciente [NOME DO PACIENTE] compareceu a atendimento de [TIPO DE ATENDIMENTO] no dia [DATA], no horário de [HORA INÍCIO] às [HORA TÉRMINO], nesta unidade localizada em [ENDEREÇO DA CLÍNICA]."
+
+   Para ATESTADO:
+   "Atesto, para os devidos fins, que o(a) paciente [NOME DO PACIENTE] esteve em atendimento de [TIPO DE ATENDIMENTO] no dia [DATA], no horário de [HORA INÍCIO] às [HORA TÉRMINO], na clínica localizada em [ENDEREÇO DA CLÍNICA]."
+
+6. Layout do documento:
+   - Exibir o endereço também no cabeçalho ou rodapé do documento
+   - Manter padrão profissional
+   - Garantir boa visualização em impressão e PDF
+
+7. Histórico:
+   - Salvar o endereço utilizado no momento da emissão
+   - Garantir que documentos antigos mantenham o endereço original mesmo se alterado depois
+
+8. Segurança:
+   - Apenas gestor pode editar o endereço padrão da clínica
+   - Fisioterapeuta apenas visualiza ou usa o padrão
+
+9. Corrigir possíveis erros:
+   - erro ao puxar endereço automático
+   - erro ao salvar endereço no atestado
+   - erro ao gerar PDF com endereço
+   - erro de layout no documento
+   - erro ao editar manualmente
+
+10. Extras importantes:
+   - Permitir incluir automaticamente também:
+     - nome da clínica
+     - telefone
+   - Exibir essas informações no cabeçalho do documento
+
+Objetivo final:
+Garantir que todos os atestados e declarações tenham identificação completa da clínica, incluindo endereço, tornando o documento mais profissional e válido.
+
+Crie uma nova aba no sistema chamada “Aniversariantes”.
+
+Objetivo da aba:
+Mostrar automaticamente os pacientes aniversariantes do dia e do mês para que a equipe possa parabenizar e oferecer desconto especial nos atendimentos.
+
+Funcionalidades obrigatórias:
+
+1. Subabas dentro de “Aniversariantes”:
+- “Aniversariantes do Dia”
+- “Aniversariantes do Mês”
+
+2. No cadastro do paciente, garantir que exista o campo:
+- Data de nascimento
+
+3. Na aba “Aniversariantes do Dia”, mostrar automaticamente todos os pacientes que fazem aniversário na data atual.
+Exibir:
+- Nome do paciente
+- Telefone
+- Data de nascimento
+- Idade que está completando
+- Último atendimento
+- Próximo agendamento
+- Botão “Enviar parabéns”
+- Botão “Oferecer desconto”
+- Status: “Parabéns enviado” / “Desconto oferecido”
+
+4. Na aba “Aniversariantes do Mês”, listar todos os pacientes que fazem aniversário no mês atual.
+Exibir:
+- Nome do paciente
+- Dia do aniversário
+- Telefone
+- Idade que vai completar
+- Botão “Enviar mensagem”
+- Botão “Registrar oferta”
+
+5. Criar filtro de busca por:
+- Nome
+- Dia
+- Mês
+- Fisioterapeuta responsável
+
+6. Criar automação visual:
+- Destacar em primeiro lugar os aniversariantes do dia
+- Mostrar contador no topo:
+  - Total de aniversariantes do dia
+  - Total de aniversariantes do mês
+
+7. Criar botão de WhatsApp:
+Ao clicar em “Enviar parabéns”, abrir mensagem pronta com texto editável:
+“🎉 O mês é seu, [Nome]!  
+
+Queremos celebrar esse momento especial com você 💙  
+Desejamos um novo ciclo cheio de saúde, conquistas e bem-estar!  
+
+E claro… não poderia faltar um presente da nossa equipe:  
+🎁 10% de desconto nos nossos planos de tratamento durante todo o seu mês de aniversário!  
+
+É o momento ideal para investir em você, cuidar do seu corpo e da sua saúde com quem realmente se importa com o seu resultado.  
+
+Me chama aqui que te explico como aproveitar esse benefício 👇💬  
+
+Feliz aniversário e conte sempre com a gente! ✨  
+Equipe [Nome da Clínica]
+
+8. Criar campo para configurar o desconto promocional:
+- Percentual de desconto
+ou
+- Valor fixo de desconto
+- Validade da oferta
+- Observações
+
+9. Registrar histórico da ação:
+Sempre que a equipe enviar parabéns ou oferecer desconto, salvar:
+- Data
+- Hora
+- Usuário responsável
+- Paciente
+- Tipo de ação realizada
+
+10. Criar alerta automático no dashboard:
+- “Hoje há X aniversariantes para parabenizar”
+- “Este mês há X pacientes aniversariantes”
+
+11. Criar opção de exportar lista de aniversariantes em PDF e Excel.
+
+12. Layout:
+- Visual profissional
+- Organizado em cards ou tabela
+- Fácil de usar pela recepção e gestão
+
+13. Regras importantes:
+- Não mostrar pacientes sem data de nascimento cadastrada
+- Evitar duplicidade de envio no mesmo dia
+- Permitir marcar manualmente se o parabéns já foi enviado fora do sistema
+- Permitir editar a mensagem padrão de aniversário
+
+14. Criar permissões:
+- Recepção pode visualizar, enviar parabéns e registrar desconto
+- Gestor pode visualizar, editar regras de desconto, exportar relatórios e acompanhar histórico
+
+15. Deixar essa aba 100% funcional e integrada ao cadastro de pacientes, agenda e WhatsApp.
+
+
+Crie uma nova aba no sistema chamada “Planner de Conteúdo”.
+
+Objetivo da aba:
+Permitir o planejamento, organização e acompanhamento da criação de conteúdo da clínica, com visual profissional, calendário interativo e integração com IA para auxiliar na produção de roteiros, legendas e ideias de posts.
+
+A aba “Planner de Conteúdo” deve ser 100% funcional e conter:
+
+1. VISUALIZAÇÕES DO CALENDÁRIO
+Criar opção de visualização do planner por:
+- Dia
+- Semana
+- Mês
+- Ano
+
+Essas visualizações devem funcionar como um calendário interativo, permitindo navegar entre períodos anteriores e futuros com botões:
+- Hoje
+- Próximo
+- Anterior
+
+2. CADASTRO DE TAREFAS DE CONTEÚDO
+Permitir criar tarefas dentro do calendário com os seguintes campos:
+- Título da tarefa
+- Tipo de conteúdo
+- Objetivo do conteúdo
+- Descrição/briefing
+- Data
+- Hora
+- Responsável
+- Status
+- Prioridade
+- Canal
+- Tema
+- Público-alvo
+- CTA
+- Observações
+
+Tipos de conteúdo:
+- Reels
+- Story
+- Carrossel
+- Post estático
+- Vídeo
+- Texto
+- Campanha
+- Anúncio
+- Outro
+
+Objetivos:
+- Engajamento
+- Autoridade
+- Conversão
+- Relacionamento
+- Venda
+- Captação de leads
+
+Status:
+- Pendente
+- Em criação
+- Em revisão
+- Aprovado
+- Agendado
+- Publicado
+- Cancelado
+
+Prioridade:
+- Baixa
+- Média
+- Alta
+- Urgente
+
+Canais:
+- Instagram
+- WhatsApp
+- Facebook
+- TikTok
+- Blog
+- E-mail
+- Outro
+
+3. AÇÕES SOBRE AS TAREFAS
+Cada tarefa deve permitir:
+- Criar
+- Editar
+- Excluir
+- Duplicar
+- Arrastar para outra data
+- Alterar status rapidamente
+- Marcar como concluída
+- Reagendar
+- Adicionar observações
+
+4. FILTROS DO PLANNER
+Criar filtros por:
+- Período
+- Responsável
+- Tipo de conteúdo
+- Status
+- Prioridade
+- Canal
+- Objetivo
+- Tema
+
+5. PAINEL RESUMO NO TOPO
+No topo da aba mostrar indicadores:
+- Total de conteúdos do dia
+- Total da semana
+- Total do mês
+- Quantos pendentes
+- Quantos em criação
+- Quantos publicados
+- Quantos atrasados
+
+6. EXCLUSÃO E CONTROLE DO CALENDÁRIO
+Permitir:
+- Excluir tarefa individual
+- Excluir tarefas em lote
+- Excluir um dia inteiro de tarefas
+- Limpar calendário por período com confirmação de segurança
+- Não excluir sem pedir confirmação
+
+7. ORGANIZAÇÃO VISUAL
+Layout moderno, elegante e intuitivo.
+Mostrar tarefas em formato:
+- Cards
+ou
+- Blocos dentro do calendário
+
+Cada status deve ter identificação visual clara.
+Deixar fácil para a recepção, gestor ou marketing visualizar tudo rapidamente.
+
+8. ABA INTERLIGADA COM IA
+Criar dentro do Planner um painel lateral ou botão chamado:
+“Assistente IA de Conteúdo”
+
+Esse assistente deve abrir um chat interno no sistema para auxiliar na criação de conteúdo.
+
+9. FUNÇÕES DO CHAT COM IA
+O chat da IA deve ajudar o usuário a gerar:
+- Ideias de posts
+- Roteiros para Reels
+- Legendas prontas
+- Sequências de Stories
+- Chamadas para CTA
+- Títulos chamativos
+- Calendário editorial
+- Conteúdo por tema
+- Conteúdo por objetivo de marketing
+- Conteúdo para datas comemorativas
+- Conteúdo voltado para fisioterapia e clínica de saúde
+
+10. PROMPTS RÁPIDOS DENTRO DO CHAT IA
+Criar botões prontos no chat com sugestões rápidas:
+- Criar roteiro para Reels
+- Criar legenda
+- Criar carrossel
+- Criar sequência de stories
+- Criar campanha promocional
+- Criar conteúdo para engajamento
+- Criar conteúdo para autoridade
+- Criar conteúdo para vendas
+- Melhorar texto
+- Resumir ideia
+- Transformar ideia em calendário semanal
+
+11. INTEGRAÇÃO ENTRE PLANNER E IA
+A IA deve conseguir usar os dados da tarefa selecionada no calendário para gerar conteúdo automaticamente.
+Exemplo:
+Se eu clicar em uma tarefa “Post sobre dor lombar”, o chat já deve puxar esse contexto e oferecer:
+- legenda
+- roteiro
+- CTA
+- ideia de imagem
+- objetivo do post
+
+12. BOTÃO “GERAR CONTEÚDO COM IA”
+Dentro de cada tarefa, criar botão:
+“Gerar com IA”
+
+Ao clicar, abrir opções:
+- Gerar legenda
+- Gerar roteiro
+- Gerar ideia de carrossel
+- Gerar CTA
+- Gerar sequência de stories
+- Gerar variações do conteúdo
+
+13. CAMPO PARA SALVAR O MATERIAL GERADO
+Dentro de cada tarefa, criar campos para armazenar:
+- Roteiro
+- Legenda
+- CTA
+- Ideia visual
+- Hashtags
+- Observações estratégicas
+
+14. BANCO DE IDEIAS
+Criar uma subaba chamada “Banco de Ideias” para salvar ideias futuras de conteúdo, com:
+- Título da ideia
+- Tema
+- Objetivo
+- Canal
+- Observação
+- Botão “Transformar em tarefa”
+
+15. MODELOS PRONTOS
+Criar uma subaba “Modelos” com templates prontos de conteúdo para facilitar a produção:
+- Reels de autoridade
+- Reels de conexão
+- Reels de vendas
+- Story de bastidor
+- Story com enquete
+- Carrossel educativo
+- Post de prova social
+- Post de oferta
+
+16. EXPORTAÇÃO E IMPRESSÃO
+Permitir:
+- Exportar planner em PDF
+- Exportar planner em Excel
+- Imprimir calendário
+- Imprimir tarefas do período
+
+17. PERMISSÕES DE ACESSO
+Criar acessos diferentes:
+- Gestor: acesso total
+- Marketing: criar, editar, organizar e usar IA
+- Recepção: apenas visualizar, se necessário
+
+18. REGRAS DE NEGÓCIO
+- Não permitir tarefa sem data
+- Não permitir exclusão sem confirmação
+- Salvar histórico de alterações
+- Salvar quem criou, editou ou excluiu a tarefa
+- Mostrar tarefas atrasadas com alerta visual
+- Permitir repetição de tarefas recorrentes
+- Permitir anexar referências, imagens, PDFs e links
+
+19. ALERTAS E LEMBRETES
+Criar lembretes automáticos de tarefas:
+- Tarefa do dia
+- Tarefas atrasadas
+- Conteúdos que precisam de aprovação
+- Conteúdos programados para hoje
+
+20. DASHBOARD DE CONTEÚDO
+Criar um mini dashboard com:
+- Quantidade de conteúdos criados por período
+- Quantidade publicados
+- Quantidade pendentes
+- Distribuição por canal
+- Distribuição por tipo de conteúdo
+- Produtividade por responsável
+
+21. DESEMPENHO TÉCNICO
+Deixar a aba:
+- Rápida
+- Responsiva
+- Organizada
+- Sem erros
+- Integrada ao restante do sistema
+- Preparada para futura integração com redes sociais e agendamento de posts
+
+22. EXPERIÊNCIA DO USUÁRIO
+Quero uma experiência visual profissional, moderna e prática, como um planner de marketing de alto nível, fácil de usar no desktop e no celular.
+
+23. IMPORTANTE
+Corrigir qualquer erro que impedir:
+- criação da tarefa
+- edição
+- exclusão
+- visualização por semana, mês ou ano
+- abertura do chat de IA
+- salvamento do conteúdo gerado
+
+Entregar tudo funcionando de ponta a ponta.
+
+Atualize a aba “Aniversariantes” para permitir o envio de mensagens de parabéns também por e-mail, além do WhatsApp.
+
+Objetivo:
+Dar à clínica a opção de parabenizar os pacientes aniversariantes do dia e do mês por dois canais:
+- WhatsApp
+- E-mail
+
+Funcionalidades obrigatórias:
+
+1. No cadastro do paciente, garantir os campos:
+- Telefone
+- E-mail
+- Preferência de contato:
+  - WhatsApp
+  - E-mail
+  - Ambos
+
+2. Na aba “Aniversariantes”, adicionar botões:
+- Enviar parabéns por WhatsApp
+- Enviar parabéns por e-mail
+- Enviar pelos dois canais
+
+3. Na lista de aniversariantes do dia e do mês, mostrar:
+- Nome do paciente
+- Telefone
+- E-mail
+- Preferência de contato
+- Status do envio por WhatsApp

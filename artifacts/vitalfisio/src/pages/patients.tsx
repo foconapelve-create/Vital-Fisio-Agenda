@@ -27,13 +27,13 @@ type Patient = {
 type FormData = {
   name: string; phone: string; email: string; birthDate: string;
   insuranceType: string; insuranceName: string; paymentMethod: string;
-  totalSessions: number; zipCode: string; addressStreet: string; addressNumber: string;
+  totalSessions: number; amountPaid: string; zipCode: string; addressStreet: string; addressNumber: string;
   addressComplement: string; neighborhood: string; city: string; state: string; notes: string;
 };
 
 const emptyForm: FormData = {
   name: "", phone: "", email: "", birthDate: "", insuranceType: "particular",
-  insuranceName: "", paymentMethod: "dinheiro", totalSessions: 10,
+  insuranceName: "", paymentMethod: "dinheiro", totalSessions: 10, amountPaid: "",
   zipCode: "", addressStreet: "", addressNumber: "", addressComplement: "",
   neighborhood: "", city: "", state: "", notes: "",
 };
@@ -119,8 +119,8 @@ export default function Patients() {
       name: p.name, phone: p.phone, email: p.email || "",
       birthDate: p.birthDate || "", insuranceType: p.insuranceType,
       insuranceName: p.insuranceName || "", paymentMethod: p.paymentMethod || "dinheiro",
-      totalSessions: p.totalSessions, zipCode: p.zipCode || "",
-      addressStreet: p.addressStreet || "", addressNumber: p.addressNumber || "",
+      totalSessions: p.totalSessions, amountPaid: (p as any).amountPaid ? String((p as any).amountPaid) : "",
+      zipCode: p.zipCode || "", addressStreet: p.addressStreet || "", addressNumber: p.addressNumber || "",
       addressComplement: p.addressComplement || "", neighborhood: p.neighborhood || "",
       city: p.city || "", state: p.state || "", notes: p.notes || "",
     });
@@ -316,6 +316,15 @@ export default function Patients() {
                   <Label>Total de Sessões</Label>
                   <Input type="number" min={0} value={form.totalSessions}
                     onChange={e => setForm(p => ({ ...p, totalSessions: parseInt(e.target.value) || 0 }))} />
+                </div>
+                <div className={`col-span-2 ${editingPatient ? "opacity-60" : ""}`}>
+                  <Label>Valor Pago (R$) {!editingPatient && <span className="text-xs text-green-600 ml-1">→ gera entrada no financeiro</span>}</Label>
+                  <Input type="number" min={0} step="0.01" placeholder="0,00"
+                    value={form.amountPaid}
+                    onChange={e => setForm(p => ({ ...p, amountPaid: e.target.value }))}
+                    disabled={!!editingPatient}
+                  />
+                  {editingPatient && <p className="text-xs text-muted-foreground mt-1">Para ajustar o valor, registre no Financeiro</p>}
                 </div>
               </div>
             </div>

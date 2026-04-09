@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -13,6 +13,7 @@ export const patientsTable = pgTable("patients", {
   paymentMethod: text("payment_method"),
   totalSessions: integer("total_sessions").notNull().default(0),
   remainingSessions: integer("remaining_sessions").notNull().default(0),
+  amountPaid: real("amount_paid"),
   zipCode: text("zip_code"),
   addressStreet: text("address_street"),
   addressNumber: text("address_number"),

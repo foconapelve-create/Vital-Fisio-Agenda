@@ -1,13 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { db, financialTable, patientsTable } from "@workspace/db";
 
 const router: IRouter = Router();
-
-function requireAuth(req: any, res: any, next: any) {
-  if (!req.session?.userId) { res.status(401).json({ error: "Não autenticado" }); return; }
-  next();
-}
 
 function buildSelect() {
   return {
@@ -20,7 +15,7 @@ function buildSelect() {
   };
 }
 
-router.get("/financial", requireAuth, async (req, res): Promise<void> => {
+router.get("/financial", async (req, res): Promise<void> => {
   const { startDate, endDate, type, paymentStatus } = req.query as Record<string, string>;
   const conditions = [];
   if (startDate) conditions.push(gte(financialTable.dueDate, startDate));
@@ -38,7 +33,7 @@ router.get("/financial", requireAuth, async (req, res): Promise<void> => {
   res.json(records);
 });
 
-router.get("/financial/summary", requireAuth, async (req, res): Promise<void> => {
+router.get("/financial/summary", async (req, res): Promise<void> => {
   const { month, year } = req.query as Record<string, string>;
   const conditions = [];
 
@@ -47,8 +42,8 @@ router.get("/financial/summary", requireAuth, async (req, res): Promise<void> =>
     const startDate = `${year}-${mm}-01`;
     const endDay = new Date(parseInt(year), parseInt(month), 0).getDate();
     const endDate = `${year}-${mm}-${endDay}`;
-    conditions.push(gte(financialTable.dueDate, startDate));
-    conditions.push(lte(financialTable.dueDate, endDate));
+    conditions.push(gte(financialTable.createdAt, new Date(startDate)));
+    conditions.push(lte(financialTable.createdAt, new Date(`${endDate}T23:59:59`)));
   }
 
   const allRecords = conditions.length > 0
@@ -70,44 +65,76 @@ router.get("/financial/summary", requireAuth, async (req, res): Promise<void> =>
   });
 });
 
-router.post("/financial", requireAuth, async (req, res): Promise<void> => {
-  const { description, type, amount, paymentStatus, category, supplier, dueDate, paymentDate, patientId, paymentMethod, notes } = req.body;
-  if (!description || !type || amount === undefined) {
-    res.status(400).json({ error: "Campos obrigatórios: descrição, tipo, valor" });
-    return;
+router.post("/financial", async (req, res): Promise<void> => {
+  try {
+    const { description, type, amount, paymentStatus, category, supplier, dueDate, paymentDate, patientId, paymentMethod, notes } = req.body;
+
+    if (!description || !type || amount === undefined || amount === null || amount === "") {
+      res.status(400).json({ error: "Campos obrigatórios: descrição, tipo e valor" });
+      return;
+    }
+
+    const parsedAmount = parseFloat(String(amount));
+    if (isNaN(parsedAmount)) {
+      res.status(400).json({ error: "Valor inválido" });
+      return;
+    }
+
+    const [record] = await db.insert(financialTable).values({
+      description: String(description),
+      type: String(type),
+      amount: parsedAmount,
+      paymentStatus: paymentStatus ?? "pendente",
+      category: category || null,
+      supplier: supplier || null,
+      dueDate: dueDate || null,
+      paymentDate: paymentDate || null,
+      patientId: patientId ? Number(patientId) : null,
+      paymentMethod: paymentMethod || null,
+      notes: notes || null,
+    }).returning();
+
+    const [withPatient] = await db.select({ ...buildSelect(), patientName: patientsTable.name })
+      .from(financialTable).leftJoin(patientsTable, eq(financialTable.patientId, patientsTable.id))
+      .where(eq(financialTable.id, record.id));
+
+    res.status(201).json(withPatient);
+  } catch (e: any) {
+    console.error("Financial POST error:", e);
+    res.status(500).json({ error: e.message || "Erro ao criar registro financeiro" });
   }
-  const [record] = await db.insert(financialTable).values({
-    description, type, amount: Number(amount),
-    paymentStatus: paymentStatus ?? "pendente",
-    category: category ?? null, supplier: supplier ?? null,
-    dueDate: dueDate ?? null, paymentDate: paymentDate ?? null,
-    patientId: patientId ? Number(patientId) : null,
-    paymentMethod: paymentMethod ?? null, notes: notes ?? null,
-  }).returning();
-
-  res.status(201).json(record);
 });
 
-router.put("/financial/:id", requireAuth, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
+router.put("/financial/:id", async (req, res): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-  const { description, type, amount, paymentStatus, category, supplier, dueDate, paymentDate, patientId, paymentMethod, notes } = req.body;
+    const { description, type, amount, paymentStatus, category, supplier, dueDate, paymentDate, patientId, paymentMethod, notes } = req.body;
 
-  const [updated] = await db.update(financialTable).set({
-    description, type,
-    amount: amount !== undefined ? Number(amount) : undefined,
-    paymentStatus, category: category ?? null, supplier: supplier ?? null,
-    dueDate: dueDate ?? null, paymentDate: paymentDate ?? null,
-    patientId: patientId ? Number(patientId) : null,
-    paymentMethod: paymentMethod ?? null, notes: notes ?? null,
-  }).where(eq(financialTable.id, id)).returning();
+    const [updated] = await db.update(financialTable).set({
+      description, type,
+      amount: amount !== undefined ? parseFloat(String(amount)) : undefined,
+      paymentStatus,
+      category: category ?? null, supplier: supplier ?? null,
+      dueDate: dueDate || null, paymentDate: paymentDate || null,
+      patientId: patientId ? Number(patientId) : null,
+      paymentMethod: paymentMethod || null, notes: notes || null,
+    }).where(eq(financialTable.id, id)).returning();
 
-  if (!updated) { res.status(404).json({ error: "Registro não encontrado" }); return; }
-  res.json(updated);
+    if (!updated) { res.status(404).json({ error: "Registro não encontrado" }); return; }
+
+    const [withPatient] = await db.select({ ...buildSelect(), patientName: patientsTable.name })
+      .from(financialTable).leftJoin(patientsTable, eq(financialTable.patientId, patientsTable.id))
+      .where(eq(financialTable.id, id));
+
+    res.json(withPatient);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || "Erro ao atualizar registro" });
+  }
 });
 
-router.patch("/financial/:id/pay", requireAuth, async (req, res): Promise<void> => {
+router.patch("/financial/:id/pay", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
@@ -119,7 +146,7 @@ router.patch("/financial/:id/pay", requireAuth, async (req, res): Promise<void> 
   res.json(updated);
 });
 
-router.delete("/financial/:id", requireAuth, async (req, res): Promise<void> => {
+router.delete("/financial/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
   await db.delete(financialTable).where(eq(financialTable.id, id));

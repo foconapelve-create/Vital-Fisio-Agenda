@@ -2,8 +2,12 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { pool } from "@workspace/db";
+
+const PgSession = connectPgSimple(session);
 
 const app: Express = express();
 
@@ -11,18 +15,8 @@ app.use(
   pinoHttp({
     logger,
     serializers: {
-      req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
-      },
-      res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
-      },
+      req(req) { return { id: req.id, method: req.method, url: req.url?.split("?")[0] }; },
+      res(res) { return { statusCode: res.statusCode }; },
     },
   }),
 );
@@ -32,15 +26,22 @@ app.use(express.urlencoded({ extended: true }));
 
 const sessionSecret = process.env.SESSION_SECRET ?? "vitalfisio-secret-key-change-in-production";
 
+const sessionStore = new PgSession({
+  pool,
+  tableName: "user_sessions",
+  createTableIfMissing: false,
+});
+
 app.use(
   session({
+    store: sessionStore,
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),
 );
