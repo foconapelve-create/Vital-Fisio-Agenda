@@ -1,0 +1,54 @@
+7. ÁREA DE EVOLUÇÃO / IMPRESSÃO
+- Alterar a impressão da área de evolução para que, ao imprimir o prontuário/evolução do paciente, saiam todas as evoluções cadastradas daquele paciente em uma única impressão.
+- As evoluções devem aparecer organizadas em sequência, uma embaixo da outra, dentro da mesma página ou em páginas contínuas do mesmo documento, mantendo ordem cronológica.
+- Exibir em cada evolução:
+  - data
+  - hora
+  - profissional responsável
+  - texto completo da evolução
+- Ajustar o layout da impressão para ficar limpo, profissional e legível.
+- Garantir que a impressão gere um histórico completo do paciente, sem cortar informações importantes.
+
+8. CONTROLE DE MATERIAL E ESTOQUE
+- Criar uma nova aba chamada “Controle de Material e Estoque”.
+- Essa área deve permitir cadastrar, visualizar, editar e excluir materiais e itens de estoque da clínica.
+- Cada item deve conter:
+  - nome do material/produto
+  - categoria
+  - quantidade atual
+  - unidade de medida
+  - quantidade mínima
+  - fornecedor
+  - valor unitário
+  - data de validade (quando aplicável)
+  - observações
+- O sistema deve mostrar alerta de estoque baixo quando a quantidade atual estiver igual ou menor que a quantidade mínima definida.
+- Criar filtro para visualizar:
+  - todos os itens
+  - itens com estoque baixo
+  - itens vencidos ou próximos do vencimento
+- Permitir registrar entrada e saída de materiais.
+- Ao dar baixa no material, atualizar automaticamente a quantidade em estoque.
+- Criar histórico de movimentação de estoque contendo:
+  - data
+  - item
+  - tipo de movimentação (entrada ou saída)
+  - quantidade
+  - responsável
+  - observação
+- Criar painel simples com resumo:
+  - total de itens cadastrados
+  - itens com estoque baixo
+  - itens próximos do vencimento
+  - valor estimado do estoque
+- Deixar a tela organizada, responsiva e fácil de usar.
+
+9. REGRAS TÉCNICAS
+- Corrigir frontend e backend sem quebrar funções já existentes.
+- Garantir que tudo funcione no modo responsivo.
+- Validar todos os campos obrigatórios.
+- Corrigir eventuais erros de layout, integração, salvamento e impressão.
+- Garantir persistência correta dos dados no banco.
+- Deixar o sistema 100% funcional, estável e pronto para uso após essas alterações.
+
+Excluir aba de nota fiscal 

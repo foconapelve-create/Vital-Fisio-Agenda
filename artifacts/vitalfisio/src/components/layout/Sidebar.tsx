@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, CalendarDays, Users, UserRound, FileBarChart,
-  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake, LayoutGrid, Receipt, UserCog,
+  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake, LayoutGrid, Package, UserCog,
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ const adminItems = [
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/therapists", label: "Profissionais", icon: UserRound },
   { href: "/financial", label: "Financeiro", icon: Wallet },
-  { href: "/fiscal", label: "Nota Fiscal (NFSe)", icon: Receipt },
+  { href: "/estoque", label: "Estoque", icon: Package },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
   { href: "/relatorio", label: "Relatório Clínico", icon: FileText },
   { href: "/atestados", label: "Documentos Clínicos", icon: ClipboardList },
@@ -30,6 +30,7 @@ const profissionalItems = [
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/patients", label: "Pacientes", icon: Users },
+  { href: "/estoque", label: "Estoque", icon: Package },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
   { href: "/relatorio", label: "Relatório Clínico", icon: FileText },
   { href: "/atestados", label: "Documentos Clínicos", icon: ClipboardList },
@@ -40,7 +41,7 @@ const financeiroItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/financial", label: "Financeiro", icon: Wallet },
-  { href: "/fiscal", label: "Nota Fiscal (NFSe)", icon: Receipt },
+  { href: "/estoque", label: "Estoque", icon: Package },
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
 ];

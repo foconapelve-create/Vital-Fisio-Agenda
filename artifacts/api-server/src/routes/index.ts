@@ -15,6 +15,7 @@ import fiscalRouter from "./fiscal";
 import usersRouter from "./users";
 import settingsRouter from "./settings";
 import confirmRouter from "./confirm";
+import estoqueRouter from "./estoque";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(contentRouter);
 router.use(fiscalRouter);
 router.use(usersRouter);
 router.use(settingsRouter);
+router.use(estoqueRouter);
 
 export default router;

@@ -11,11 +11,12 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, UserRound, Activity, Phone, ClipboardList, CalendarDays, Plus, Pencil, Trash2, FileText, Lock, Mail, MapPin } from "lucide-react";
+import { ArrowLeft, UserRound, Activity, Phone, ClipboardList, CalendarDays, Plus, Pencil, Trash2, FileText, Lock, Mail, MapPin, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/apiFetch";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 const STATUS_LABELS: Record<string, string> = {
   agendado: "Agendado", confirmado: "Confirmado", presente: "Presente",
@@ -47,6 +48,7 @@ export default function PatientHistory() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { systemName } = useAppSettings();
 
   const [isEvolutionOpen, setIsEvolutionOpen] = useState(false);
   const [editingEvolution, setEditingEvolution] = useState<EvolutionRecord | null>(null);
@@ -146,6 +148,13 @@ export default function PatientHistory() {
     }
   }
 
+  function handlePrintEvolutions() {
+    const originalTitle = document.title;
+    document.title = `Prontuário-${p?.name || "paciente"}-${format(new Date(), "yyyy-MM-dd")}`;
+    window.print();
+    document.title = originalTitle;
+  }
+
   const isLoading = isLoadingPatient || isLoadingHistory;
   const history = historyData as any[];
   const presenteAppointments = history.filter(a => a.status === "presente");
@@ -157,299 +166,403 @@ export default function PatientHistory() {
     cancelado: history.filter(a => a.status === "cancelado").length,
   };
 
+  // Sort evolutions chronologically (oldest first) for print
+  const sortedEvolutions = [...(evolutions as EvolutionRecord[])].sort((a, b) => a.date.localeCompare(b.date));
+
   const p = patient as any;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/patients")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Histórico do Paciente</h1>
-          <p className="text-muted-foreground mt-1">Atendimentos e evoluções clínicas</p>
+      {/* ── Print-only prontuário ──────────────────────────────── */}
+      <div className="hidden print:block">
+        <style>{`
+          @media print {
+            body * { visibility: hidden; }
+            #prontuario-print, #prontuario-print * { visibility: visible; }
+            #prontuario-print { position: absolute; left: 0; top: 0; width: 100%; }
+            .evolution-block { page-break-inside: avoid; }
+          }
+        `}</style>
+        <div id="prontuario-print" style={{ fontFamily: "Georgia, serif", padding: "32px", maxWidth: "800px", margin: "0 auto" }}>
+          {/* Header */}
+          <div style={{ borderBottom: "2px solid #1a1a1a", paddingBottom: "16px", marginBottom: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <h1 style={{ fontSize: "20px", fontWeight: "bold", margin: 0 }}>{systemName}</h1>
+                <h2 style={{ fontSize: "14px", fontWeight: "normal", color: "#555", margin: "4px 0 0" }}>Prontuário Clínico — Registro de Evoluções</h2>
+              </div>
+              <div style={{ textAlign: "right", fontSize: "12px", color: "#555" }}>
+                <div>Emitido em: {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Patient info */}
+          {p && (
+            <div style={{ backgroundColor: "#f8f8f8", border: "1px solid #ddd", borderRadius: "6px", padding: "16px", marginBottom: "24px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: "bold", margin: "0 0 8px" }}>{p.name}</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", fontSize: "13px", color: "#444" }}>
+                {p.phone && <span>Telefone: {p.phone}</span>}
+                {p.email && <span>E-mail: {p.email}</span>}
+                {p.birthDate && <span>Data de nasc.: {fmtDate(p.birthDate)}</span>}
+                <span>Convênio: {p.insuranceType === "convenio" ? (p.insuranceName || "Convênio") : "Particular"}</span>
+                <span>Sessões restantes: {p.remainingSessions} / {p.totalSessions}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Stats */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px", marginBottom: "28px" }}>
+            {[
+              { label: "Total de Atendimentos", value: stats.total },
+              { label: "Presentes", value: stats.presente },
+              { label: "Faltas", value: stats.falta },
+              { label: "Cancelados", value: stats.cancelado },
+            ].map(s => (
+              <div key={s.label} style={{ border: "1px solid #ddd", borderRadius: "6px", padding: "10px", textAlign: "center" }}>
+                <div style={{ fontSize: "22px", fontWeight: "bold" }}>{s.value}</div>
+                <div style={{ fontSize: "11px", color: "#666" }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Evolutions */}
+          <h3 style={{ fontSize: "16px", fontWeight: "bold", borderBottom: "1px solid #ccc", paddingBottom: "8px", marginBottom: "16px" }}>
+            Registro de Evoluções ({sortedEvolutions.length})
+          </h3>
+
+          {sortedEvolutions.length === 0 ? (
+            <p style={{ color: "#999", textAlign: "center", padding: "32px 0" }}>Nenhuma evolução registrada para este paciente.</p>
+          ) : (
+            sortedEvolutions.map((ev, idx) => (
+              <div key={ev.id} className="evolution-block" style={{ marginBottom: "20px", border: "1px solid #e0e0e0", borderRadius: "6px", overflow: "hidden" }}>
+                <div style={{ backgroundColor: "#f3f3f3", borderBottom: "1px solid #e0e0e0", padding: "8px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontWeight: "bold", fontSize: "13px" }}>
+                    #{idx + 1} — {fmtDate(ev.date)}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#555" }}>
+                    {ev.therapistName}
+                    {ev.therapistSpecialty ? ` · ${ev.therapistSpecialty}` : ""}
+                    {ev.appointmentId ? " · Vinculada à sessão" : ""}
+                  </div>
+                </div>
+                <div style={{ padding: "12px 14px", fontSize: "13px", lineHeight: "1.8", whiteSpace: "pre-wrap", color: "#222" }}>
+                  {ev.content}
+                </div>
+              </div>
+            ))
+          )}
+
+          <div style={{ marginTop: "48px", borderTop: "1px solid #ccc", paddingTop: "12px", textAlign: "center", fontSize: "11px", color: "#999" }}>
+            Documento gerado por {systemName} — {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+          </div>
         </div>
       </div>
 
-      {isLoading ? (
-        <Card className="animate-pulse">
-          <CardContent className="p-6 space-y-3">
-            <div className="h-6 w-1/3 bg-muted rounded" />
-            <div className="h-4 w-1/4 bg-muted rounded" />
-          </CardContent>
-        </Card>
-      ) : p ? (
-        <>
-          {/* Patient Card */}
-          <Card className="border-l-4 border-l-primary">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <UserRound className="h-7 w-7 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold">{p.name}</h2>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
-                      <Phone className="h-3.5 w-3.5" /> {p.phone}
-                    </div>
-                    {p.email && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
-                        <Mail className="h-3.5 w-3.5" /> {p.email}
-                      </div>
-                    )}
-                    {(p.city || p.state) && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                        <MapPin className="h-3 w-3" /> {[p.city, p.state].filter(Boolean).join(", ")}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <Badge variant="outline" className={p.insuranceType === "convenio" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}>
-                        {p.insuranceType === "convenio" ? p.insuranceName || "Convênio" : "Particular"}
-                      </Badge>
-                      {p.paymentMethod && (
-                        <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">{p.paymentMethod}</Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg px-4 py-3">
-                  <Activity className="h-4 w-4 text-primary" />
-                  <span className="text-sm">
-                    <span className="font-bold text-primary">{p.remainingSessions}</span>
-                    <span className="text-muted-foreground"> / {p.totalSessions} sessões restantes</span>
-                  </span>
-                </div>
-              </div>
-              {p.notes && <p className="mt-4 text-sm text-muted-foreground italic border-t pt-3">{p.notes}</p>}
+      {/* ── Screen content ─────────────────────────────────────── */}
+      <div className="print:hidden space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setLocation("/patients")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Histórico do Paciente</h1>
+            <p className="text-muted-foreground mt-1">Atendimentos e evoluções clínicas</p>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <Card className="animate-pulse">
+            <CardContent className="p-6 space-y-3">
+              <div className="h-6 w-1/3 bg-muted rounded" />
+              <div className="h-4 w-1/4 bg-muted rounded" />
             </CardContent>
           </Card>
-
-          {/* Tabs */}
-          <Tabs defaultValue="appointments">
-            <TabsList className="grid w-full sm:w-auto grid-cols-2">
-              <TabsTrigger value="appointments" className="gap-2">
-                <CalendarDays className="h-3.5 w-3.5" /> Atendimentos
-              </TabsTrigger>
-              <TabsTrigger value="evolutions" className="gap-2">
-                <FileText className="h-3.5 w-3.5" /> Evoluções
-                {(evolutions as EvolutionRecord[]).length > 0 && (
-                  <span className="ml-1 bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5">{(evolutions as EvolutionRecord[]).length}</span>
-                )}
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Appointments Tab */}
-            <TabsContent value="appointments" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {[
-                  { label: "Total", value: stats.total, color: "text-foreground" },
-                  { label: "Presentes", value: stats.presente, color: "text-green-600" },
-                  { label: "Faltas", value: stats.falta, color: "text-orange-600" },
-                  { label: "Cancelados", value: stats.cancelado, color: "text-red-600" },
-                ].map(stat => (
-                  <Card key={stat.label}>
-                    <CardContent className="p-4 text-center">
-                      <p className="text-sm text-muted-foreground">{stat.label}</p>
-                      <p className={`text-2xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4 text-primary" />
-                    Registro de Atendimentos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {history.length === 0 ? (
-                    <div className="text-center py-10 text-muted-foreground">
-                      <p>Nenhum atendimento registrado para este paciente.</p>
+        ) : p ? (
+          <>
+            {/* Patient Card */}
+            <Card className="border-l-4 border-l-primary">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between flex-wrap gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <UserRound className="h-7 w-7 text-primary" />
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {history.map((apt: any) => {
-                        const hasEvolution = (evolutions as EvolutionRecord[]).some(ev => ev.appointmentId === apt.id);
-                        return (
-                          <div key={apt.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
-                            <div className="flex items-center gap-4">
-                              <div className="text-center min-w-[52px]">
-                                <p className="text-sm font-bold">{fmtDate(apt.date)}</p>
-                                <p className="text-xs text-muted-foreground">{apt.time}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium">{apt.therapistName}</p>
-                                <p className="text-xs text-muted-foreground">{apt.therapistSpecialty}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {hasEvolution && (
-                                <span className="text-xs text-green-600 bg-green-50 border border-green-200 rounded px-1.5 py-0.5">Evolução</span>
-                              )}
-                              <Badge variant="outline" className={STATUS_COLORS[apt.status] || "bg-gray-100 text-gray-700"}>
-                                {STATUS_LABELS[apt.status] || apt.status}
-                              </Badge>
-                              {apt.status === "presente" && !hasEvolution && (
-                                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-green-700 border-green-300 hover:bg-green-50"
-                                  onClick={() => openNewEvolutionFromAppointment(apt)}>
-                                  <Plus className="h-3 w-3" /> Evolução
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div>
+                      <h2 className="text-xl font-bold">{p.name}</h2>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
+                        <Phone className="h-3.5 w-3.5" /> {p.phone}
+                      </div>
+                      {p.email && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
+                          <Mail className="h-3.5 w-3.5" /> {p.email}
+                        </div>
+                      )}
+                      {(p.city || p.state) && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                          <MapPin className="h-3 w-3" /> {[p.city, p.state].filter(Boolean).join(", ")}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <Badge variant="outline" className={p.insuranceType === "convenio" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}>
+                          {p.insuranceType === "convenio" ? p.insuranceName || "Convênio" : "Particular"}
+                        </Badge>
+                        {p.paymentMethod && (
+                          <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">{p.paymentMethod}</Badge>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Evolutions Tab */}
-            <TabsContent value="evolutions" className="space-y-4 mt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{(evolutions as EvolutionRecord[]).length} evolução(ões) registrada(s)</p>
-                  {presenteAppointments.length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                      <Lock className="h-3 w-3" /> Evoluções são criadas a partir de sessões com presença confirmada
-                    </p>
-                  )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg px-4 py-3">
+                      <Activity className="h-4 w-4 text-primary" />
+                      <span className="text-sm">
+                        <span className="font-bold text-primary">{p.remainingSessions}</span>
+                        <span className="text-muted-foreground"> / {p.totalSessions} sessões restantes</span>
+                      </span>
+                    </div>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={handlePrintEvolutions}>
+                      <Printer className="h-4 w-4" /> Imprimir Prontuário
+                    </Button>
+                  </div>
                 </div>
-                <Button onClick={openNewEvolution} className="gap-2" size="sm">
-                  <Plus className="h-4 w-4" /> Nova Evolução
-                </Button>
-              </div>
+                {p.notes && <p className="mt-4 text-sm text-muted-foreground italic border-t pt-3">{p.notes}</p>}
+              </CardContent>
+            </Card>
 
-              {isLoadingEvolutions ? (
-                <div className="space-y-3">{[1,2].map(i => (
-                  <Card key={i} className="animate-pulse">
-                    <CardContent className="p-5 space-y-2">
-                      <div className="h-4 w-1/3 bg-muted rounded" />
-                      <div className="h-12 w-full bg-muted rounded" />
-                    </CardContent>
-                  </Card>
-                ))}</div>
-              ) : (evolutions as EvolutionRecord[]).length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">
-                  <FileText className="h-14 w-14 mx-auto mb-4 opacity-20" />
-                  <p className="text-base font-medium">Nenhuma evolução registrada</p>
-                  <p className="text-sm mt-1">Use o botão "Evolução" ao lado de cada sessão realizada, ou clique em "Nova Evolução"</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {(evolutions as EvolutionRecord[]).map(ev => (
-                    <Card key={ev.id} className="border border-border hover:shadow-sm transition-shadow">
-                      <CardContent className="p-5">
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-sm text-primary">{fmtDate(ev.date)}</span>
-                              <span className="text-xs text-muted-foreground">—</span>
-                              <span className="text-sm font-medium">{ev.therapistName}</span>
-                              {ev.therapistSpecialty && <span className="text-xs text-muted-foreground">{ev.therapistSpecialty}</span>}
-                              {ev.appointmentId && (
-                                <span className="text-xs text-green-600 bg-green-50 border border-green-200 rounded px-1.5 py-0.5">Vinculada à sessão</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEvolution(ev)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingEvolution(ev)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="text-sm text-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-3 leading-relaxed">
-                          {ev.content}
-                        </div>
+            {/* Tabs */}
+            <Tabs defaultValue="appointments">
+              <TabsList className="grid w-full sm:w-auto grid-cols-2">
+                <TabsTrigger value="appointments" className="gap-2">
+                  <CalendarDays className="h-3.5 w-3.5" /> Atendimentos
+                </TabsTrigger>
+                <TabsTrigger value="evolutions" className="gap-2">
+                  <FileText className="h-3.5 w-3.5" /> Evoluções
+                  {(evolutions as EvolutionRecord[]).length > 0 && (
+                    <span className="ml-1 bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5">{(evolutions as EvolutionRecord[]).length}</span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Appointments Tab */}
+              <TabsContent value="appointments" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {[
+                    { label: "Total", value: stats.total, color: "text-foreground" },
+                    { label: "Presentes", value: stats.presente, color: "text-green-600" },
+                    { label: "Faltas", value: stats.falta, color: "text-orange-600" },
+                    { label: "Cancelados", value: stats.cancelado, color: "text-red-600" },
+                  ].map(stat => (
+                    <Card key={stat.label}>
+                      <CardContent className="p-4 text-center">
+                        <p className="text-sm text-muted-foreground">{stat.label}</p>
+                        <p className={`text-2xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </>
-      ) : (
-        <div className="text-center py-20 text-muted-foreground">
-          <UserRound className="h-14 w-14 mx-auto mb-4 opacity-20" />
-          <p>Paciente não encontrado.</p>
-        </div>
-      )}
 
-      {/* Evolution Dialog */}
-      <Dialog open={isEvolutionOpen} onOpenChange={setIsEvolutionOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingEvolution ? "Editar Evolução" : "Registrar Evolução"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {!editingEvolution && (
-              <div>
-                <Label>Fisioterapeuta</Label>
-                <Select value={evForm.therapistId} onValueChange={v => setEvForm(f => ({ ...f, therapistId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o fisioterapeuta" /></SelectTrigger>
-                  <SelectContent>
-                    {(therapists as TherapistType[]).map(t => (
-                      <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4 text-primary" />
+                      Registro de Atendimentos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {history.length === 0 ? (
+                      <div className="text-center py-10 text-muted-foreground">
+                        <p>Nenhum atendimento registrado para este paciente.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {history.map((apt: any) => {
+                          const hasEvolution = (evolutions as EvolutionRecord[]).some(ev => ev.appointmentId === apt.id);
+                          return (
+                            <div key={apt.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
+                              <div className="flex items-center gap-4">
+                                <div className="text-center min-w-[52px]">
+                                  <p className="text-sm font-bold">{fmtDate(apt.date)}</p>
+                                  <p className="text-xs text-muted-foreground">{apt.time}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">{apt.therapistName}</p>
+                                  <p className="text-xs text-muted-foreground">{apt.therapistSpecialty}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {hasEvolution && (
+                                  <span className="text-xs text-green-600 bg-green-50 border border-green-200 rounded px-1.5 py-0.5">Evolução</span>
+                                )}
+                                <Badge variant="outline" className={STATUS_COLORS[apt.status] || "bg-gray-100 text-gray-700"}>
+                                  {STATUS_LABELS[apt.status] || apt.status}
+                                </Badge>
+                                {apt.status === "presente" && !hasEvolution && (
+                                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-green-700 border-green-300 hover:bg-green-50"
+                                    onClick={() => openNewEvolutionFromAppointment(apt)}>
+                                    <Plus className="h-3 w-3" /> Evolução
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Evolutions Tab */}
+              <TabsContent value="evolutions" className="space-y-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">{(evolutions as EvolutionRecord[]).length} evolução(ões) registrada(s)</p>
+                    {presenteAppointments.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                        <Lock className="h-3 w-3" /> Evoluções são criadas a partir de sessões com presença confirmada
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {(evolutions as EvolutionRecord[]).length > 0 && (
+                      <Button variant="outline" size="sm" className="gap-1.5" onClick={handlePrintEvolutions}>
+                        <Printer className="h-4 w-4" /> Imprimir Prontuário
+                      </Button>
+                    )}
+                    <Button onClick={openNewEvolution} className="gap-2" size="sm">
+                      <Plus className="h-4 w-4" /> Nova Evolução
+                    </Button>
+                  </div>
+                </div>
+
+                {isLoadingEvolutions ? (
+                  <div className="space-y-3">{[1,2].map(i => (
+                    <Card key={i} className="animate-pulse">
+                      <CardContent className="p-5 space-y-2">
+                        <div className="h-4 w-1/3 bg-muted rounded" />
+                        <div className="h-12 w-full bg-muted rounded" />
+                      </CardContent>
+                    </Card>
+                  ))}</div>
+                ) : (evolutions as EvolutionRecord[]).length === 0 ? (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <FileText className="h-14 w-14 mx-auto mb-4 opacity-20" />
+                    <p className="text-base font-medium">Nenhuma evolução registrada</p>
+                    <p className="text-sm mt-1">Use o botão "Evolução" ao lado de cada sessão realizada, ou clique em "Nova Evolução"</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {(evolutions as EvolutionRecord[]).map(ev => (
+                      <Card key={ev.id} className="border border-border hover:shadow-sm transition-shadow">
+                        <CardContent className="p-5">
+                          <div className="flex items-start justify-between gap-4 mb-3">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-sm text-primary">{fmtDate(ev.date)}</span>
+                                <span className="text-xs text-muted-foreground">—</span>
+                                <span className="text-sm font-medium">{ev.therapistName}</span>
+                                {ev.therapistSpecialty && <span className="text-xs text-muted-foreground">{ev.therapistSpecialty}</span>}
+                                {ev.appointmentId && (
+                                  <span className="text-xs text-green-600 bg-green-50 border border-green-200 rounded px-1.5 py-0.5">Vinculada à sessão</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-1 shrink-0">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEvolution(ev)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingEvolution(ev)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="text-sm text-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-3 leading-relaxed">
+                            {ev.content}
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div>
-              <Label>Data</Label>
-              <Input type="date" value={evForm.date} onChange={e => setEvForm(f => ({ ...f, date: e.target.value }))} />
-            </div>
-            <div>
-              <Label>Evolução Clínica</Label>
-              <Textarea
-                placeholder="Descreva o progresso do paciente, técnicas utilizadas, observações clínicas, resposta ao tratamento..."
-                value={evForm.content}
-                onChange={e => setEvForm(f => ({ ...f, content: e.target.value }))}
-                rows={7}
-                className="resize-none"
-              />
-            </div>
-            {selectedAppointmentId && (
-              <p className="text-xs text-green-600 bg-green-50 border border-green-200 rounded p-2">
-                Esta evolução será vinculada à sessão selecionada.
-              </p>
-            )}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </>
+        ) : (
+          <div className="text-center py-20 text-muted-foreground">
+            <UserRound className="h-14 w-14 mx-auto mb-4 opacity-20" />
+            <p>Paciente não encontrado.</p>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEvolutionOpen(false)}>Cancelar</Button>
-            <Button onClick={handleEvolutionSubmit} disabled={createEvolution.isPending || updateEvolution.isPending}>
-              {editingEvolution ? "Salvar" : "Registrar Evolução"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
 
-      {/* Delete Dialog */}
-      <AlertDialog open={!!deletingEvolution} onOpenChange={open => !open && setDeletingEvolution(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover Evolução</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja remover esta evolução do dia <strong>{deletingEvolution ? fmtDate(deletingEvolution.date) : ""}</strong>?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deletingEvolution && deleteEvolution.mutate(deletingEvolution.id)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Evolution Dialog */}
+        <Dialog open={isEvolutionOpen} onOpenChange={setIsEvolutionOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editingEvolution ? "Editar Evolução" : "Registrar Evolução"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {!editingEvolution && (
+                <div>
+                  <Label>Fisioterapeuta</Label>
+                  <Select value={evForm.therapistId} onValueChange={v => setEvForm(f => ({ ...f, therapistId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o fisioterapeuta" /></SelectTrigger>
+                    <SelectContent>
+                      {(therapists as TherapistType[]).map(t => (
+                        <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div>
+                <Label>Data</Label>
+                <Input type="date" value={evForm.date} onChange={e => setEvForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Evolução Clínica</Label>
+                <Textarea
+                  placeholder="Descreva o progresso do paciente, técnicas utilizadas, observações clínicas, resposta ao tratamento..."
+                  value={evForm.content}
+                  onChange={e => setEvForm(f => ({ ...f, content: e.target.value }))}
+                  rows={7}
+                  className="resize-none"
+                />
+              </div>
+              {selectedAppointmentId && (
+                <p className="text-xs text-green-600 bg-green-50 border border-green-200 rounded p-2">
+                  Esta evolução será vinculada à sessão selecionada.
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEvolutionOpen(false)}>Cancelar</Button>
+              <Button onClick={handleEvolutionSubmit} disabled={createEvolution.isPending || updateEvolution.isPending}>
+                {editingEvolution ? "Salvar" : "Registrar Evolução"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Dialog */}
+        <AlertDialog open={!!deletingEvolution} onOpenChange={open => !open && setDeletingEvolution(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover Evolução</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja remover esta evolução do dia <strong>{deletingEvolution ? fmtDate(deletingEvolution.date) : ""}</strong>?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => deletingEvolution && deleteEvolution.mutate(deletingEvolution.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Remover
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }

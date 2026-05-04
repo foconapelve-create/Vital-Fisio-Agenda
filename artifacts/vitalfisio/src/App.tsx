@@ -21,10 +21,10 @@ import Confirmacoes from "@/pages/confirmacoes";
 import Atestados from "@/pages/atestados";
 import Aniversariantes from "@/pages/aniversariantes";
 import Planner from "@/pages/planner";
-import Fiscal from "@/pages/fiscal";
 import UsersPage from "@/pages/users";
 import ResetPassword from "@/pages/reset-password";
 import Confirmar from "@/pages/confirmar";
+import Estoque from "@/pages/estoque";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -52,7 +52,6 @@ function ProtectedRoute({ component: Component, roles }: { component: React.Comp
   if (!user) return null;
 
   const rawRole = (user as any).role || "admin";
-  // 'profissional' has the same permissions as 'fisioterapeuta'
   const userRole = rawRole === "profissional" ? "fisioterapeuta" : rawRole;
   if (roles && !roles.includes(userRole) && !roles.includes(rawRole)) {
     return (
@@ -112,8 +111,8 @@ function Router() {
       <Route path="/planner">
         <ProtectedRoute component={Planner} roles={["admin", "fisioterapeuta"]} />
       </Route>
-      <Route path="/fiscal">
-        <ProtectedRoute component={Fiscal} roles={["admin", "financeiro"]} />
+      <Route path="/estoque">
+        <ProtectedRoute component={Estoque} roles={["admin", "fisioterapeuta"]} />
       </Route>
       <Route path="/users">
         <ProtectedRoute component={UsersPage} roles={["admin"]} />
