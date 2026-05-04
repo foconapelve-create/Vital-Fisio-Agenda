@@ -14,11 +14,13 @@ import contentRouter from "./content";
 import fiscalRouter from "./fiscal";
 import usersRouter from "./users";
 import settingsRouter from "./settings";
+import confirmRouter from "./confirm";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(confirmRouter);
 router.use(patientsRouter);
 router.use(therapistsRouter);
 router.use(appointmentsRouter);

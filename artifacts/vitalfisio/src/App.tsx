@@ -24,6 +24,7 @@ import Planner from "@/pages/planner";
 import Fiscal from "@/pages/fiscal";
 import UsersPage from "@/pages/users";
 import ResetPassword from "@/pages/reset-password";
+import Confirmar from "@/pages/confirmar";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -118,6 +119,7 @@ function Router() {
         <ProtectedRoute component={UsersPage} roles={["admin"]} />
       </Route>
       <Route path="/reset-password/:token" component={ResetPassword} />
+      <Route path="/confirmar" component={Confirmar} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,0 +1,144 @@
+You are a senior full-stack developer متخصص in building healthcare scheduling systems.
+
+I need you to implement a WhatsApp confirmation automation feature in my clinic management system.
+
+### 🎯 GOAL:
+Add a WhatsApp confirmation workflow with automatic status update for each appointment.
+
+---
+
+### 📌 FEATURE REQUIREMENTS:
+
+1. Each appointment in the schedule must have a "WhatsApp" button.
+
+2. When clicking the button:
+   - It should open WhatsApp (web or app) with a pre-filled message.
+   - The message must include:
+     - Patient name
+     - Appointment date and time
+     - A confirmation link (unique and secure)
+
+---
+
+### 📲 WHATSAPP MESSAGE TEMPLATE:
+
+"Olá, [NOME]! 👋  
+Você tem um atendimento agendado para [DATA] às [HORA].
+
+Por favor, confirme sua presença clicando no link abaixo:  
+[LINK]
+
+✅ Confirmar  
+❌ Cancelar"
+
+---
+
+### 🔐 CONFIRMATION LINK LOGIC:
+
+- Each appointment must generate a UNIQUE secure token (UUID or hash).
+- Example link:
+  https://yourdomain.com/confirm?token=UNIQUE_TOKEN
+
+- Store token in database linked to appointment ID.
+
+---
+
+### 🌐 CONFIRMATION PAGE (PUBLIC - NO LOGIN):
+
+When user opens the link, show a clean page with:
+
+- Patient name
+- Appointment info
+- Two buttons:
+
+1. ✅ Confirmar
+   → Updates appointment status to: CONFIRMADO
+
+2. ❌ Cancelar
+   → Updates appointment status to: CANCELADO
+
+---
+
+### ⚙️ BACKEND LOGIC:
+
+- Validate token:
+  - Must exist
+  - Must be linked to appointment
+  - Optional: expiration (e.g. 24h)
+
+- Endpoints:
+  GET /confirm?token=xxx → renders confirmation page
+  POST /confirm → updates status to CONFIRMADO
+  POST /cancel → updates status to CANCELADO
+
+---
+
+### 🗄️ DATABASE CHANGES:
+
+Appointments table should include:
+- id
+- patient_name
+- phone
+- date
+- time
+- status (pending, confirmado, cancelado)
+- confirmation_token
+- token_created_at
+
+---
+
+### 🔁 AUTOMATIC STATUS UPDATE:
+
+- When patient clicks confirm → status updates instantly
+- When patient clicks cancel → status updates instantly
+- Reflect changes in dashboard in real time
+
+---
+
+### 📊 FRONTEND (AGENDA):
+
+- Add WhatsApp button per appointment
+- Add status indicator:
+   🟡 Pendente
+   🟢 Confirmado
+   🔴 Cancelado
+
+---
+
+### 🛡️ SECURITY:
+
+- Token must be hard to guess (UUID or JWT)
+- Do not expose appointment ID in URL
+- Prevent reuse if needed
+
+---
+
+### 💡 BONUS (OPTIONAL):
+
+- Auto-send reminder 24h before appointment
+- Track if link was opened
+- Show confirmation timestamp
+
+---
+
+### 🧠 TECH STACK:
+
+Use:
+- Node.js (Express) OR Python (Flask)
+- Simple frontend (HTML/CSS or React if needed)
+- Database: SQLite or PostgreSQL
+
+---
+
+### 🎯 OUTPUT:
+
+Deliver:
+- Backend routes
+- Database model
+- Frontend page (confirmation screen)
+- WhatsApp link generator
+- Clean, organized code ready to deploy
+
+---
+
+Make the system simple, functional, and optimized for a small clinic workflow.

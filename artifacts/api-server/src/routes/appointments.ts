@@ -398,6 +398,38 @@ router.patch("/appointments/:id/status", async (req, res): Promise<void> => {
   }
 });
 
+// ─── GENERATE WHATSAPP CONFIRMATION TOKEN ────────────────────────────────────
+
+router.post("/appointments/:id/whatsapp-token", async (req, res): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
+
+    const [current] = await db.select().from(appointmentsTable).where(eq(appointmentsTable.id, id));
+    if (!current) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
+
+    const token = randomUUID();
+    await db.update(appointmentsTable)
+      .set({ confirmationToken: token, tokenCreatedAt: new Date() })
+      .where(eq(appointmentsTable.id, id));
+
+    await db.update(appointmentsTable)
+      .set({ status: "mensagem_enviada" })
+      .where(eq(appointmentsTable.id, id));
+
+    await db.insert(appointmentContactsTable).values({
+      appointmentId: id,
+      type: "whatsapp_sent",
+      content: "Link de confirmação WhatsApp gerado e enviado",
+      performedBy: req.body?.performedBy ? String(req.body.performedBy) : "sistema",
+    });
+
+    res.json({ token });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || "Erro ao gerar token" });
+  }
+});
+
 // ─── RESCHEDULE ───────────────────────────────────────────────────────────────
 
 router.post("/appointments/:id/reschedule", async (req, res): Promise<void> => {

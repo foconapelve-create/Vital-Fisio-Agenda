@@ -145,12 +145,12 @@ function PatientBlock({
   apt,
   compact,
   onOpen,
-  whatsappHref,
+  onWhatsApp,
 }: {
   apt: AppointmentType;
   compact: boolean;
   onOpen: () => void;
-  whatsappHref: string;
+  onWhatsApp: (e: React.MouseEvent) => void;
 }) {
   const cellClass = STATUS_CELL[apt.status] || "bg-gray-100 border-gray-300 text-gray-800";
 
@@ -172,16 +172,13 @@ function PatientBlock({
             {STATUS_LABELS[apt.status] || apt.status}
           </div>
         </div>
-        <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={e => e.stopPropagation()}
-          title="Enviar WhatsApp"
+        <button
+          onClick={onWhatsApp}
+          title="Enviar confirmação WhatsApp"
           className="shrink-0 text-green-600 hover:text-green-800 mt-0.5"
         >
           <MessageCircle className="h-3.5 w-3.5" />
-        </a>
+        </button>
       </div>
     </div>
   );
@@ -197,7 +194,7 @@ function WeeklyGrid({
   isLoadingAppts,
   onCellClick,
   onPatientClick,
-  whatsappLink,
+  onWhatsApp,
   today,
 }: {
   weekDays: Date[];
@@ -205,7 +202,7 @@ function WeeklyGrid({
   isLoadingAppts: boolean;
   onCellClick: (date: string, time: string) => void;
   onPatientClick: (apt: AppointmentType) => void;
-  whatsappLink: (phone: string, name: string, date: string, time: string, therapist: string) => string;
+  onWhatsApp: (apt: AppointmentType, e: React.MouseEvent) => void;
   today: Date;
 }) {
   const TIME_COL_W = "80px";
@@ -295,7 +292,7 @@ function WeeklyGrid({
                               apt={apt}
                               compact={apts.length > 2}
                               onOpen={() => onPatientClick(apt)}
-                              whatsappHref={whatsappLink(apt.patientPhone, apt.patientName, apt.date, apt.time, apt.therapistName)}
+                              onWhatsApp={(e) => onWhatsApp(apt, e)}
                             />
                           ))}
                           {apts.length === 0 && (
@@ -328,7 +325,7 @@ function DailyView({
   isLoadingAppts,
   onCellClick,
   onPatientClick,
-  whatsappLink,
+  onWhatsApp,
 }: {
   dateStr: string;
   apptsByDateAndTime: Map<string, AppointmentType[]>;
@@ -336,7 +333,7 @@ function DailyView({
   isLoadingAppts: boolean;
   onCellClick: (date: string, time: string) => void;
   onPatientClick: (apt: AppointmentType) => void;
-  whatsappLink: (phone: string, name: string, date: string, time: string, therapist: string) => string;
+  onWhatsApp: (apt: AppointmentType) => void;
 }) {
   return (
     <div className="rounded-xl border border-border shadow-sm overflow-hidden">
@@ -402,14 +399,12 @@ function DailyView({
                           </div>
                         </button>
                         <div className="px-3 pb-2 flex gap-2">
-                          <a
-                            href={whatsappLink(apt.patientPhone, apt.patientName, apt.date, apt.time, apt.therapistName)}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => onWhatsApp(apt)}
                             className="flex items-center gap-1 text-[11px] text-green-700 hover:text-green-800 font-medium"
                           >
                             <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                          </a>
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -700,11 +695,27 @@ export default function Agenda() {
     recurringMut.mutate(payload);
   };
 
-  const whatsappLink = (phone: string, name: string, date: string, time: string, therapist: string) => {
-    const d = date ? (() => { const [y, m, day] = date.split("-"); return `${day}/${m}/${y}`; })() : "";
-    const msg = encodeURIComponent(`Olá ${name}! Lembrando sua sessão de fisioterapia dia ${d} às ${time} com ${therapist}. Confirme sua presença respondendo esta mensagem. ${appName}.`);
-    const cleanPhone = phone.replace(/\D/g, "");
-    return `https://wa.me/55${cleanPhone}?text=${msg}`;
+  const sendWhatsApp = async (apt: AppointmentType, e?: React.MouseEvent) => {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
+    try {
+      const data = await apiFetch<{ token: string }>(`/api/appointments/${apt.id}/whatsapp-token`, { method: "POST" });
+      const base = window.location.origin + (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
+      const confirmUrl = `${base}/confirmar?token=${data.token}`;
+      const [y, m, day] = apt.date.split("-");
+      const dateFormatted = `${day}/${m}/${y}`;
+      const msg = encodeURIComponent(
+        `Olá, ${apt.patientName.split(" ")[0]}! 👋\n` +
+        `Você tem um atendimento agendado para ${dateFormatted} às ${apt.time} com ${apt.therapistName}.\n\n` +
+        `Por favor, confirme sua presença clicando no link abaixo:\n${confirmUrl}\n\n` +
+        `✅ Confirmar ou ❌ Cancelar`
+      );
+      const cleanPhone = apt.patientPhone.replace(/\D/g, "");
+      window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, "_blank");
+      invalidate();
+      toast({ title: "Link de confirmação enviado via WhatsApp!" });
+    } catch (err: any) {
+      toast({ title: err?.message || "Erro ao gerar link", variant: "destructive" });
+    }
   };
 
   const openCreateModal = (date: string, time: string) => {
@@ -841,7 +852,7 @@ export default function Agenda() {
           isLoadingAppts={isLoadingAppts}
           onCellClick={openCreateModal}
           onPatientClick={setSelectedAppointment}
-          whatsappLink={whatsappLink}
+          onWhatsApp={sendWhatsApp}
           today={today}
         />
       )}
@@ -854,7 +865,7 @@ export default function Agenda() {
           isLoadingAppts={isLoadingAppts}
           onCellClick={openCreateModal}
           onPatientClick={setSelectedAppointment}
-          whatsappLink={whatsappLink}
+          onWhatsApp={sendWhatsApp}
         />
       )}
 
@@ -907,14 +918,13 @@ export default function Agenda() {
             </div>
 
             {/* WhatsApp */}
-            <a
-              href={whatsappLink(selectedAppointment.patientPhone, selectedAppointment.patientName, selectedAppointment.date, selectedAppointment.time, selectedAppointment.therapistName)}
-              target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium border border-green-200 bg-green-50 rounded-lg px-3 py-2 transition-colors hover:bg-green-100"
+            <button
+              onClick={() => sendWhatsApp(selectedAppointment)}
+              className="w-full flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium border border-green-200 bg-green-50 rounded-lg px-3 py-2 transition-colors hover:bg-green-100"
             >
               <MessageCircle className="h-4 w-4" />
               Enviar confirmação via WhatsApp
-            </a>
+            </button>
 
             {/* Quick status actions */}
             <div className="flex gap-2 flex-wrap">

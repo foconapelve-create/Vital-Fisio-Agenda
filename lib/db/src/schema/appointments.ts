@@ -14,6 +14,8 @@ export const appointmentsTable = pgTable("appointments", {
   notes: text("notes"),
   originalAppointmentId: integer("original_appointment_id"),
   recurringGroupId: text("recurring_group_id"),
+  confirmationToken: text("confirmation_token"),
+  tokenCreatedAt: timestamp("token_created_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
