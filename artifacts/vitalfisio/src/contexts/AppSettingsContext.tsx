@@ -10,7 +10,7 @@ interface AppSettings {
 }
 
 const defaults: AppSettings = {
-  systemName: "CliniSmart",
+  systemName: "Vitalfisio",
   logoUrl: null,
   nomeClinica: null,
   telefone: null,

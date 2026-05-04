@@ -10,12 +10,12 @@ router.get("/settings/public", async (_req, res): Promise<void> => {
       `SELECT system_name, logo_url, nome_clinica, telefone, email FROM clinic_settings LIMIT 1`
     );
     if (!rows.length) {
-      res.json({ systemName: "CliniSmart", logoUrl: null, nomeClinica: null });
+      res.json({ systemName: "Vitalfisio", logoUrl: null, nomeClinica: null });
       return;
     }
     const r = rows[0];
     res.json({
-      systemName: r.system_name || "CliniSmart",
+      systemName: r.system_name || "Vitalfisio",
       logoUrl: r.logo_url || null,
       nomeClinica: r.nome_clinica || null,
       telefone: r.telefone || null,
@@ -45,7 +45,7 @@ router.put("/settings/system", requireAdmin, async (req, res): Promise<void> => 
       await pool.query(
         `INSERT INTO clinic_settings (system_name, logo_url, nome_clinica, endereco_clinica, telefone, email)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [systemName || "CliniSmart", logoUrl || null, nomeClinica || null, enderecoClinica || null, telefone || null, email || null]
+        [systemName || "Vitalfisio", logoUrl || null, nomeClinica || null, enderecoClinica || null, telefone || null, email || null]
       );
     } else {
       const updates: string[] = [];
@@ -65,7 +65,7 @@ router.put("/settings/system", requireAdmin, async (req, res): Promise<void> => 
     }
     const { rows: updated } = await pool.query(`SELECT system_name, logo_url, nome_clinica, telefone, email FROM clinic_settings LIMIT 1`);
     const r = updated[0] || {};
-    res.json({ systemName: r.system_name || "CliniSmart", logoUrl: r.logo_url || null, nomeClinica: r.nome_clinica || null });
+    res.json({ systemName: r.system_name || "Vitalfisio", logoUrl: r.logo_url || null, nomeClinica: r.nome_clinica || null });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }

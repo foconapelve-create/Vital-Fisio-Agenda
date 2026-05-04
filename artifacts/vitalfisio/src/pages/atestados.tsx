@@ -113,6 +113,8 @@ const emptyForm: FormState = {
 export default function Atestados() {
   const appName = useAppName();
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [customText, setCustomText] = useState("");
+  const [textEdited, setTextEdited] = useState(false);
   const [activeTab, setActiveTab] = useState("emitir");
   const [previewDoc, setPreviewDoc] = useState<Attestation | null>(null);
   const [historySearch, setHistorySearch] = useState("");
@@ -198,6 +200,16 @@ export default function Atestados() {
     return generateText(form, selectedPatient.name);
   }, [form, selectedPatient]);
 
+  // Sync customText from auto-generated text (only when the user hasn't manually edited)
+  useEffect(() => {
+    if (!textEdited) setCustomText(generatedText);
+  }, [generatedText, textEdited]);
+
+  // Reset edits when document type changes
+  useEffect(() => {
+    setTextEdited(false);
+  }, [form.tipoDocumento, form.patientId]);
+
   const handleSave = () => {
     const tipo = form.tipoDocumento;
     const baseValid = !form.patientId || !form.profissionalResponsavel;
@@ -218,7 +230,7 @@ export default function Atestados() {
     saveMut.mutate({
       ...form,
       patientId: parseInt(form.patientId),
-      textoGerado: generatedText,
+      textoGerado: customText || generatedText,
     });
   };
 
@@ -268,7 +280,7 @@ export default function Atestados() {
   }) => {
     const d = doc || { ...form, id: 0, createdAt: "" };
     const pName = patientName || selectedPatient?.name || "[Paciente]";
-    const text = doc?.textoGerado || generateText(d as any, pName);
+    const text = doc ? (doc.textoGerado || generateText(d as any, pName)) : (customText || generateText(d as any, pName));
     const docType = docTypeLabels[d.tipoDocumento] || d.tipoDocumento.toUpperCase();
     const settings = clinicSettings;
     const isReceituario = d.tipoDocumento === "receituario";
@@ -449,6 +461,37 @@ export default function Atestados() {
                         </div>
                       )}
                     </>
+                  )}
+
+                  {/* Texto editável — Declaração / Atestado */}
+                  {["declaracao", "atestado"].includes(form.tipoDocumento) && selectedPatient && customText && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground block">
+                          Texto do Documento
+                          {textEdited && <span className="ml-2 text-primary font-semibold">(editado)</span>}
+                        </Label>
+                        {textEdited && (
+                          <button
+                            type="button"
+                            className="text-xs text-muted-foreground hover:text-foreground underline"
+                            onClick={() => { setCustomText(generatedText); setTextEdited(false); }}
+                          >
+                            Restaurar padrão
+                          </button>
+                        )}
+                      </div>
+                      <Textarea
+                        rows={5}
+                        value={customText}
+                        onChange={e => { setCustomText(e.target.value); setTextEdited(true); }}
+                        className="text-sm leading-relaxed"
+                        placeholder="Texto gerado automaticamente conforme os dados acima..."
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        O texto é gerado automaticamente. Você pode editar livremente antes de salvar ou imprimir.
+                      </p>
+                    </div>
                   )}
 
                   {/* Campos específicos para Receituário */}
