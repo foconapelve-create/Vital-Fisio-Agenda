@@ -26,9 +26,9 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  // Support login by username or email
+  // Support login by username or email (case-insensitive)
   const { rows } = await pool.query(
-    "SELECT * FROM users WHERE (username = $1 OR email = $1) AND active = true LIMIT 1",
+    "SELECT * FROM users WHERE (LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)) AND active = true LIMIT 1",
     [username]
   );
   const user = rows[0];
