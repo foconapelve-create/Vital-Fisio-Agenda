@@ -87,21 +87,24 @@ export default function Login() {
     }
   };
 
+  const getResetLink = () => {
+    const base = import.meta.env.BASE_URL || "/";
+    return `${window.location.origin}${base}reset-password/${resetToken}`;
+  };
+
   const copyResetLink = () => {
-    const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
-    const link = `${base}/reset-password/${resetToken}`;
-    navigator.clipboard.writeText(link).then(() => toast({ title: "Link copiado!" }));
+    navigator.clipboard.writeText(getResetLink()).then(() => toast({ title: "Link copiado!" }));
   };
 
   const openResetLink = () => {
-    const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
-    window.location.href = `${base}/reset-password/${resetToken}`;
+    const path = `/reset-password/${resetToken}`;
+    resetForgot();
+    setLocation(path);
   };
 
   const openResetEmail = () => {
     if (!resetToken || !resetEmail) return;
-    const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
-    const link = `${base}/reset-password/${resetToken}`;
+    const link = getResetLink();
     const subject = `Redefinição de senha — ${systemName}`;
     const body = `Olá!\n\nClique no link abaixo para redefinir sua senha (válido por 30 minutos):\n\n${link}\n\nSe não solicitou, ignore este e-mail.\n\nEquipe ${systemName}`;
     window.open(`mailto:${resetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
