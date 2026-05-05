@@ -9,10 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   MessageCircle, Phone, CheckCircle2, AlertTriangle, Clock, Calendar, UserRound,
   RefreshCw, TrendingDown, Users, X, BarChart2, Zap, ChevronDown, ChevronUp, Send, AlarmClock,
-  Loader2, Wifi, WifiOff
+  Loader2, Wifi, WifiOff, Settings, Save, Eye, RotateCcw
 } from "lucide-react";
 import { PrintButton } from "@/components/print/PrintButton";
 import { PrintHeader } from "@/components/print/PrintHeader";
@@ -295,6 +297,35 @@ function DaySection({ label, apts, onAction, isPending, isUrgent }: {
   );
 }
 
+type WaSettings = {
+  clinic_name: string;
+  message_template_1: string;
+  message_template_2: string;
+  message_encaixe: string;
+  auto_send_enabled: boolean;
+  auto_send_time: string;
+};
+
+const DEFAULT_TEMPLATE_1 = `Olá, {nome}! 👋
+
+Sua sessão de fisioterapia está marcada para *{data}* às *{hora}* com *{terapeuta}*.
+
+Por favor, confirme ou cancele sua presença neste link:
+{link}
+
+Obrigado! — {clinica}`;
+
+const DEFAULT_TEMPLATE_2 = `⚠️ *Lembrete importante*, {nome}!
+
+Ainda não recebemos sua confirmação para a sessão de *{data}* às *{hora}* com *{terapeuta}*.
+
+Sua vaga pode ser liberada se não confirmar. Por favor, confirme agora:
+{link}
+
+— {clinica}`;
+
+const DEFAULT_ENCAIXE = `Olá, {nome}! Surgiu um horário disponível na clínica {clinica} para *{data}* às *{hora}*. Caso tenha interesse, responda esta mensagem para agendarmos.`;
+
 export default function Confirmacoes() {
   const { toast } = useToast();
   const appName = useAppName();
@@ -302,12 +333,29 @@ export default function Confirmacoes() {
   const [days, setDays] = useState(3);
   const [obsDialog, setObsDialog] = useState<ObsDialogState>({ open: false, appointmentId: null, patientName: "" });
   const [obsText, setObsText] = useState("");
+  const [waForm, setWaForm] = useState<WaSettings | null>(null);
+  const [previewField, setPreviewField] = useState<"template1" | "template2" | "encaixe" | null>(null);
 
   const zapiStatusQuery = useQuery<{ connected: boolean; error?: string }>({
     queryKey: ["zapi-status"],
     queryFn: () => apiFetch("/api/whatsapp/status"),
     refetchInterval: 60000,
     staleTime: 30000,
+  });
+
+  const waSettingsQuery = useQuery<WaSettings>({
+    queryKey: ["wa-settings"],
+    queryFn: () => apiFetch("/api/whatsapp/settings"),
+    staleTime: 60000,
+  });
+
+  const waSettingsMut = useMutation({
+    mutationFn: (data: WaSettings) => apiFetch("/api/whatsapp/settings", { method: "PUT", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wa-settings"] });
+      toast({ title: "Configurações salvas com sucesso!" });
+    },
+    onError: (e: any) => toast({ title: e.message || "Erro ao salvar", variant: "destructive" }),
   });
 
   const upcomingQuery = useQuery<Appointment[]>({
@@ -612,6 +660,183 @@ export default function Confirmacoes() {
     );
   };
 
+  function renderPreview(template: string) {
+    return template
+      .replace(/\{nome\}/g, "Maria Silva")
+      .replace(/\{terapeuta\}/g, "Dr. João")
+      .replace(/\{data\}/g, "15/05/2026")
+      .replace(/\{hora\}/g, "10:00")
+      .replace(/\{clinica\}/g, waForm?.clinic_name || "VitalFisio")
+      .replace(/\{link\}/g, "https://clinica.com.br/confirmar?token=abc123");
+  }
+
+  const ConfiguracoesContent = () => {
+    const settings = waSettingsQuery.data;
+    const form = waForm ?? settings;
+
+    if (waSettingsQuery.isLoading) {
+      return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
+    }
+    if (!form) return null;
+
+    const handleChange = (field: keyof WaSettings, value: string | boolean) => {
+      const base = waForm ?? settings!;
+      setWaForm({ ...base, [field]: value });
+    };
+
+    const handleSave = () => waSettingsMut.mutate(form as WaSettings);
+
+    const hasChanges = waForm !== null && JSON.stringify(waForm) !== JSON.stringify(settings);
+
+    const VARS_HELP = (
+      <p className="text-[11px] text-muted-foreground mt-1">
+        Variáveis disponíveis: <code className="bg-muted px-1 rounded">{"{nome}"}</code>{" "}
+        <code className="bg-muted px-1 rounded">{"{data}"}</code>{" "}
+        <code className="bg-muted px-1 rounded">{"{hora}"}</code>{" "}
+        <code className="bg-muted px-1 rounded">{"{terapeuta}"}</code>{" "}
+        <code className="bg-muted px-1 rounded">{"{clinica}"}</code>{" "}
+        <code className="bg-muted px-1 rounded">{"{link}"}</code>
+      </p>
+    );
+
+    return (
+      <div className="space-y-6 max-w-2xl">
+        {/* Identidade */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2"><Settings className="h-4 w-4" /> Identidade da Clínica</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label className="text-xs">Nome da Clínica (usado nas mensagens)</Label>
+              <Input className="mt-1 h-8 text-sm" value={form.clinic_name} onChange={e => handleChange("clinic_name", e.target.value)} placeholder="Ex: VitalFisio" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Templates de mensagem */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2"><MessageCircle className="h-4 w-4 text-green-600" /> Mensagens WhatsApp</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Template 1 */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs font-semibold">1ª Mensagem — Lembrete 24h antes</Label>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => setPreviewField(previewField === "template1" ? null : "template1")}>
+                    <Eye className="h-3 w-3" /> {previewField === "template1" ? "Fechar" : "Prévia"}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2 text-muted-foreground" onClick={() => handleChange("message_template_1", DEFAULT_TEMPLATE_1)}>
+                    <RotateCcw className="h-3 w-3" /> Padrão
+                  </Button>
+                </div>
+              </div>
+              <Textarea rows={7} className="text-xs font-mono" value={form.message_template_1} onChange={e => handleChange("message_template_1", e.target.value)} />
+              {VARS_HELP}
+              {previewField === "template1" && (
+                <div className="mt-2 p-3 rounded-lg bg-green-50 border border-green-200">
+                  <p className="text-[10px] text-green-700 font-semibold mb-1 uppercase">Prévia com dados de exemplo</p>
+                  <pre className="text-xs text-foreground whitespace-pre-wrap font-sans">{renderPreview(form.message_template_1)}</pre>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t" />
+
+            {/* Template 2 */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs font-semibold">2ª Mensagem — Lembrete urgente (12h / sem resposta)</Label>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => setPreviewField(previewField === "template2" ? null : "template2")}>
+                    <Eye className="h-3 w-3" /> {previewField === "template2" ? "Fechar" : "Prévia"}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2 text-muted-foreground" onClick={() => handleChange("message_template_2", DEFAULT_TEMPLATE_2)}>
+                    <RotateCcw className="h-3 w-3" /> Padrão
+                  </Button>
+                </div>
+              </div>
+              <Textarea rows={7} className="text-xs font-mono" value={form.message_template_2} onChange={e => handleChange("message_template_2", e.target.value)} />
+              {VARS_HELP}
+              {previewField === "template2" && (
+                <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                  <p className="text-[10px] text-amber-700 font-semibold mb-1 uppercase">Prévia com dados de exemplo</p>
+                  <pre className="text-xs text-foreground whitespace-pre-wrap font-sans">{renderPreview(form.message_template_2)}</pre>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t" />
+
+            {/* Encaixe */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs font-semibold">Mensagem de Encaixe (oferta de horário vago)</Label>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => setPreviewField(previewField === "encaixe" ? null : "encaixe")}>
+                    <Eye className="h-3 w-3" /> {previewField === "encaixe" ? "Fechar" : "Prévia"}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2 text-muted-foreground" onClick={() => handleChange("message_encaixe", DEFAULT_ENCAIXE)}>
+                    <RotateCcw className="h-3 w-3" /> Padrão
+                  </Button>
+                </div>
+              </div>
+              <Textarea rows={3} className="text-xs font-mono" value={form.message_encaixe} onChange={e => handleChange("message_encaixe", e.target.value)} />
+              {VARS_HELP}
+              {previewField === "encaixe" && (
+                <div className="mt-2 p-3 rounded-lg bg-violet-50 border border-violet-200">
+                  <p className="text-[10px] text-violet-700 font-semibold mb-1 uppercase">Prévia com dados de exemplo</p>
+                  <pre className="text-xs text-foreground whitespace-pre-wrap font-sans">{renderPreview(form.message_encaixe)}</pre>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Auto-envio */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2"><AlarmClock className="h-4 w-4 text-blue-600" /> Envio Automático</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Ativar envio automático diário</p>
+                <p className="text-xs text-muted-foreground">Envia lembretes automaticamente para agendamentos das próximas 24h</p>
+              </div>
+              <Switch checked={form.auto_send_enabled} onCheckedChange={v => handleChange("auto_send_enabled", v)} />
+            </div>
+            {form.auto_send_enabled && (
+              <div>
+                <Label className="text-xs">Horário do disparo automático</Label>
+                <Input type="time" className="mt-1 h-8 text-sm w-32" value={form.auto_send_time} onChange={e => handleChange("auto_send_time", e.target.value)} />
+                <p className="text-[11px] text-muted-foreground mt-1">O sistema verificará agendamentos neste horário todos os dias</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Salvar */}
+        <div className="flex items-center gap-3">
+          <Button onClick={handleSave} disabled={!hasChanges || waSettingsMut.isPending} className="gap-2">
+            {waSettingsMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {waSettingsMut.isPending ? "Salvando..." : "Salvar Configurações"}
+          </Button>
+          {hasChanges && (
+            <Button variant="outline" onClick={() => setWaForm(null)} className="gap-2 text-muted-foreground">
+              <RotateCcw className="h-3.5 w-3.5" /> Descartar alterações
+            </Button>
+          )}
+          {!hasChanges && !waSettingsMut.isPending && (
+            <p className="text-xs text-muted-foreground">Nenhuma alteração pendente</p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-5">
       <PrintHeader title="Funil de Confirmações" subtitle={`Próximos ${days} dias`} />
@@ -664,7 +889,7 @@ export default function Confirmacoes() {
 
       {/* Tabs */}
       <Tabs defaultValue="funil">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="funil" className="text-xs">
             Funil {pendentes.length > 0 && <Badge className="ml-1 h-4 px-1 text-[10px]">{pendentes.length}</Badge>}
           </TabsTrigger>
@@ -677,11 +902,15 @@ export default function Confirmacoes() {
             Encaixes {(encaixeOpp?.freeSlots.length ?? 0) > 0 && <Badge className="ml-1 h-4 px-1 text-[10px] bg-violet-600">{encaixeOpp!.freeSlots.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="dashboard" className="text-xs">Dashboard</TabsTrigger>
+          <TabsTrigger value="configuracoes" className="text-xs flex items-center gap-1">
+            <Settings className="h-3 w-3" /> Config.
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="funil" className="mt-4"><FunilContent /></TabsContent>
         <TabsContent value="alertas" className="mt-4"><AlertasContent /></TabsContent>
         <TabsContent value="encaixes" className="mt-4"><EncaixesContent /></TabsContent>
         <TabsContent value="dashboard" className="mt-4"><DashboardContent /></TabsContent>
+        <TabsContent value="configuracoes" className="mt-4"><ConfiguracoesContent /></TabsContent>
       </Tabs>
 
       {/* Observation Dialog */}

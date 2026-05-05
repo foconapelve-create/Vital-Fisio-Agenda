@@ -12,6 +12,10 @@ function formatPhone(phone: string): string {
   return "55" + digits;
 }
 
+export function renderTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`);
+}
+
 export async function sendWhatsAppText(phone: string, message: string): Promise<{ success: boolean; error?: string }> {
   if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN || !ZAPI_CLIENT_TOKEN) {
     return { success: false, error: "Z-API não configurada (variáveis de ambiente ausentes)" };
@@ -61,26 +65,39 @@ export async function checkZapiStatus(): Promise<{ connected: boolean; error?: s
   }
 }
 
+function formatDate(date: string): string {
+  const [year, month, day] = date.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 export function buildReminderMessage(params: {
   patientName: string;
   therapistName: string;
   date: string;
   time: string;
   confirmLink: string;
+  clinicName?: string;
+  template?: string;
 }): string {
-  const { patientName, therapistName, date, time, confirmLink } = params;
+  const { patientName, therapistName, date, time, confirmLink, clinicName = "VitalFisio", template } = params;
 
-  const [year, month, day] = date.split("-");
-  const formattedDate = `${day}/${month}/${year}`;
+  const tpl = template ?? `Olá, {nome}! 👋
 
-  return `Olá, ${patientName}! 👋
-
-Sua sessão de fisioterapia está marcada para *${formattedDate}* às *${time}* com *${therapistName}*.
+Sua sessão de fisioterapia está marcada para *{data}* às *{hora}* com *{terapeuta}*.
 
 Por favor, confirme ou cancele sua presença neste link:
-${confirmLink}
+{link}
 
-Obrigado! — VitalFisio`;
+Obrigado! — {clinica}`;
+
+  return renderTemplate(tpl, {
+    nome: patientName,
+    terapeuta: therapistName,
+    data: formatDate(date),
+    hora: time,
+    link: confirmLink,
+    clinica: clinicName,
+  });
 }
 
 export function buildSecondReminderMessage(params: {
@@ -89,18 +106,26 @@ export function buildSecondReminderMessage(params: {
   date: string;
   time: string;
   confirmLink: string;
+  clinicName?: string;
+  template?: string;
 }): string {
-  const { patientName, therapistName, date, time, confirmLink } = params;
+  const { patientName, therapistName, date, time, confirmLink, clinicName = "VitalFisio", template } = params;
 
-  const [year, month, day] = date.split("-");
-  const formattedDate = `${day}/${month}/${year}`;
+  const tpl = template ?? `⚠️ *Lembrete importante*, {nome}!
 
-  return `⚠️ *Lembrete importante*, ${patientName}!
-
-Ainda não recebemos sua confirmação para a sessão de *${formattedDate}* às *${time}* com *${therapistName}*.
+Ainda não recebemos sua confirmação para a sessão de *{data}* às *{hora}* com *{terapeuta}*.
 
 Sua vaga pode ser liberada se não confirmar. Por favor, confirme agora:
-${confirmLink}
+{link}
 
-— VitalFisio`;
+— {clinica}`;
+
+  return renderTemplate(tpl, {
+    nome: patientName,
+    terapeuta: therapistName,
+    data: formatDate(date),
+    hora: time,
+    link: confirmLink,
+    clinica: clinicName,
+  });
 }
