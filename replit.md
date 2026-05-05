@@ -132,3 +132,17 @@ Full-stack physiotherapy clinic management system (Brazilian Portuguese).
 
 ### Session Store
 - connect-pg-simple, tableName: "user_sessions", createTableIfMissing: false (created via raw SQL)
+
+## WhatsApp Integration (Z-API)
+
+- **Z-API** integration for real WhatsApp message sending
+- Secrets: `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN`
+- Service file: `artifacts/api-server/src/lib/zapi.ts`
+- Routes: `artifacts/api-server/src/routes/whatsapp.ts`
+  - `GET /api/whatsapp/status` — check Z-API connection status (public)
+  - `POST /api/whatsapp/send/:appointmentId` — send reminder to specific patient (body: `{ second?: boolean }`)
+  - `POST /api/whatsapp/auto-remind` — batch auto-send reminders for appointments within 23-25h window
+- Message templates: 1ª tentativa (24h) and 2ª tentativa (12h) with confirmation link
+- Confirmation link format: `{REPLIT_DEV_DOMAIN}/confirmar?token={uuid}`
+- Frontend: `/confirmacoes` page shows Z-API connection badge (Wifi icon green/red) + WhatsApp buttons now send via Z-API instead of opening wa.me link
+- Cookie fix: `secure: isProduction`, `sameSite: isProduction ? "none" : "lax"`, `trust proxy: 1` for desktop login fix

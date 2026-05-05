@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   MessageCircle, Phone, CheckCircle2, AlertTriangle, Clock, Calendar, UserRound,
-  RefreshCw, TrendingDown, Users, X, BarChart2, Zap, ChevronDown, ChevronUp, Send, AlarmClock
+  RefreshCw, TrendingDown, Users, X, BarChart2, Zap, ChevronDown, ChevronUp, Send, AlarmClock,
+  Loader2, Wifi, WifiOff
 } from "lucide-react";
 import { PrintButton } from "@/components/print/PrintButton";
 import { PrintHeader } from "@/components/print/PrintHeader";
@@ -172,15 +173,42 @@ function ContactHistory({ appointmentId }: { appointmentId: number }) {
 
 type ObsDialogState = { open: boolean; appointmentId: number | null; patientName: string };
 
+function useZapiSend() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, second }: { id: number; second?: boolean }) =>
+      apiFetch<{ success: boolean; token: string; confirmLink: string; whatsappSent: boolean; whatsappError?: string }>(
+        `/api/whatsapp/send/${id}`, { method: "POST", body: JSON.stringify({ second: !!second, performedBy: "recepcao" }) }
+      ),
+    onSuccess: (data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["appointments-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts", vars.id] });
+      if (data.whatsappSent) {
+        toast({ title: "✅ Mensagem enviada via WhatsApp!" });
+      } else {
+        toast({
+          title: "Link gerado, mas envio automático falhou",
+          description: data.whatsappError || "Verifique a conexão Z-API",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (e: any) => toast({ title: e.message || "Erro ao enviar", variant: "destructive" }),
+  });
+}
+
 function AppointmentCard({ apt, onAction, isPending }: {
   apt: Appointment;
   onAction: (action: string, apt: Appointment) => void;
   isPending: boolean;
 }) {
-  const appName = useAppName();
   const risk = usePatientRisk(apt.patientId);
   const isToday = apt.date === todayStr();
   const isTomorrow = apt.date === tomorrowStr();
+  const zapiSend = useZapiSend();
+  const isSending = zapiSend.isPending;
+
   return (
     <div className={`p-4 rounded-lg border transition-colors ${risk === "alto" ? "border-red-200 bg-red-50/20" : risk === "medio" ? "border-orange-200 bg-orange-50/10" : "border-border bg-background"}`}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -202,17 +230,26 @@ function AppointmentCard({ apt, onAction, isPending }: {
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
-          <a href={buildWhatsApp24h(apt.patientPhone, apt.patientName, apt.date, apt.time, apt.therapistName, appName)}
-            target="_blank" rel="noopener noreferrer" onClick={() => onAction("whatsapp_24h", apt)}
-            className="flex items-center gap-1 text-xs text-white bg-green-500 hover:bg-green-600 px-2.5 py-1.5 rounded-md transition-colors">
-            <MessageCircle className="h-3 w-3" /> WhatsApp
-          </a>
+          <Button
+            size="sm"
+            className="h-7 text-xs gap-1 bg-green-500 hover:bg-green-600 text-white"
+            disabled={isSending}
+            onClick={() => zapiSend.mutate({ id: apt.id, second: false })}
+          >
+            {isSending ? <Loader2 className="h-3 w-3 animate-spin" /> : <MessageCircle className="h-3 w-3" />}
+            {isSending ? "Enviando..." : "WhatsApp"}
+          </Button>
           {(apt.status === "mensagem_enviada" || apt.status === "aguardando_confirmacao") && (
-            <a href={buildWhatsApp12h(apt.patientPhone, apt.patientName, apt.date, apt.time)}
-              target="_blank" rel="noopener noreferrer" onClick={() => onAction("whatsapp_12h", apt)}
-              className="flex items-center gap-1 text-xs text-amber-700 bg-amber-100 hover:bg-amber-200 border border-amber-200 px-2.5 py-1.5 rounded-md transition-colors">
-              <AlarmClock className="h-3 w-3" /> 2ª Tentativa
-            </a>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1 text-amber-700 bg-amber-100 hover:bg-amber-200 border-amber-200"
+              disabled={isSending}
+              onClick={() => zapiSend.mutate({ id: apt.id, second: true })}
+            >
+              {isSending ? <Loader2 className="h-3 w-3 animate-spin" /> : <AlarmClock className="h-3 w-3" />}
+              2ª Tentativa
+            </Button>
           )}
           <a href={`tel:${fmtPhone(apt.patientPhone)}`}
             className="flex items-center gap-1 text-xs border border-border bg-background hover:bg-muted px-2.5 py-1.5 rounded-md transition-colors">
@@ -265,6 +302,13 @@ export default function Confirmacoes() {
   const [days, setDays] = useState(3);
   const [obsDialog, setObsDialog] = useState<ObsDialogState>({ open: false, appointmentId: null, patientName: "" });
   const [obsText, setObsText] = useState("");
+
+  const zapiStatusQuery = useQuery<{ connected: boolean; error?: string }>({
+    queryKey: ["zapi-status"],
+    queryFn: () => apiFetch("/api/whatsapp/status"),
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
 
   const upcomingQuery = useQuery<Appointment[]>({
     queryKey: ["appointments-upcoming", days],
@@ -577,7 +621,20 @@ export default function Confirmacoes() {
           <h1 className="text-3xl font-bold tracking-tight">Funil de Confirmações</h1>
           <p className="text-muted-foreground mt-1">Acompanhe, confirme e otimize a agenda da clínica</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Z-API Status Badge */}
+          {zapiStatusQuery.data && (
+            <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium no-print ${
+              zapiStatusQuery.data.connected
+                ? "bg-green-50 text-green-700 border-green-200"
+                : "bg-red-50 text-red-700 border-red-200"
+            }`}>
+              {zapiStatusQuery.data.connected
+                ? <><Wifi className="h-3 w-3" /> WhatsApp Conectado</>
+                : <><WifiOff className="h-3 w-3" /> WhatsApp Desconectado</>
+              }
+            </div>
+          )}
           <span className="text-sm text-muted-foreground no-print">Próximos:</span>
           {[1, 2, 3, 5, 7].map(d => (
             <Button key={d} size="sm" variant={days === d ? "default" : "outline"}

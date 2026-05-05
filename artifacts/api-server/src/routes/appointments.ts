@@ -7,6 +7,7 @@ import {
   ListAppointmentsQueryParams,
 } from "@workspace/api-zod";
 import { randomUUID } from "crypto";
+import { sendWhatsAppText, buildReminderMessage, buildSecondReminderMessage } from "../lib/zapi";
 
 const ALL_STATUSES = [
   "agendado", "mensagem_enviada", "aguardando_confirmacao", "confirmado",
@@ -398,33 +399,61 @@ router.patch("/appointments/:id/status", async (req, res): Promise<void> => {
   }
 });
 
-// ─── GENERATE WHATSAPP CONFIRMATION TOKEN ────────────────────────────────────
+// ─── GENERATE WHATSAPP CONFIRMATION TOKEN + SEND VIA Z-API ──────────────────
 
 router.post("/appointments/:id/whatsapp-token", async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-    const [current] = await db.select().from(appointmentsTable).where(eq(appointmentsTable.id, id));
-    if (!current) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
+    const [apt] = await db.select({
+      id: appointmentsTable.id,
+      status: appointmentsTable.status,
+      date: appointmentsTable.date,
+      time: appointmentsTable.time,
+      patientName: patientsTable.name,
+      patientPhone: patientsTable.phone,
+      therapistName: therapistsTable.name,
+    })
+      .from(appointmentsTable)
+      .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
+      .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+      .where(eq(appointmentsTable.id, id));
+
+    if (!apt) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
 
     const token = randomUUID();
     await db.update(appointmentsTable)
-      .set({ confirmationToken: token, tokenCreatedAt: new Date() })
+      .set({ confirmationToken: token, tokenCreatedAt: new Date(), status: "mensagem_enviada" })
       .where(eq(appointmentsTable.id, id));
 
-    await db.update(appointmentsTable)
-      .set({ status: "mensagem_enviada" })
-      .where(eq(appointmentsTable.id, id));
+    const isSecond = req.body?.second === true;
+    const domain = process.env.REPLIT_DEV_DOMAIN
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : (process.env.APP_URL || "https://localhost");
+    const confirmLink = `${domain}/confirmar?token=${token}`;
+
+    const message = isSecond
+      ? buildSecondReminderMessage({ patientName: apt.patientName, therapistName: apt.therapistName, date: apt.date, time: apt.time, confirmLink })
+      : buildReminderMessage({ patientName: apt.patientName, therapistName: apt.therapistName, date: apt.date, time: apt.time, confirmLink });
+
+    let whatsappResult: { success: boolean; error?: string } = { success: false, error: "Telefone não cadastrado" };
+    if (apt.patientPhone) {
+      whatsappResult = await sendWhatsAppText(apt.patientPhone, message);
+    }
+
+    const contactContent = whatsappResult.success
+      ? `Mensagem WhatsApp ${isSecond ? "(2ª tentativa)" : ""} enviada via Z-API. Link: ${confirmLink}`
+      : `Falha ao enviar WhatsApp: ${whatsappResult.error}. Link gerado: ${confirmLink}`;
 
     await db.insert(appointmentContactsTable).values({
       appointmentId: id,
       type: "whatsapp_sent",
-      content: "Link de confirmação WhatsApp gerado e enviado",
+      content: contactContent,
       performedBy: req.body?.performedBy ? String(req.body.performedBy) : "sistema",
     });
 
-    res.json({ token });
+    res.json({ token, confirmLink, whatsappSent: whatsappResult.success, whatsappError: whatsappResult.error });
   } catch (e: any) {
     res.status(500).json({ error: e.message || "Erro ao gerar token" });
   }
