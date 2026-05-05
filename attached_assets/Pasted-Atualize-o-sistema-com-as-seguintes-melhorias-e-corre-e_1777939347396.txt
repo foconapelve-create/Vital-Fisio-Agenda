@@ -1,0 +1,106 @@
+Atualize o sistema com as seguintes melhorias e correções:
+
+🔐 1. SISTEMA DE LOGIN COM NÍVEIS DE ACESSO
+
+Crie um sistema de autenticação com 3 níveis de usuário:
+
+- ADMIN
+- RECEPÇÃO
+- FISIOTERAPEUTA
+
+Cada perfil deve ter permissões diferentes:
+
+ADMIN:
+- Acesso total ao sistema
+- Gerenciar usuários (criar, editar, excluir)
+- Acessar agenda completa
+- Relatórios financeiros
+- Controle de estoque
+
+RECEPÇÃO:
+- Acesso à agenda
+- Cadastrar pacientes
+- Agendamentos
+- Confirmação via WhatsApp
+- NÃO pode acessar financeiro nem excluir usuários
+
+FISIOTERAPEUTA:
+- Visualizar apenas sua agenda
+- Evolução do paciente
+- NÃO pode acessar financeiro nem configurações
+
+📌 Adicionar campo "tipo de usuário" no cadastro
+📌 Redirecionar após login conforme o perfil
+📌 Proteger rotas por nível de acesso
+
+---
+
+⚠️ 2. CORRIGIR ERROS
+
+Corrigir bugs nas seguintes áreas:
+
+- Aba "Novo Usuário":
+  * Validar campos obrigatórios
+  * Evitar erro ao salvar (verificar banco de dados e API)
+  * Mensagem de sucesso/erro amigável
+
+- "Esqueci a senha":
+  * Implementar recuperação de senha funcional
+  * Enviar link ou código (simulado se necessário)
+  * Criar tela para redefinir senha
+  * Validar token antes de permitir troca
+
+---
+
+📅 3. CRIAR NOVAS AGENDAS
+
+Criar 2 novas agendas separadas:
+
+1. Agenda Fisioterapia Pélvica
+2. Agenda Bebês
+
+Requisitos:
+- Mesmo layout da agenda atual (manter padrão visual)
+- Visualização por horário (08:00, 08:45, 09:30,10:30, 11:10 horários da tarde 13:20,14;00,14:40,15:40 e 16:20)
+- Mostrar nome do paciente ao lado
+- Botão de confirmação via WhatsApp
+- Status do atendimento (Confirmado, Pendente, Cancelado)
+- Filtro por profissional
+
+📌 Cada agenda deve ser independente
+📌 Permitir alternar entre agendas (abas ou menu)
+
+---
+
+🧠 4. MELHORIAS GERAIS
+
+- Melhorar mensagens de erro (mais claras)
+- Garantir que o sistema não quebre ao salvar dados
+- Padronizar inputs (nome, telefone, email)
+- Responsivo (funcionar bem no celular)
+
+---
+
+💾 5. BANCO DE DADOS
+
+Atualizar estrutura:
+
+Tabela usuários:
+- id
+- nome
+- email
+- senha
+- tipo (admin, recepcao, fisioterapeuta)
+
+Tabela agendas:
+- id
+- tipo_agenda (pelvica, bebe)
+- paciente
+- profissional
+- horario
+- status
+
+---
+
+🎯 OBJETIVO FINAL:
+Sistema funcionando sem erros, com controle de acesso por tipo de usuário e agendas separadas para melhor organização da clínica.
