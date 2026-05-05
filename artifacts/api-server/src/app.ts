@@ -11,6 +11,8 @@ const PgSession = connectPgSimple(session);
 
 const app: Express = express();
 
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
@@ -25,6 +27,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const sessionSecret = process.env.SESSION_SECRET ?? "vitalfisio-secret-key-change-in-production";
+const isProduction = process.env.NODE_ENV === "production";
 
 const sessionStore = new PgSession({
   pool,
@@ -39,8 +42,9 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,
+      secure: isProduction,
       httpOnly: true,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),
