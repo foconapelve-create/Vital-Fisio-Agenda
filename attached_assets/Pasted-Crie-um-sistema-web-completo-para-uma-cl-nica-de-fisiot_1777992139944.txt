@@ -1,0 +1,155 @@
+Crie um sistema web completo para uma clínica de fisioterapia chamado "VitalFisio" com as seguintes funcionalidades:
+
+🔹 TECNOLOGIAS
+- Backend: Node.js com Express
+- Frontend: HTML, CSS simples (ou EJS)
+- Banco de dados: SQLite (ou JSON inicialmente, mas preparado para evoluir)
+- Integração com API de WhatsApp (Z-API ou Twilio)
+
+---------------------------------------
+
+🔹 1. SISTEMA DE AGENDAMENTO
+
+Criar estrutura de agendamentos com:
+- id único (UUID)
+- nome do paciente
+- telefone (WhatsApp)
+- data
+- hora
+- profissional
+- status: "pendente", "confirmado", "cancelado"
+
+Criar rotas:
+- POST /agendar → cria agendamento
+- GET /agenda → lista agendamentos
+
+---------------------------------------
+
+🔹 2. GERAÇÃO DE LINK DE CONFIRMAÇÃO
+
+Cada agendamento deve gerar um link único:
+
+/confirmar?id=UUID
+
+Esse link será enviado ao paciente via WhatsApp.
+
+---------------------------------------
+
+🔹 3. PÁGINA DE CONFIRMAÇÃO
+
+Criar rota:
+
+GET /confirmar?id=UUID
+
+Página deve mostrar:
+- Nome do paciente
+- Data e hora da sessão
+
+Botões:
+✅ Confirmar → /confirmado?id=UUID  
+❌ Cancelar → /cancelado?id=UUID  
+
+---------------------------------------
+
+🔹 4. AÇÕES
+
+Criar rotas:
+
+GET /confirmado?id=UUID
+→ Atualiza status para "confirmado"
+→ Exibe mensagem: "Sessão confirmada com sucesso!"
+
+GET /cancelado?id=UUID
+→ Atualiza status para "cancelado"
+→ Exibe mensagem: "Sessão cancelada."
+
+---------------------------------------
+
+🔹 5. ENVIO AUTOMÁTICO DE WHATSAPP
+
+Criar função que:
+
+- Verifica agendamentos
+- Se faltar 24 horas para a consulta → envia mensagem automaticamente
+
+Mensagem padrão:
+
+"Olá {{nome}}! 👋
+
+Sua sessão de fisioterapia está marcada para {{data}} às {{hora}} com {{profissional}}.
+
+Por favor, confirme ou cancele neste link:
+{{link}}
+
+Obrigado! — VitalFisio"
+
+---------------------------------------
+
+🔹 6. INTEGRAÇÃO WHATSAPP
+
+Criar função pronta para integrar com API (Z-API ou Twilio):
+
+sendWhatsAppMessage(telefone, mensagem)
+
+Deixar estrutura pronta com:
+- URL da API
+- TOKEN
+- POST request
+
+---------------------------------------
+
+🔹 7. AUTOMAÇÃO (CRON)
+
+Implementar verificação automática a cada 1 hora usando:
+
+node-cron
+
+---------------------------------------
+
+🔹 8. INTERFACE
+
+Criar página simples para:
+- Visualizar agenda
+- Ver status (pendente, confirmado, cancelado)
+
+---------------------------------------
+
+🔹 9. SEGURANÇA
+
+- Validar ID do agendamento
+- Evitar acesso inválido
+- Tratar erros
+
+---------------------------------------
+
+🔹 10. DIFERENCIAL (IMPORTANTE)
+
+Quando paciente:
+- Confirmar → atualizar status imediatamente
+- Cancelar → liberar horário automaticamente
+
+---------------------------------------
+
+🔹 11. ORGANIZAÇÃO DO PROJETO
+
+Separar:
+- server.js
+- routes/
+- services/
+- database/
+
+---------------------------------------
+
+🔹 12. EXTRA (OPCIONAL MAS IMPORTANTE)
+
+- Criar logs de envio de mensagem
+- Evitar envio duplicado
+- Marcar quando já foi enviado o lembrete
+
+---------------------------------------
+
+ENTREGAR:
+✔️ Código completo funcional
+✔️ Comentado
+✔️ Pronto para rodar no Replit
+✔️ Com instruções de execução
