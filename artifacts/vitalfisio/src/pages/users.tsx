@@ -32,6 +32,7 @@ const roleConfig: Record<string, { label: string; icon: any; color: string }> = 
   profissional:  { label: "Profissional da Saúde",icon: Stethoscope,  color: "bg-blue-100 text-blue-800 border-blue-300" },
   fisioterapeuta:{ label: "Profissional da Saúde",icon: Stethoscope,  color: "bg-blue-100 text-blue-800 border-blue-300" },
   financeiro:    { label: "Financeiro",            icon: Wallet,       color: "bg-green-100 text-green-800 border-green-300" },
+  recepcao:      { label: "Recepção",              icon: UserCheck,    color: "bg-cyan-100 text-cyan-800 border-cyan-300" },
 };
 
 function RoleBadge({ role }: { role: string }) {
@@ -311,6 +312,7 @@ export default function UsersPage() {
                 <SelectContent>
                   <SelectItem value="admin">Administrador — acesso total</SelectItem>
                   <SelectItem value="profissional">Profissional da Saúde — agenda e evolução</SelectItem>
+                  <SelectItem value="recepcao">Recepção — agenda e pacientes</SelectItem>
                   <SelectItem value="financeiro">Financeiro — financeiro e relatórios</SelectItem>
                 </SelectContent>
               </Select>
@@ -353,10 +355,16 @@ export default function UsersPage() {
                   <p className="text-muted-foreground">Agenda, Pacientes, Relatórios, Rel. Fisioterapêutico, Atestados, Aniversariantes, Planner. Sem acesso ao financeiro completo.</p>
                 </>
               )}
+              {form.role === "recepcao" && (
+                <>
+                  <p className="font-medium text-cyan-700 flex items-center gap-1"><UserCheck className="h-3.5 w-3.5" /> Recepção:</p>
+                  <p className="text-muted-foreground">Dashboard, Agenda Geral, Fisio. Pélvica, Agenda Bebês, Confirmações, Aniversariantes, Pacientes. Sem acesso a financeiro ou configurações.</p>
+                </>
+              )}
               {form.role === "financeiro" && (
                 <>
                   <p className="font-medium text-green-700 flex items-center gap-1"><Wallet className="h-3.5 w-3.5" /> Financeiro:</p>
-                  <p className="text-muted-foreground">Dashboard, Financeiro, NFSe, Pacientes, Aniversariantes, Relatórios.</p>
+                  <p className="text-muted-foreground">Dashboard, Financeiro, Pacientes, Aniversariantes, Relatórios, Estoque.</p>
                 </>
               )}
             </div>

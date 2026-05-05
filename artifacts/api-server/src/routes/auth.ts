@@ -122,7 +122,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     if (rows.length) { res.status(400).json({ error: "E-mail já cadastrado" }); return; }
   }
 
-  const validRoles = ["admin", "fisioterapeuta", "profissional", "financeiro"];
+  const validRoles = ["admin", "fisioterapeuta", "profissional", "financeiro", "recepcao"];
   const userRole = validRoles.includes(role) ? role : "profissional";
   const hash = await bcrypt.hash(password, 10);
   const uname = username || (email ? email.split("@")[0] : name.toLowerCase().replace(/\s+/g, "."));

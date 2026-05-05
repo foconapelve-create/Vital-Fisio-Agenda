@@ -16,6 +16,7 @@ import usersRouter from "./users";
 import settingsRouter from "./settings";
 import confirmRouter from "./confirm";
 import estoqueRouter from "./estoque";
+import agendaEspecializadaRouter from "./agenda-especializada";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(fiscalRouter);
 router.use(usersRouter);
 router.use(settingsRouter);
 router.use(estoqueRouter);
+router.use(agendaEspecializadaRouter);
 
 export default router;

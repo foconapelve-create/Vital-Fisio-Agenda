@@ -14,6 +14,8 @@ import Patients from "@/pages/patients";
 import PatientHistory from "@/pages/patient-history";
 import Therapists from "@/pages/therapists";
 import Agenda from "@/pages/agenda";
+import AgendaPelvica from "@/pages/agenda-pelvica";
+import AgendaBebe from "@/pages/agenda-bebe";
 import Reports from "@/pages/reports";
 import Financial from "@/pages/financial";
 import Relatorio from "@/pages/relatorio";
@@ -79,7 +81,7 @@ function Router() {
         <ProtectedRoute component={Dashboard} />
       </Route>
       <Route path="/patients">
-        <ProtectedRoute component={Patients} roles={["admin", "fisioterapeuta"]} />
+        <ProtectedRoute component={Patients} roles={["admin", "fisioterapeuta", "recepcao"]} />
       </Route>
       <Route path="/patients/:id/history">
         <ProtectedRoute component={PatientHistory} roles={["admin", "fisioterapeuta"]} />
@@ -88,7 +90,13 @@ function Router() {
         <ProtectedRoute component={Therapists} roles={["admin"]} />
       </Route>
       <Route path="/agenda">
-        <ProtectedRoute component={Agenda} roles={["admin", "fisioterapeuta"]} />
+        <ProtectedRoute component={Agenda} roles={["admin", "fisioterapeuta", "recepcao"]} />
+      </Route>
+      <Route path="/agenda-pelvica">
+        <ProtectedRoute component={AgendaPelvica} roles={["admin", "fisioterapeuta", "recepcao"]} />
+      </Route>
+      <Route path="/agenda-bebe">
+        <ProtectedRoute component={AgendaBebe} roles={["admin", "fisioterapeuta", "recepcao"]} />
       </Route>
       <Route path="/reports">
         <ProtectedRoute component={Reports} />
@@ -100,19 +108,19 @@ function Router() {
         <ProtectedRoute component={Relatorio} roles={["admin", "fisioterapeuta"]} />
       </Route>
       <Route path="/confirmacoes">
-        <ProtectedRoute component={Confirmacoes} roles={["admin", "fisioterapeuta"]} />
+        <ProtectedRoute component={Confirmacoes} roles={["admin", "fisioterapeuta", "recepcao"]} />
       </Route>
       <Route path="/atestados">
         <ProtectedRoute component={Atestados} roles={["admin", "fisioterapeuta"]} />
       </Route>
       <Route path="/aniversariantes">
-        <ProtectedRoute component={Aniversariantes} roles={["admin", "fisioterapeuta", "financeiro"]} />
+        <ProtectedRoute component={Aniversariantes} roles={["admin", "fisioterapeuta", "financeiro", "recepcao"]} />
       </Route>
       <Route path="/planner">
         <ProtectedRoute component={Planner} roles={["admin", "fisioterapeuta"]} />
       </Route>
       <Route path="/estoque">
-        <ProtectedRoute component={Estoque} roles={["admin", "fisioterapeuta"]} />
+        <ProtectedRoute component={Estoque} roles={["admin", "fisioterapeuta", "financeiro"]} />
       </Route>
       <Route path="/users">
         <ProtectedRoute component={UsersPage} roles={["admin"]} />

@@ -52,7 +52,7 @@ router.post("/users", requireAdmin, async (req, res) => {
       if (rows.length) return res.status(400).json({ error: "E-mail já cadastrado" });
     }
 
-    const validRoles = ["admin", "fisioterapeuta", "profissional", "financeiro"];
+    const validRoles = ["admin", "fisioterapeuta", "profissional", "financeiro", "recepcao"];
     const userRole = validRoles.includes(role) ? role : "profissional";
     const hash = await bcrypt.hash(password, 10);
     const uname = username || (email ? email.split("@")[0] : name.toLowerCase().replace(/\s+/g, "."));
@@ -81,7 +81,7 @@ router.put("/users/:id", requireAdmin, async (req, res) => {
       if (rows.length) return res.status(400).json({ error: "E-mail já em uso por outro usuário" });
     }
 
-    const validRoles = ["admin", "fisioterapeuta", "profissional", "financeiro"];
+    const validRoles = ["admin", "fisioterapeuta", "profissional", "financeiro", "recepcao"];
     const userRole = validRoles.includes(role) ? role : "profissional";
     const { rows } = await pool.query(
       "UPDATE users SET name=$1, email=$2, phone=$3, role=$4 WHERE id=$5 RETURNING *",

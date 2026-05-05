@@ -3,7 +3,8 @@ import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, CalendarDays, Users, UserRound, FileBarChart,
-  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake, LayoutGrid, Package, UserCog,
+  Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake,
+  LayoutGrid, Package, UserCog, Baby, HeartPulse,
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,9 @@ import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 const adminItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/agenda", label: "Agenda", icon: CalendarDays },
+  { href: "/agenda", label: "Agenda Geral", icon: CalendarDays },
+  { href: "/agenda-pelvica", label: "Fisio. Pélvica", icon: HeartPulse },
+  { href: "/agenda-bebe", label: "Agenda Bebês", icon: Baby },
   { href: "/confirmacoes", label: "Confirmações", icon: CheckCircle2 },
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/patients", label: "Pacientes", icon: Users },
@@ -27,7 +30,9 @@ const adminItems = [
 
 const profissionalItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/agenda", label: "Agenda", icon: CalendarDays },
+  { href: "/agenda", label: "Agenda Geral", icon: CalendarDays },
+  { href: "/agenda-pelvica", label: "Fisio. Pélvica", icon: HeartPulse },
+  { href: "/agenda-bebe", label: "Agenda Bebês", icon: Baby },
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/patients", label: "Pacientes", icon: Users },
   { href: "/estoque", label: "Estoque", icon: Package },
@@ -35,6 +40,16 @@ const profissionalItems = [
   { href: "/relatorio", label: "Relatório Clínico", icon: FileText },
   { href: "/atestados", label: "Documentos Clínicos", icon: ClipboardList },
   { href: "/planner", label: "Planner de Conteúdo", icon: LayoutGrid },
+];
+
+const recepcaoItems = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/agenda", label: "Agenda Geral", icon: CalendarDays },
+  { href: "/agenda-pelvica", label: "Fisio. Pélvica", icon: HeartPulse },
+  { href: "/agenda-bebe", label: "Agenda Bebês", icon: Baby },
+  { href: "/confirmacoes", label: "Confirmações", icon: CheckCircle2 },
+  { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
+  { href: "/patients", label: "Pacientes", icon: Users },
 ];
 
 const financeiroItems = [
@@ -51,11 +66,13 @@ const roleLabels: Record<string, string> = {
   profissional: "Profissional da Saúde",
   fisioterapeuta: "Profissional da Saúde",
   financeiro: "Financeiro",
+  recepcao: "Recepção",
 };
 
 function getNavItems(role: string) {
   if (role === "fisioterapeuta" || role === "profissional") return profissionalItems;
   if (role === "financeiro") return financeiroItems;
+  if (role === "recepcao") return recepcaoItems;
   return adminItems;
 }
 
