@@ -235,13 +235,91 @@ export default function Atestados() {
   };
 
   const handlePrint = (doc?: Attestation) => {
-    const originalTitle = document.title;
     const patient = doc ? patients.find(p => p.id === doc.patientId) : selectedPatient;
     const tipo = doc?.tipoDocumento || form.tipoDocumento;
-    const docType = tipoLabel(tipo);
-    document.title = `${docType}-${patient?.name || "paciente"}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
-    window.print();
-    document.title = originalTitle;
+    const docType = docTypeLabels[tipo] || tipo.toUpperCase();
+    const pName = patient?.name || "[Paciente]";
+    const d = doc || { ...form, id: 0, createdAt: "" };
+    const text = doc
+      ? (doc.textoGerado || generateText(d as any, pName))
+      : (customText || generateText(d as any, pName));
+
+    const clinicName = clinicSettings?.nomeClinica || "VitalFisio";
+    const clinicAddr = clinicSettings?.enderecoClinica || (d as any).enderecoClinica || "";
+    const clinicPhone = clinicSettings?.telefone || "";
+    const emissao = fmtDate((d as any).dataEmissao || format(new Date(), "yyyy-MM-dd"));
+    const cidade = (d as any).cidade || "";
+    const profissional = (d as any).profissionalResponsavel || "";
+    const registro = (d as any).registroProfissional || "";
+    const observacoes = (d as any).observacoes || "";
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>${docType} - ${pName}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Georgia, serif; background: white; color: #111; padding: 24mm 20mm; font-size: 11pt; }
+    @page { size: A4 portrait; margin: 16mm 14mm; }
+    .header { border-bottom: 2px solid #1f2937; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .clinic-name { font-weight: bold; font-size: 16pt; color: #1f2937; }
+    .clinic-sub { font-size: 9pt; color: #6b7280; margin-top: 2px; }
+    .date-block { text-align: right; font-size: 9pt; color: #6b7280; }
+    .date-block strong { font-size: 10pt; color: #374151; display: block; }
+    .patient { margin-bottom: 16px; font-size: 10pt; color: #374151; }
+    .patient strong { font-weight: 600; }
+    .title-block { text-align: center; margin-bottom: 24px; }
+    .title-block h1 { font-size: 14pt; font-weight: bold; color: #1f2937; letter-spacing: 2px; border-bottom: 2px solid #9ca3af; display: inline-block; padding: 0 24px 6px; }
+    .body-text { font-size: 11pt; line-height: 2; text-align: justify; color: #374151; white-space: pre-wrap; }
+    .observacoes { margin-top: 20px; padding: 12px; background: #f9fafb; border-left: 4px solid #9ca3af; font-size: 10pt; color: #4b5563; font-style: italic; }
+    .signature { margin-top: 60px; padding-top: 12px; border-top: 1px solid #9ca3af; text-align: center; }
+    .signature .name { font-size: 11pt; font-weight: 600; color: #374151; }
+    .signature .reg { font-size: 9pt; color: #6b7280; margin-top: 4px; }
+    .signature .label { font-size: 8pt; color: #9ca3af; margin-top: 6px; }
+    @media print {
+      body { padding: 0; }
+      button { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="clinic-name">${clinicName}</div>
+      ${clinicAddr ? `<div class="clinic-sub">${clinicAddr}</div>` : ""}
+      ${clinicPhone ? `<div class="clinic-sub">${clinicPhone}</div>` : ""}
+    </div>
+    <div class="date-block">
+      <span>Data de emissão:</span>
+      <strong>${emissao}</strong>
+      ${cidade ? `<span>${cidade}</span>` : ""}
+    </div>
+  </div>
+  <div class="patient"><strong>Paciente:</strong> ${pName}</div>
+  <div class="title-block"><h1>${docType}</h1></div>
+  <div class="body-text">${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+  ${observacoes ? `<div class="observacoes">${observacoes}</div>` : ""}
+  <div class="signature">
+    <div class="name">${profissional}</div>
+    ${registro ? `<div class="reg">Reg. Profissional: ${registro}</div>` : ""}
+    <div class="label">Assinatura</div>
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 400);
+    };
+  </script>
+</body>
+</html>`;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast({ title: "Permita popups neste site para imprimir/salvar PDF", variant: "destructive" });
+      return;
+    }
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   const filteredHistory = useMemo(() => {
