@@ -32,7 +32,7 @@ const isProduction = process.env.NODE_ENV === "production";
 const sessionStore = new PgSession({
   pool,
   tableName: "user_sessions",
-  createTableIfMissing: false,
+  createTableIfMissing: true,
 });
 
 app.use(

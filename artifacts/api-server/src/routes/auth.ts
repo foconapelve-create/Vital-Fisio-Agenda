@@ -26,10 +26,10 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  // Support login by username or email (case-insensitive)
+  // Support login by username or email (case-insensitive, trim spaces)
   const { rows } = await pool.query(
-    "SELECT * FROM users WHERE (LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)) AND active = true LIMIT 1",
-    [username]
+    "SELECT * FROM users WHERE (LOWER(TRIM(username)) = LOWER(TRIM($1)) OR LOWER(TRIM(COALESCE(email,''))) = LOWER(TRIM($1))) AND active = true LIMIT 1",
+    [username.trim()]
   );
   const user = rows[0];
 
@@ -58,6 +58,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   (req.session as any).userId = user.id;
   (req.session as any).username = user.username;
+  (req.session as any).role = user.role;
 
   res.json(mapUser(user));
 });
