@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 export const attestationsTable = pgTable("attestations", {
   id: serial("id").primaryKey(),
   patientId: integer("patient_id").notNull(),
-  tipoDocumento: text("tipo_documento").notNull().default("declaracao"), // 'declaracao' | 'atestado'
+  tipoDocumento: text("tipo_documento").notNull().default("declaracao"),
   dataAtendimento: text("data_atendimento").notNull(),
   horaInicio: text("hora_inicio").notNull(),
   horaTermino: text("hora_termino").notNull(),
@@ -25,6 +25,8 @@ export const attestationsTable = pgTable("attestations", {
 
 export const clinicSettingsTable = pgTable("clinic_settings", {
   id: serial("id").primaryKey(),
+  systemName: text("system_name").notNull().default("Vitalfisio"),
+  logoUrl: text("logo_url"),
   nomeClinica: text("nome_clinica").notNull().default("VitalFisio"),
   enderecoClinica: text("endereco_clinica").notNull().default(""),
   telefone: text("telefone"),
