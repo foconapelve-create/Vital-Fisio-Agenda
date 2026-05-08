@@ -27,6 +27,7 @@ import UsersPage from "@/pages/users";
 import ResetPassword from "@/pages/reset-password";
 import Confirmar from "@/pages/confirmar";
 import Estoque from "@/pages/estoque";
+import AgendaLocal from "@/pages/agenda-local";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -97,6 +98,9 @@ function Router() {
       </Route>
       <Route path="/agenda-bebe">
         <ProtectedRoute component={AgendaBebe} roles={["admin", "fisioterapeuta", "recepcao"]} />
+      </Route>
+      <Route path="/agenda-local">
+        <ProtectedRoute component={AgendaLocal} roles={["admin", "fisioterapeuta", "recepcao"]} />
       </Route>
       <Route path="/reports">
         <ProtectedRoute component={Reports} />

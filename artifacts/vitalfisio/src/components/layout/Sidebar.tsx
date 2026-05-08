@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, CalendarDays, Users, UserRound, FileBarChart,
   Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake,
-  LayoutGrid, Package, UserCog, Baby, HeartPulse,
+  LayoutGrid, Package, UserCog, Baby, HeartPulse, MapPin,
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useAppSettings } from "@/contexts/AppSettingsContext";
 const adminItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda Geral", icon: CalendarDays },
+  { href: "/agenda-local", label: "Agenda por Local", icon: MapPin },
   { href: "/agenda-pelvica", label: "Fisio. Pélvica", icon: HeartPulse },
   { href: "/agenda-bebe", label: "Agenda Bebês", icon: Baby },
   { href: "/confirmacoes", label: "Confirmações", icon: CheckCircle2 },
@@ -31,6 +32,7 @@ const adminItems = [
 const profissionalItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda Geral", icon: CalendarDays },
+  { href: "/agenda-local", label: "Agenda por Local", icon: MapPin },
   { href: "/agenda-pelvica", label: "Fisio. Pélvica", icon: HeartPulse },
   { href: "/agenda-bebe", label: "Agenda Bebês", icon: Baby },
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
@@ -45,6 +47,7 @@ const profissionalItems = [
 const recepcaoItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda Geral", icon: CalendarDays },
+  { href: "/agenda-local", label: "Agenda por Local", icon: MapPin },
   { href: "/agenda-pelvica", label: "Fisio. Pélvica", icon: HeartPulse },
   { href: "/agenda-bebe", label: "Agenda Bebês", icon: Baby },
   { href: "/confirmacoes", label: "Confirmações", icon: CheckCircle2 },

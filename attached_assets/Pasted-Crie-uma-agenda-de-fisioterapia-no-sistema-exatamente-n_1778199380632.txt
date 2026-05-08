@@ -1,0 +1,113 @@
+Crie uma agenda de fisioterapia no sistema exatamente no estilo da planilha enviada, organizada por LOCAL DE ATENDIMENTO e HORÁRIO.
+
+REQUISITOS DA AGENDA:
+
+1. Estrutura da Agenda
+- A agenda deve ser em formato de grade/tabela.
+- Separar os atendimentos por:
+  • Horário
+  • Dia da semana
+  • Local/equipamento
+- Cada coluna representa um dia.
+- Cada linha representa um local de atendimento.
+
+2. Locais fixos da agenda
+Criar os seguintes locais:
+
+- Eletroterapia 1
+- Eletroterapia 2
+- Eletroterapia 3
+- Eletroterapia 4
+- Mão/Punho 1
+- Mão/Punho 2
+- Maca 1
+- Maca 2
+- Maca 3
+- Maca 4
+- Espaldar 1
+- Espaldar 2
+- Barra
+- Cadeira Exercício 1
+- Cadeira Exercício 2
+- Tablado 1
+- Tablado 2
+- Cadeira Eletro 1
+- Cadeira Eletro 2
+
+3. Organização por período
+Criar abas separadas:
+- MANHÃ
+- TARDE
+- PISO SUPERIOR MANHÃ
+- PISO SUPERIOR TARDE
+
+4. Funcionalidades obrigatórias
+- Permitir adicionar paciente clicando na célula.
+- Mostrar:
+  • Nome do paciente
+  • Observação
+  • Tipo de atendimento
+- Permitir editar e excluir agendamento.
+- Não permitir conflito no mesmo local e horário.
+- Destacar células ocupadas com cores.
+
+5. Sistema de cores
+- Pelvica = laranja
+- Bebê = vermelho
+- Confirmado = verde
+- Pendente = amarelo
+- Falta = cinza
+- Horário livre = branco
+
+6. Cabeçalho da agenda
+Exibir:
+- Data
+- Horário
+- Dia da semana
+- Profissional responsável
+
+7. Recursos extras
+- Rolagem automática da agenda
+- Pesquisa por paciente
+- Filtro por profissional
+- Filtro por local
+- Botão “Hoje”
+- Botão “Próxima Semana”
+- Botão “Semana Anterior”
+
+8. Layout
+- Deixar visual idêntico a uma planilha profissional.
+- Linhas finas e organizadas.
+- Cabeçalho cinza.
+- Horários destacados.
+- Responsivo para celular e computador.
+
+9. Banco de dados
+Salvar:
+- Nome do paciente
+- Telefone
+- Convênio
+- Local do atendimento
+- Horário
+- Profissional
+- Status da sessão
+
+10. Integrações
+Preparar estrutura para:
+- WhatsApp automático 24h antes
+- Confirmação por link
+- Cancelamento por link
+
+11. Importante
+- A agenda deve abrir já na semana atual.
+- Cada horário deve expandir automaticamente conforme quantidade de pacientes.
+- O sistema deve ser rápido mesmo com muitos agendamentos.
+
+TECNOLOGIAS:
+- Frontend: React + Tailwind
+- Backend: Node.js
+- Banco: PostgreSQL
+- Utilizar componentes modernos e responsivos.
+
+OBJETIVO:
+Deixar a agenda visualmente igual à planilha da clínica, porém moderna, automática e profissional.
