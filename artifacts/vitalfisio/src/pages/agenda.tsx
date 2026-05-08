@@ -845,7 +845,7 @@ export default function Agenda() {
       </div>
 
       {/* ─── GRID / VIEW ─────────────────────────────────── */}
-      {viewMode === "semanal" && (
+      {viewMode === "semanal" ? (
         <WeeklyGrid
           weekDays={weekDays}
           apptsByDateAndTime={apptsByDateAndTime}
@@ -855,9 +855,7 @@ export default function Agenda() {
           onWhatsApp={sendWhatsApp}
           today={today}
         />
-      )}
-
-      {viewMode === "diaria" && (
+      ) : viewMode === "diaria" ? (
         <DailyView
           dateStr={dailyDateStr}
           apptsByDateAndTime={apptsByDateAndTime}
@@ -867,9 +865,7 @@ export default function Agenda() {
           onPatientClick={setSelectedAppointment}
           onWhatsApp={sendWhatsApp}
         />
-      )}
-
-      {viewMode === "mensal" && (
+      ) : (
         <MonthlyView
           currentMonth={currentMonth}
           apptsByDateAndTime={apptsByDateAndTime}
@@ -879,110 +875,106 @@ export default function Agenda() {
         />
       )}
 
-      {/* ─── APPOINTMENT DETAIL PANEL ───────────────────── */}
-      {selectedAppointment && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setSelectedAppointment(null)} />
-          <div className="relative bg-card border border-border rounded-t-2xl sm:rounded-xl w-full sm:max-w-md shadow-xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-lg">Detalhes do Agendamento</h2>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedAppointment(null)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+      {/* ─── APPOINTMENT DETAIL DIALOG ───────────────────── */}
+      <Dialog open={!!selectedAppointment} onOpenChange={open => { if (!open) setSelectedAppointment(null); }}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          {selectedAppointment && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Detalhes do Agendamento</DialogTitle>
+              </DialogHeader>
 
-            <div className="space-y-2 text-sm">
-              {[
-                { label: "Paciente", value: selectedAppointment.patientName },
-                { label: "Fisioterapeuta", value: selectedAppointment.therapistName },
-                { label: "Data", value: format(new Date(selectedAppointment.date + "T12:00:00"), "dd/MM/yyyy") },
-                { label: "Horário", value: selectedAppointment.time },
-              ].map(i => (
-                <div key={i.label} className="flex justify-between">
-                  <span className="text-muted-foreground">{i.label}</span>
-                  <span className="font-medium">{i.value}</span>
-                </div>
-              ))}
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Status</span>
-                <Badge variant="outline" className={STATUS_COLORS[selectedAppointment.status]}>
-                  {STATUS_LABELS[selectedAppointment.status]}
-                </Badge>
-              </div>
-              {selectedAppointment.notes && (
-                <div>
-                  <span className="text-muted-foreground block mb-1">Observações</span>
-                  <p className="text-foreground italic text-sm">{selectedAppointment.notes}</p>
-                </div>
-              )}
-            </div>
-
-            {/* WhatsApp */}
-            <button
-              onClick={() => sendWhatsApp(selectedAppointment)}
-              className="w-full flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium border border-green-200 bg-green-50 rounded-lg px-3 py-2 transition-colors hover:bg-green-100"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Enviar confirmação via WhatsApp
-            </button>
-
-            {/* Quick status actions */}
-            <div className="flex gap-2 flex-wrap">
-              {selectedAppointment.status !== "presente" && (
-                <button onClick={() => handleStatusChange("presente")}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 font-medium">
-                  <Check className="h-3.5 w-3.5" /> Presente
-                </button>
-              )}
-              {selectedAppointment.status !== "confirmado" && selectedAppointment.status !== "presente" && selectedAppointment.status !== "falta" && (
-                <button onClick={() => handleStatusChange("confirmado")}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-teal-100 text-teal-700 hover:bg-teal-200 border border-teal-200 font-medium">
-                  <Check className="h-3.5 w-3.5" /> Confirmar
-                </button>
-              )}
-              {selectedAppointment.status !== "falta" && (
-                <button onClick={() => handleStatusChange("falta")}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 font-medium">
-                  <UserX className="h-3.5 w-3.5" /> Falta
-                </button>
-              )}
-              {selectedAppointment.status !== "cancelado" && selectedAppointment.status !== "presente" && (
-                <button onClick={() => handleStatusChange("cancelado")}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300 font-medium">
-                  <Ban className="h-3.5 w-3.5" /> Cancelar
-                </button>
-              )}
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Alterar Status</p>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                  <button key={key} onClick={() => handleStatusChange(key)}
-                    disabled={selectedAppointment.status === key || updateStatus.isPending}
-                    className={`text-xs px-2.5 py-1.5 rounded border font-medium transition-opacity ${STATUS_COLORS[key]} ${selectedAppointment.status === key ? "opacity-100 ring-2 ring-offset-1 ring-current" : "opacity-70 hover:opacity-100"} disabled:cursor-default`}>
-                    {label}
-                  </button>
+              <div className="space-y-2 text-sm">
+                {[
+                  { label: "Paciente", value: selectedAppointment.patientName },
+                  { label: "Fisioterapeuta", value: selectedAppointment.therapistName },
+                  { label: "Data", value: format(new Date(selectedAppointment.date + "T12:00:00"), "dd/MM/yyyy") },
+                  { label: "Horário", value: selectedAppointment.time },
+                ].map(i => (
+                  <div key={i.label} className="flex justify-between">
+                    <span className="text-muted-foreground">{i.label}</span>
+                    <span className="font-medium">{i.value}</span>
+                  </div>
                 ))}
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge variant="outline" className={STATUS_COLORS[selectedAppointment.status]}>
+                    {STATUS_LABELS[selectedAppointment.status]}
+                  </Badge>
+                </div>
+                {selectedAppointment.notes && (
+                  <div>
+                    <span className="text-muted-foreground block mb-1">Observações</span>
+                    <p className="text-foreground italic text-sm">{selectedAppointment.notes}</p>
+                  </div>
+                )}
               </div>
-            </div>
 
-            <div className="flex gap-2 pt-2 border-t border-border">
-              <Button variant="outline" size="sm" className="flex-1"
-                onClick={() => {
-                  rescheduleForm.reset({ date: format(new Date(), "yyyy-MM-dd"), time: "08:00", therapistId: selectedAppointment.therapistId });
-                  setIsRescheduleOpen(true);
-                }}>
-                Remarcar
-              </Button>
-              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"
-                onClick={handleDelete} disabled={deleteAppt.isPending}>
-                Excluir
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+              <button
+                onClick={() => sendWhatsApp(selectedAppointment)}
+                className="w-full flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium border border-green-200 bg-green-50 rounded-lg px-3 py-2 transition-colors hover:bg-green-100"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Enviar confirmação via WhatsApp
+              </button>
+
+              <div className="flex gap-2 flex-wrap">
+                {selectedAppointment.status !== "presente" && (
+                  <button onClick={() => handleStatusChange("presente")}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 font-medium">
+                    <Check className="h-3.5 w-3.5" /> Presente
+                  </button>
+                )}
+                {selectedAppointment.status !== "confirmado" && selectedAppointment.status !== "presente" && selectedAppointment.status !== "falta" && (
+                  <button onClick={() => handleStatusChange("confirmado")}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-teal-100 text-teal-700 hover:bg-teal-200 border border-teal-200 font-medium">
+                    <Check className="h-3.5 w-3.5" /> Confirmar
+                  </button>
+                )}
+                {selectedAppointment.status !== "falta" && (
+                  <button onClick={() => handleStatusChange("falta")}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 font-medium">
+                    <UserX className="h-3.5 w-3.5" /> Falta
+                  </button>
+                )}
+                {selectedAppointment.status !== "cancelado" && selectedAppointment.status !== "presente" && (
+                  <button onClick={() => handleStatusChange("cancelado")}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300 font-medium">
+                    <Ban className="h-3.5 w-3.5" /> Cancelar
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Alterar Status</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                    <button key={key} onClick={() => handleStatusChange(key)}
+                      disabled={selectedAppointment.status === key || updateStatus.isPending}
+                      className={`text-xs px-2.5 py-1.5 rounded border font-medium transition-opacity ${STATUS_COLORS[key]} ${selectedAppointment.status === key ? "opacity-100 ring-2 ring-offset-1 ring-current" : "opacity-70 hover:opacity-100"} disabled:cursor-default`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <DialogFooter className="flex-row gap-2 sm:justify-start">
+                <Button variant="outline" size="sm" className="flex-1"
+                  onClick={() => {
+                    rescheduleForm.reset({ date: format(new Date(), "yyyy-MM-dd"), time: "08:00", therapistId: selectedAppointment.therapistId });
+                    setIsRescheduleOpen(true);
+                  }}>
+                  Remarcar
+                </Button>
+                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"
+                  onClick={handleDelete} disabled={deleteAppt.isPending}>
+                  Excluir
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ─── RESCHEDULE DIALOG ───────────────────────────── */}
       <Dialog open={isRescheduleOpen} onOpenChange={setIsRescheduleOpen}>
@@ -1191,15 +1183,6 @@ export default function Agenda() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── PRINT STYLES ────────────────────────────────── */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .agenda-print, .agenda-print * { visibility: visible; }
-          .agenda-print { position: absolute; left: 0; top: 0; width: 100%; }
-          @page { size: landscape; margin: 1cm; }
-        }
-      `}</style>
     </div>
   );
 }

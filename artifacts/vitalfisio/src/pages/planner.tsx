@@ -729,10 +729,15 @@ export default function Planner() {
             </div>
           ) : (
             <div className="flex-1 border rounded-lg overflow-hidden bg-background flex flex-col">
-              {viewMode === "mes" && <MonthView />}
-              {viewMode === "semana" && <WeekView />}
-              {viewMode === "dia" && <DayView />}
-              {viewMode === "ano" && <YearView />}
+              {viewMode === "mes" ? (
+                <MonthView />
+              ) : viewMode === "semana" ? (
+                <WeekView />
+              ) : viewMode === "dia" ? (
+                <DayView />
+              ) : (
+                <YearView />
+              )}
             </div>
           )}
         </TabsContent>

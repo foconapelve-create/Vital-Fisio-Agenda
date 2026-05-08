@@ -360,3 +360,10 @@
     inset: -1px;
   }
 }
+
+@media print {
+  body * { visibility: hidden; }
+  .agenda-print, .agenda-print * { visibility: visible; }
+  .agenda-print { position: absolute; left: 0; top: 0; width: 100%; }
+  @page { size: landscape; margin: 1cm; }
+}
