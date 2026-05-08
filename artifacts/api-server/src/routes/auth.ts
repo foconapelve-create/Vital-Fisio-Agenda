@@ -60,7 +60,13 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   (req.session as any).username = user.username;
   (req.session as any).role = user.role;
 
-  res.json(mapUser(user));
+  req.session.save((err) => {
+    if (err) {
+      res.status(500).json({ error: "Erro ao salvar sessão" });
+      return;
+    }
+    res.json(mapUser(user));
+  });
 });
 
 // ── Logout ─────────────────────────────────────────────────────────────────────

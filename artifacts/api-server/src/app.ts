@@ -11,7 +11,7 @@ const PgSession = connectPgSimple(session);
 
 const app: Express = express();
 
-app.set("trust proxy", 1);
+app.set("trust proxy", true);
 
 app.use(
   pinoHttp({
@@ -28,6 +28,8 @@ app.use(express.urlencoded({ extended: true }));
 
 const sessionSecret = process.env.SESSION_SECRET ?? "vitalfisio-secret-key-change-in-production";
 const isProduction = process.env.NODE_ENV === "production";
+// Replit serves everything over HTTPS even in dev mode
+const isHttps = isProduction || !!process.env.REPL_ID;
 
 const sessionStore = new PgSession({
   pool,
@@ -42,9 +44,9 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: isProduction,
+      secure: isHttps,
       httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
+      sameSite: isHttps ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),
