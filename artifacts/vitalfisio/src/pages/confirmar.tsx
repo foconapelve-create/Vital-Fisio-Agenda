@@ -125,25 +125,19 @@ export default function Confirmar() {
       </div>
 
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden">
-        {/* Loading */}
-        {phase === "loading" && (
+        {phase === "loading" ? (
           <div className="p-8 flex flex-col items-center gap-4">
             <Loader2 className="h-10 w-10 text-teal-600 animate-spin" />
             <p className="text-slate-600 text-sm">Carregando informações da consulta…</p>
           </div>
-        )}
-
-        {/* Info + action buttons */}
-        {phase === "info" && info && (
+        ) : phase === "info" && info ? (
           <>
             <div className="bg-teal-600 px-6 py-5 text-white">
               <p className="text-sm font-medium opacity-80 mb-1">Confirmação de consulta</p>
               <h2 className="text-xl font-bold">Olá, {info.patientName.split(" ")[0]}! 👋</h2>
             </div>
-
             <div className="p-6 space-y-4">
               <p className="text-slate-600 text-sm">Você tem uma consulta agendada. Por favor, confirme sua presença:</p>
-
               <div className="rounded-xl border border-slate-200 bg-slate-50 divide-y divide-slate-200">
                 <div className="flex items-center gap-3 px-4 py-3">
                   <CalendarDays className="h-4 w-4 text-teal-600 shrink-0" />
@@ -176,7 +170,6 @@ export default function Confirmar() {
                   </div>
                 )}
               </div>
-
               <div className="flex flex-col gap-2 pt-1">
                 <Button
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-12 text-base rounded-xl gap-2"
@@ -198,10 +191,7 @@ export default function Confirmar() {
               </div>
             </div>
           </>
-        )}
-
-        {/* Confirmed */}
-        {phase === "confirmed" && (
+        ) : phase === "confirmed" ? (
           <div className="p-8 flex flex-col items-center gap-4 text-center">
             <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
               <CheckCircle2 className="h-9 w-9 text-emerald-600" />
@@ -219,10 +209,7 @@ export default function Confirmar() {
               </div>
             )}
           </div>
-        )}
-
-        {/* Cancelled */}
-        {phase === "cancelled" && (
+        ) : phase === "cancelled" ? (
           <div className="p-8 flex flex-col items-center gap-4 text-center">
             <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
               <XCircle className="h-9 w-9 text-red-500" />
@@ -234,10 +221,7 @@ export default function Confirmar() {
               </p>
             </div>
           </div>
-        )}
-
-        {/* Already done */}
-        {phase === "already_done" && info && (
+        ) : phase === "already_done" && info ? (
           <div className="p-8 flex flex-col items-center gap-4 text-center">
             <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center">
               <CheckCircle2 className="h-9 w-9 text-slate-500" />
@@ -250,10 +234,7 @@ export default function Confirmar() {
               </p>
             </div>
           </div>
-        )}
-
-        {/* Expired */}
-        {phase === "expired" && (
+        ) : phase === "expired" ? (
           <div className="p-8 flex flex-col items-center gap-4 text-center">
             <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center">
               <AlertTriangle className="h-9 w-9 text-amber-500" />
@@ -266,10 +247,7 @@ export default function Confirmar() {
               </p>
             </div>
           </div>
-        )}
-
-        {/* Error */}
-        {phase === "error" && (
+        ) : (
           <div className="p-8 flex flex-col items-center gap-4 text-center">
             <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
               <XCircle className="h-9 w-9 text-red-500" />
