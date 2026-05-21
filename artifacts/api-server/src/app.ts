@@ -54,4 +54,9 @@ app.use(
 
 app.use("/api", router);
 
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logger.error({ err }, "Unhandled error");
+  res.status(500).json({ error: err?.message || "Erro interno do servidor" });
+});
+
 export default app;

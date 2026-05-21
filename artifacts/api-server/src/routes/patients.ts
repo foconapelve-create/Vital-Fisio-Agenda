@@ -61,59 +61,63 @@ router.get("/patients", requireAuth, async (req, res): Promise<void> => {
   res.json(patients);
 });
 
-router.post("/patients", requireAuth, async (req, res): Promise<void> => {
-  const {
-    name, phone, email, birthDate, insuranceType, insuranceName, paymentMethod,
-    totalSessions, amountPaid, zipCode, addressStreet, addressNumber, addressComplement,
-    neighborhood, city, state, notes,
-  } = req.body;
+router.post("/patients", requireAuth, async (req, res, next): Promise<void> => {
+  try {
+    const {
+      name, phone, email, birthDate, insuranceType, insuranceName, paymentMethod,
+      totalSessions, amountPaid, zipCode, addressStreet, addressNumber, addressComplement,
+      neighborhood, city, state, notes,
+    } = req.body;
 
-  if (!name || !phone) {
-    res.status(400).json({ error: "Nome e telefone são obrigatórios" });
-    return;
-  }
+    if (!name || !phone) {
+      res.status(400).json({ error: "Nome e telefone são obrigatórios" });
+      return;
+    }
 
-  const sessions = parseInt(totalSessions) || 0;
-  const paid = amountPaid !== undefined && amountPaid !== null && amountPaid !== "" ? parseFloat(amountPaid) : null;
+    const sessions = parseInt(totalSessions) || 0;
+    const paid = amountPaid !== undefined && amountPaid !== null && amountPaid !== "" ? parseFloat(amountPaid) : null;
 
-  const [patient] = await db.insert(patientsTable).values({
-    name, phone,
-    email: email || null,
-    birthDate: birthDate || null,
-    insuranceType: insuranceType || "particular",
-    insuranceName: insuranceName || null,
-    paymentMethod: paymentMethod || null,
-    totalSessions: sessions,
-    remainingSessions: sessions,
-    amountPaid: paid,
-    zipCode: zipCode || null,
-    addressStreet: addressStreet || null,
-    addressNumber: addressNumber || null,
-    addressComplement: addressComplement || null,
-    neighborhood: neighborhood || null,
-    city: city || null,
-    state: state || null,
-    notes: notes || null,
-  }).returning();
-
-  // Auto-create financial entry if amountPaid is set
-  if (paid && paid > 0) {
-    const today = new Date().toISOString().split("T")[0];
-    await db.insert(financialTable).values({
-      description: `Pagamento inicial — ${name}`,
-      type: "receita",
-      amount: paid,
-      paymentStatus: "pago",
-      category: sessions > 0 ? "Pacote" : "Sessão",
-      patientId: patient.id,
+    const [patient] = await db.insert(patientsTable).values({
+      name, phone,
+      email: email || null,
+      birthDate: birthDate || null,
+      insuranceType: insuranceType || "particular",
+      insuranceName: insuranceName || null,
       paymentMethod: paymentMethod || null,
-      paymentDate: today,
-      dueDate: today,
-      notes: `Gerado automaticamente no cadastro do paciente. ${sessions} sessões contratadas.`,
+      totalSessions: sessions,
+      remainingSessions: sessions,
+      amountPaid: paid,
+      zipCode: zipCode || null,
+      addressStreet: addressStreet || null,
+      addressNumber: addressNumber || null,
+      addressComplement: addressComplement || null,
+      neighborhood: neighborhood || null,
+      city: city || null,
+      state: state || null,
+      notes: notes || null,
     }).returning();
-  }
 
-  res.status(201).json(patient);
+    // Auto-create financial entry if amountPaid is set
+    if (paid && paid > 0) {
+      const today = new Date().toISOString().split("T")[0];
+      await db.insert(financialTable).values({
+        description: `Pagamento inicial — ${name}`,
+        type: "receita",
+        amount: paid,
+        paymentStatus: "pago",
+        category: sessions > 0 ? "Pacote" : "Sessão",
+        patientId: patient.id,
+        paymentMethod: paymentMethod || null,
+        paymentDate: today,
+        dueDate: today,
+        notes: `Gerado automaticamente no cadastro do paciente. ${sessions} sessões contratadas.`,
+      }).returning();
+    }
+
+    res.status(201).json(patient);
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.get("/patients/:id", requireAuth, async (req, res): Promise<void> => {
