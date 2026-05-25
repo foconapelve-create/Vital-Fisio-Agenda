@@ -12,6 +12,31 @@ function requireAuth(req: any, res: any, next: any) {
   next();
 }
 
+router.get("/evolutions", requireAuth, async (req, res): Promise<void> => {
+  const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+
+  const evolutions = await db
+    .select({
+      id: evolutionsTable.id,
+      patientId: evolutionsTable.patientId,
+      therapistId: evolutionsTable.therapistId,
+      appointmentId: evolutionsTable.appointmentId,
+      date: evolutionsTable.date,
+      content: evolutionsTable.content,
+      createdAt: evolutionsTable.createdAt,
+      therapistName: therapistsTable.name,
+      therapistSpecialty: therapistsTable.specialty,
+      patientName: patientsTable.name,
+    })
+    .from(evolutionsTable)
+    .innerJoin(therapistsTable, eq(evolutionsTable.therapistId, therapistsTable.id))
+    .innerJoin(patientsTable, eq(evolutionsTable.patientId, patientsTable.id))
+    .orderBy(desc(evolutionsTable.date), desc(evolutionsTable.createdAt))
+    .limit(limit);
+
+  res.json(evolutions);
+});
+
 router.get("/evolutions/patient/:patientId", requireAuth, async (req, res): Promise<void> => {
   const patientId = parseInt(req.params.patientId);
   if (isNaN(patientId)) {

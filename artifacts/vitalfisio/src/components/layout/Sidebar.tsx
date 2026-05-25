@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, CalendarDays, Users, UserRound, FileBarChart,
   Wallet, FileText, LogOut, X, CheckCircle2, ClipboardList, Cake,
-  LayoutGrid, Package, UserCog, Baby, HeartPulse,
+  LayoutGrid, Package, UserCog, Baby, HeartPulse, Activity,
 } from "lucide-react";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,11 @@ const adminItems = [
   { href: "/confirmacoes", label: "Confirmações", icon: CheckCircle2 },
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/patients", label: "Pacientes", icon: Users },
+  { href: "/evolucoes", label: "Evoluções", icon: Activity },
   { href: "/therapists", label: "Profissionais", icon: UserRound },
   { href: "/financial", label: "Financeiro", icon: Wallet },
   { href: "/estoque", label: "Estoque", icon: Package },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
-  { href: "/relatorio", label: "Relatório Clínico", icon: FileText },
   { href: "/atestados", label: "Documentos Clínicos", icon: ClipboardList },
   { href: "/planner", label: "Planner de Conteúdo", icon: LayoutGrid },
   { href: "/users", label: "Usuários", icon: UserCog },
@@ -35,9 +35,9 @@ const profissionalItems = [
   { href: "/agenda-bebe", label: "Agenda Bebês", icon: Baby },
   { href: "/aniversariantes", label: "Aniversariantes", icon: Cake },
   { href: "/patients", label: "Pacientes", icon: Users },
+  { href: "/evolucoes", label: "Evoluções", icon: Activity },
   { href: "/estoque", label: "Estoque", icon: Package },
   { href: "/reports", label: "Relatórios", icon: FileBarChart },
-  { href: "/relatorio", label: "Relatório Clínico", icon: FileText },
   { href: "/atestados", label: "Documentos Clínicos", icon: ClipboardList },
   { href: "/planner", label: "Planner de Conteúdo", icon: LayoutGrid },
 ];

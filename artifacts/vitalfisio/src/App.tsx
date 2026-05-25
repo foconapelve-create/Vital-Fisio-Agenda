@@ -19,6 +19,7 @@ import AgendaBebe from "@/pages/agenda-bebe";
 import Reports from "@/pages/reports";
 import Financial from "@/pages/financial";
 import Relatorio from "@/pages/relatorio";
+import Evolucoes from "@/pages/evolucoes";
 import Confirmacoes from "@/pages/confirmacoes";
 import Atestados from "@/pages/atestados";
 import Aniversariantes from "@/pages/aniversariantes";
@@ -106,6 +107,9 @@ function Router() {
       </Route>
       <Route path="/relatorio">
         <ProtectedRoute component={Relatorio} roles={["admin", "fisioterapeuta"]} />
+      </Route>
+      <Route path="/evolucoes">
+        <ProtectedRoute component={Evolucoes} roles={["admin", "fisioterapeuta"]} />
       </Route>
       <Route path="/confirmacoes">
         <ProtectedRoute component={Confirmacoes} roles={["admin", "fisioterapeuta", "recepcao"]} />
