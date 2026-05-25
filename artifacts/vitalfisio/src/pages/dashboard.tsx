@@ -44,6 +44,15 @@ const fmtDate = (s: string) => { if (!s) return "-"; const [y, m, d] = s.split("
 export default function Dashboard() {
   const [, setLocation] = useLocation();
 
+  const { data: me } = useQuery<any>({
+    queryKey: ["me"],
+    queryFn: () => apiFetch("/api/auth/me"),
+  });
+
+  const role = me?.role || "admin";
+  const isProfissional = role === "profissional" || role === "fisioterapeuta";
+  const isRecepcao = role === "recepcao";
+
   const { data: summary, isLoading: isLoadingSummary } = useQuery<Summary>({
     queryKey: ["dashboard-summary"],
     queryFn: () => apiFetch("/api/dashboard/summary"),
@@ -197,7 +206,7 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Cards financeiros */}
+          {/* Cards financeiros — apenas admin e financeiro */}
           {fin && (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card className="border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation("/financial")}>
@@ -299,11 +308,13 @@ export default function Dashboard() {
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Nova Sessão", href: "/agenda", icon: CalendarCheck, color: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200" },
-                { label: "Pacientes", href: "/patients", icon: Users, color: "bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-200" },
-                { label: "Financeiro", href: "/financial", icon: Wallet, color: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200" },
-                { label: "Relatórios", href: "/reports", icon: TrendingUp, color: "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200" },
-              ].map(item => (
+                { label: "Nova Sessão", href: "/agenda", icon: CalendarCheck, color: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200", roles: ["admin","fisioterapeuta","profissional","recepcao"] },
+                { label: "Pacientes", href: "/patients", icon: Users, color: "bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-200", roles: ["admin","fisioterapeuta","profissional","recepcao"] },
+                { label: "Financeiro", href: "/financial", icon: Wallet, color: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200", roles: ["admin","financeiro"] },
+                { label: "Relatórios", href: "/reports", icon: TrendingUp, color: "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200", roles: ["admin","fisioterapeuta","profissional","financeiro"] },
+                { label: "Aniversariantes", href: "/aniversariantes", icon: Cake, color: "bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200", roles: ["admin","fisioterapeuta","profissional","recepcao","financeiro"] },
+                { label: "Confirmações", href: "/confirmacoes", icon: CheckCircle, color: "bg-green-50 text-green-700 hover:bg-green-100 border-green-200", roles: ["admin","fisioterapeuta","profissional","recepcao"] },
+              ].filter(item => item.roles.includes(role)).map(item => (
                 <button key={item.href}
                   className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-colors cursor-pointer ${item.color}`}
                   onClick={() => setLocation(item.href)}>
