@@ -54,7 +54,7 @@ export default function AgendaRecursos() {
   const queryClient = useQueryClient();
 
   const [selectedDate, setSelectedDate] = useState(fmt(new Date()));
-  const [therapistFilter, setTherapistFilter] = useState("");
+  const [therapistFilter, setTherapistFilter] = useState("all");
   const [patientSearch, setPatientSearch] = useState("");
   const [dragApt, setDragApt] = useState<any>(null);
   const [dropTarget, setDropTarget] = useState<{ resourceId: number; time: string } | null>(null);
@@ -143,7 +143,7 @@ export default function AgendaRecursos() {
   );
 
   const filteredApts = activeApts.filter((a: any) => {
-    if (therapistFilter && String(a.therapistId) !== therapistFilter) return false;
+    if (therapistFilter !== "all" && String(a.therapistId) !== therapistFilter) return false;
     if (patientSearch && !a.patientName?.toLowerCase().includes(patientSearch.toLowerCase())) return false;
     return true;
   });
@@ -191,7 +191,7 @@ export default function AgendaRecursos() {
     const body = {
       patientId: Number(form.patientId),
       therapistId: Number(form.therapistId),
-      resourceId: form.resourceId ? Number(form.resourceId) : null,
+      resourceId: (form.resourceId && form.resourceId !== "none") ? Number(form.resourceId) : null,
       date: selectedDate,
       time: form.time,
       notes: form.notes || null,
@@ -278,7 +278,7 @@ export default function AgendaRecursos() {
             <SelectValue placeholder="Todos profissionais" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos profissionais</SelectItem>
+            <SelectItem value="all">Todos profissionais</SelectItem>
             {(therapists as any[]).map((t: any) => (
               <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
             ))}
@@ -483,7 +483,7 @@ export default function AgendaRecursos() {
                     <SelectValue placeholder="Selecionar..." />
                   </SelectTrigger>
                   <SelectContent className="max-h-48">
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {activeResources.map((r: any) => (
                       <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
                     ))}
