@@ -1,1 +1,3 @@
 - [Bearer token auth fallback](bearer-token-auth.md) — cookies blocked in Replit iframe; login returns sessionId stored in localStorage, sent as Bearer token.
+- [Express router-level auth anti-pattern](express-router-auth.md) — router.use(requireAuth) without path prefix blocks ALL routes; always add requireAuth per-route.
+- [Drizzle schema push](drizzle-schema-push.md) — run `pnpm run push-force` from `lib/db/` to create/update all DB tables after schema changes.

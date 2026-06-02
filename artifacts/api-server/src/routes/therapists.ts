@@ -11,12 +11,20 @@ import {
 
 const router: IRouter = Router();
 
+function requireAuth(req: any, res: any, next: any) {
+  if (!(req.session as any)?.userId) {
+    res.status(401).json({ error: "Não autenticado" });
+    return;
+  }
+  next();
+}
+
 router.get("/therapists", async (_req, res): Promise<void> => {
   const therapists = await db.select().from(therapistsTable).orderBy(therapistsTable.name);
   res.json(therapists);
 });
 
-router.post("/therapists", async (req, res): Promise<void> => {
+router.post("/therapists", requireAuth, async (req, res): Promise<void> => {
   const parsed = CreateTherapistBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -57,7 +65,7 @@ router.get("/therapists/:id", async (req, res): Promise<void> => {
   res.json(therapist);
 });
 
-router.patch("/therapists/:id", async (req, res): Promise<void> => {
+router.patch("/therapists/:id", requireAuth, async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = UpdateTherapistParams.safeParse({ id: parseInt(rawId, 10) });
   if (!params.success) {
@@ -92,7 +100,7 @@ router.patch("/therapists/:id", async (req, res): Promise<void> => {
   res.json(therapist);
 });
 
-router.delete("/therapists/:id", async (req, res): Promise<void> => {
+router.delete("/therapists/:id", requireAuth, async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = DeleteTherapistParams.safeParse({ id: parseInt(rawId, 10) });
   if (!params.success) {

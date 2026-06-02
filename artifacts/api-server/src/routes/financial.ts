@@ -4,6 +4,16 @@ import { db, financialTable, patientsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
+function requireAuth(req: any, res: any, next: any) {
+  if (!(req.session as any)?.userId) {
+    res.status(401).json({ error: "Não autenticado" });
+    return;
+  }
+  next();
+}
+
+
+
 function buildSelect() {
   return {
     id: financialTable.id, description: financialTable.description, type: financialTable.type,
@@ -15,7 +25,7 @@ function buildSelect() {
   };
 }
 
-router.get("/financial", async (req, res): Promise<void> => {
+router.get("/financial", requireAuth, async (req, res): Promise<void> => {
   const { startDate, endDate, type, paymentStatus } = req.query as Record<string, string>;
   const conditions = [];
   if (startDate) conditions.push(gte(financialTable.dueDate, startDate));
@@ -33,7 +43,7 @@ router.get("/financial", async (req, res): Promise<void> => {
   res.json(records);
 });
 
-router.get("/financial/summary", async (req, res): Promise<void> => {
+router.get("/financial/summary", requireAuth, async (req, res): Promise<void> => {
   const { month, year } = req.query as Record<string, string>;
   const conditions = [];
 
@@ -65,7 +75,7 @@ router.get("/financial/summary", async (req, res): Promise<void> => {
   });
 });
 
-router.post("/financial", async (req, res): Promise<void> => {
+router.post("/financial", requireAuth, async (req, res): Promise<void> => {
   try {
     const { description, type, amount, paymentStatus, category, supplier, dueDate, paymentDate, patientId, paymentMethod, notes } = req.body;
 
@@ -105,7 +115,7 @@ router.post("/financial", async (req, res): Promise<void> => {
   }
 });
 
-router.put("/financial/:id", async (req, res): Promise<void> => {
+router.put("/financial/:id", requireAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
@@ -134,7 +144,7 @@ router.put("/financial/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.patch("/financial/:id/pay", async (req, res): Promise<void> => {
+router.patch("/financial/:id/pay", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
@@ -146,7 +156,7 @@ router.patch("/financial/:id/pay", async (req, res): Promise<void> => {
   res.json(updated);
 });
 
-router.delete("/financial/:id", async (req, res): Promise<void> => {
+router.delete("/financial/:id", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
   await db.delete(financialTable).where(eq(financialTable.id, id));

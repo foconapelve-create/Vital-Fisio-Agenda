@@ -8,7 +8,17 @@ import {
 
 const router: IRouter = Router();
 
-router.get("/reports/daily", async (req, res): Promise<void> => {
+function requireAuth(req: any, res: any, next: any) {
+  if (!(req.session as any)?.userId) {
+    res.status(401).json({ error: "Não autenticado" });
+    return;
+  }
+  next();
+}
+
+
+
+router.get("/reports/daily", requireAuth, async (req, res): Promise<void> => {
   const parsed = GetDailyReportQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -54,7 +64,7 @@ router.get("/reports/daily", async (req, res): Promise<void> => {
   res.json(result);
 });
 
-router.get("/reports/absences", async (req, res): Promise<void> => {
+router.get("/reports/absences", requireAuth, async (req, res): Promise<void> => {
   const parsed = GetAbsenceReportQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -85,7 +95,7 @@ router.get("/reports/absences", async (req, res): Promise<void> => {
   res.json(absences);
 });
 
-router.get("/reports/sessions", async (_req, res): Promise<void> => {
+router.get("/reports/sessions", requireAuth, async (_req, res): Promise<void> => {
   const patients = await db
     .select({
       patientId: patientsTable.id,

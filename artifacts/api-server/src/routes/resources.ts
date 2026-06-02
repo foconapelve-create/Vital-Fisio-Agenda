@@ -4,6 +4,14 @@ import { db, resourcesTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
+function requireAuth(req: any, res: any, next: any) {
+  if (!(req.session as any)?.userId) {
+    res.status(401).json({ error: "Não autenticado" });
+    return;
+  }
+  next();
+}
+
 const DEFAULT_RESOURCES = [
   { name: "Eletroterapia 1", type: "Eletroterapia" },
   { name: "Eletroterapia 2", type: "Eletroterapia" },
@@ -40,7 +48,7 @@ router.get("/resources", async (_req, res): Promise<void> => {
 
 // ─── SEED DEFAULTS ────────────────────────────────────────────────────────────
 
-router.post("/resources/seed", async (_req, res): Promise<void> => {
+router.post("/resources/seed", requireAuth, async (_req, res): Promise<void> => {
   try {
     const existing = await db.select().from(resourcesTable);
     if (existing.length > 0) {
@@ -56,7 +64,7 @@ router.post("/resources/seed", async (_req, res): Promise<void> => {
 
 // ─── CREATE ───────────────────────────────────────────────────────────────────
 
-router.post("/resources", async (req, res): Promise<void> => {
+router.post("/resources", requireAuth, async (req, res): Promise<void> => {
   try {
     const { name, type } = req.body;
     if (!name || !type) {
@@ -72,7 +80,7 @@ router.post("/resources", async (req, res): Promise<void> => {
 
 // ─── UPDATE ───────────────────────────────────────────────────────────────────
 
-router.patch("/resources/:id", async (req, res): Promise<void> => {
+router.patch("/resources/:id", requireAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
@@ -91,7 +99,7 @@ router.patch("/resources/:id", async (req, res): Promise<void> => {
 
 // ─── DELETE ───────────────────────────────────────────────────────────────────
 
-router.delete("/resources/:id", async (req, res): Promise<void> => {
+router.delete("/resources/:id", requireAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }

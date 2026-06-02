@@ -4,6 +4,14 @@ import { db, holidaysTable, appointmentsTable, patientsTable, therapistsTable, a
 
 const router: IRouter = Router();
 
+function requireAuth(req: any, res: any, next: any) {
+  if (!(req.session as any)?.userId) {
+    res.status(401).json({ error: "Não autenticado" });
+    return;
+  }
+  next();
+}
+
 // ─── Easter algorithm (Anonymous Gregorian) ───────────────────────────────────
 function getEaster(year: number): Date {
   const a = year % 19;
@@ -99,7 +107,7 @@ router.get("/holidays/check", async (req, res): Promise<void> => {
 
 // ─── SEED NATIONAL ────────────────────────────────────────────────────────────
 
-router.post("/holidays/seed-national", async (req, res): Promise<void> => {
+router.post("/holidays/seed-national", requireAuth, async (req, res): Promise<void> => {
   try {
     const year = req.body.year ? Number(req.body.year) : new Date().getFullYear();
     const toInsert = getBrazilianNationalHolidays(year);
@@ -163,7 +171,7 @@ const RESCHEDULE_SLOTS = [
   "16:00","16:30","17:00","17:30","18:00",
 ];
 
-router.post("/holidays/:id/auto-reschedule", async (req, res): Promise<void> => {
+router.post("/holidays/:id/auto-reschedule", requireAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
@@ -281,7 +289,7 @@ router.post("/holidays/:id/auto-reschedule", async (req, res): Promise<void> => 
 
 // ─── CREATE ───────────────────────────────────────────────────────────────────
 
-router.post("/holidays", async (req, res): Promise<void> => {
+router.post("/holidays", requireAuth, async (req, res): Promise<void> => {
   try {
     const { date, description, type } = req.body;
     if (!date || !description) {
@@ -299,7 +307,7 @@ router.post("/holidays", async (req, res): Promise<void> => {
 
 // ─── UPDATE ───────────────────────────────────────────────────────────────────
 
-router.patch("/holidays/:id", async (req, res): Promise<void> => {
+router.patch("/holidays/:id", requireAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
@@ -319,7 +327,7 @@ router.patch("/holidays/:id", async (req, res): Promise<void> => {
 
 // ─── DELETE ───────────────────────────────────────────────────────────────────
 
-router.delete("/holidays/:id", async (req, res): Promise<void> => {
+router.delete("/holidays/:id", requireAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }

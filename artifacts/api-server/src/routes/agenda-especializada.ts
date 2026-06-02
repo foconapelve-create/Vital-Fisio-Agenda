@@ -144,8 +144,9 @@ router.put("/agenda-esp/appointments/:id", requireAuth, async (req, res): Promis
 router.delete("/agenda-esp/appointments/:id", requireAuth, async (req, res): Promise<void> => {
   const { id } = req.params;
   try {
-    await pool.query("DELETE FROM especializada_appointments WHERE id=$1", [id]);
-    res.json({ success: true });
+    const { rowCount } = await pool.query("DELETE FROM especializada_appointments WHERE id=$1", [id]);
+    if (!rowCount) { res.status(404).json({ error: "Agendamento não encontrado" }); return; }
+    res.sendStatus(204);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 

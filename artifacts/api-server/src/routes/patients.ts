@@ -31,13 +31,18 @@ router.get("/patients", requireAuth, async (req, res): Promise<void> => {
     if (therapistRows.length > 0) {
       const therapistIds = therapistRows.map((t: any) => t.id);
       const placeholders = therapistIds.map((_: any, i: number) => `$${i + 1}`).join(", ");
-      const searchFilter = search ? `AND LOWER(p.name) LIKE '%${search.replace(/'/g, "''")}%'` : "";
+      const queryParams: any[] = [...therapistIds];
+      let searchClause = "";
+      if (search) {
+        queryParams.push(`%${search}%`);
+        searchClause = `AND LOWER(p.name) LIKE LOWER($${queryParams.length})`;
+      }
       const { rows: patients } = await pool.query(
         `SELECT DISTINCT p.* FROM patients p
          INNER JOIN appointments a ON a.patient_id = p.id
-         WHERE a.therapist_id IN (${placeholders}) ${searchFilter}
+         WHERE a.therapist_id IN (${placeholders}) ${searchClause}
          ORDER BY p.name`,
-        therapistIds
+        queryParams
       );
       res.json(patients.map((p: any) => ({
         id: p.id, name: p.name, phone: p.phone, email: p.email,
@@ -45,7 +50,12 @@ router.get("/patients", requireAuth, async (req, res): Promise<void> => {
         insuranceName: p.insurance_name, paymentMethod: p.payment_method,
         totalSessions: p.total_sessions, remainingSessions: p.remaining_sessions,
         amountPaid: p.amount_paid, notes: p.notes,
+        zipCode: p.zip_code, addressStreet: p.address_street, addressNumber: p.address_number,
+        addressComplement: p.address_complement, neighborhood: p.neighborhood,
         city: p.city, state: p.state,
+        contactPreference: p.contact_preference || "whatsapp",
+        adhesionProfile: p.adhesion_profile || null,
+        createdAt: p.created_at, updatedAt: p.updated_at,
       })));
       return;
     }
@@ -66,7 +76,7 @@ router.post("/patients", requireAuth, async (req, res, next): Promise<void> => {
     const {
       name, phone, email, birthDate, insuranceType, insuranceName, paymentMethod,
       totalSessions, amountPaid, zipCode, addressStreet, addressNumber, addressComplement,
-      neighborhood, city, state, notes,
+      neighborhood, city, state, notes, contactPreference,
     } = req.body;
 
     if (!name || !phone) {
@@ -95,6 +105,7 @@ router.post("/patients", requireAuth, async (req, res, next): Promise<void> => {
       city: city || null,
       state: state || null,
       notes: notes || null,
+      contactPreference: contactPreference || "whatsapp",
     }).returning();
 
     // Auto-create financial entry if amountPaid is set
@@ -137,7 +148,7 @@ router.patch("/patients/:id", requireAuth, async (req, res): Promise<void> => {
   const {
     name, phone, email, birthDate, insuranceType, insuranceName, paymentMethod,
     totalSessions, remainingSessions, amountPaid, zipCode, addressStreet, addressNumber, addressComplement,
-    neighborhood, city, state, notes,
+    neighborhood, city, state, notes, contactPreference,
   } = req.body;
 
   const update: Record<string, unknown> = {};
@@ -159,6 +170,7 @@ router.patch("/patients/:id", requireAuth, async (req, res): Promise<void> => {
   if (city !== undefined) update.city = city || null;
   if (state !== undefined) update.state = state || null;
   if (notes !== undefined) update.notes = notes || null;
+  if (contactPreference !== undefined) update.contactPreference = contactPreference || "whatsapp";
 
   const [patient] = await db.update(patientsTable).set(update).where(eq(patientsTable.id, id)).returning();
   if (!patient) { res.status(404).json({ error: "Paciente não encontrado" }); return; }

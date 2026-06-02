@@ -17,6 +17,16 @@ const ALL_STATUSES = [
 
 const router: IRouter = Router();
 
+function requireAuth(req: any, res: any, next: any) {
+  if (!(req.session as any)?.userId) {
+    res.status(401).json({ error: "Não autenticado" });
+    return;
+  }
+  next();
+}
+
+
+
 function buildSelect() {
   return {
     id: appointmentsTable.id, patientId: appointmentsTable.patientId,
@@ -43,7 +53,7 @@ async function getWithDetails(id: number) {
 
 // ─── LIST ─────────────────────────────────────────────────────────────────────
 
-router.get("/appointments", async (req, res): Promise<void> => {
+router.get("/appointments", requireAuth, async (req, res): Promise<void> => {
   const query = ListAppointmentsQueryParams.safeParse(req.query);
   const filters = query.success ? query.data : {};
 
@@ -73,7 +83,7 @@ router.get("/appointments", async (req, res): Promise<void> => {
 
 // ─── UPCOMING (confirmation funnel) ───────────────────────────────────────────
 
-router.get("/appointments/upcoming", async (req, res): Promise<void> => {
+router.get("/appointments/upcoming", requireAuth, async (req, res): Promise<void> => {
   const days = parseInt(String(req.query.days ?? "3"));
   const today = new Date().toISOString().split("T")[0];
   const future = new Date();
@@ -96,7 +106,7 @@ router.get("/appointments/upcoming", async (req, res): Promise<void> => {
 
 // ─── ENCAIXE OPPORTUNITIES (must be before /:id to avoid conflict) ───────────
 
-router.get("/appointments/encaixe-opportunities", async (req, res): Promise<void> => {
+router.get("/appointments/encaixe-opportunities", requireAuth, async (req, res): Promise<void> => {
   try {
     const today = new Date().toISOString().split("T")[0];
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
@@ -131,7 +141,7 @@ router.get("/appointments/encaixe-opportunities", async (req, res): Promise<void
 
 // ─── DELETE GROUP (must be before /:id to avoid conflict) ────────────────────
 
-router.delete("/appointments/group/:groupId", async (req, res): Promise<void> => {
+router.delete("/appointments/group/:groupId", requireAuth, async (req, res): Promise<void> => {
   const { groupId } = req.params;
   if (!groupId) { res.status(400).json({ error: "groupId inválido" }); return; }
 
@@ -147,7 +157,7 @@ router.delete("/appointments/group/:groupId", async (req, res): Promise<void> =>
 
 // ─── CREATE SINGLE ────────────────────────────────────────────────────────────
 
-router.post("/appointments", async (req, res): Promise<void> => {
+router.post("/appointments", requireAuth, async (req, res): Promise<void> => {
   try {
     const parsed = CreateAppointmentBody.safeParse(req.body);
     if (!parsed.success) {
@@ -240,7 +250,7 @@ router.post("/appointments", async (req, res): Promise<void> => {
 
 // ─── CREATE RECURRING ─────────────────────────────────────────────────────────
 
-router.post("/appointments/recurring", async (req, res): Promise<void> => {
+router.post("/appointments/recurring", requireAuth, async (req, res): Promise<void> => {
   try {
     const { patientId, therapistId, startDate, time, notes, recurrenceType, weekDays, totalCount, endDate } = req.body;
 
@@ -254,44 +264,79 @@ router.post("/appointments/recurring", async (req, res): Promise<void> => {
       return;
     }
 
+    // Load clinic settings once
+    const settingsRows = await db.execute(
+      sql`SELECT holiday_mode, allow_saturday, block_sunday FROM clinic_settings LIMIT 1`
+    );
+    const settings = settingsRows.rows[0] as any;
+    const holidayMode: string = settings?.holiday_mode ?? "block";
+    const allowSaturday: boolean = settings?.allow_saturday ?? true;
+    const blockSunday: boolean = settings?.block_sunday ?? true;
+
+    // Pre-load holidays for the date range (up to 2 years)
+    const rangeStart = startDate;
+    const rangeEndDate = endDate || new Date(new Date(startDate + "T12:00:00").getTime() + 730 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const holidays = await db.select({ date: holidaysTable.date })
+      .from(holidaysTable)
+      .where(and(
+        gte(holidaysTable.date, rangeStart),
+        lte(holidaysTable.date, rangeEndDate),
+        eq(holidaysTable.active, true),
+      ));
+    const holidaySet = new Set(holidays.map(h => h.date));
+
     const groupId = randomUUID();
     const dates: string[] = [];
     const start = new Date(startDate + "T12:00:00");
     const end = endDate ? new Date(endDate + "T23:59:59") : null;
     const maxCount = totalCount ? Math.min(parseInt(String(totalCount)), 200) : 52;
 
+    function isDateAllowed(dateStr: string): boolean {
+      const d = new Date(dateStr + "T12:00:00");
+      const dow = d.getDay();
+      if (dow === 0 && blockSunday) return false;
+      if (dow === 6 && !allowSaturday) return false;
+      if (holidayMode === "block" && holidaySet.has(dateStr)) return false;
+      return true;
+    }
+
     if (recurrenceType === "diaria") {
       let curr = new Date(start);
       while (dates.length < maxCount && (!end || curr <= end)) {
-        dates.push(curr.toISOString().split("T")[0]);
+        const ds = curr.toISOString().split("T")[0];
+        if (isDateAllowed(ds)) dates.push(ds);
         curr.setDate(curr.getDate() + 1);
       }
     } else if (recurrenceType === "semanal") {
       let curr = new Date(start);
       while (dates.length < maxCount && (!end || curr <= end)) {
-        dates.push(curr.toISOString().split("T")[0]);
+        const ds = curr.toISOString().split("T")[0];
+        if (isDateAllowed(ds)) dates.push(ds);
         curr.setDate(curr.getDate() + 7);
       }
     } else if (recurrenceType === "dias_semana") {
       const days: number[] = weekDays.map(Number);
       let curr = new Date(start);
       for (let i = 0; i < 730 && dates.length < maxCount && (!end || curr <= end); i++) {
-        if (days.includes(curr.getDay())) {
-          dates.push(curr.toISOString().split("T")[0]);
+        const ds = curr.toISOString().split("T")[0];
+        if (days.includes(curr.getDay()) && isDateAllowed(ds)) {
+          dates.push(ds);
         }
         curr.setDate(curr.getDate() + 1);
       }
     }
 
     if (dates.length === 0) {
-      res.status(400).json({ error: "Nenhuma data gerada. Verifique os parâmetros de recorrência." });
+      res.status(400).json({ error: "Nenhuma data gerada. Verifique os parâmetros de recorrência (datas bloqueadas por feriados ou fins de semana)." });
       return;
     }
 
     const created: number[] = [];
     const skipped: string[] = [];
+    const skippedHolidays: string[] = [];
 
     for (const date of dates) {
+      // Double-check conflict (same patient, same time, same date)
       const conflict = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
         .where(and(
           eq(appointmentsTable.patientId, Number(patientId)),
@@ -312,9 +357,13 @@ router.post("/appointments/recurring", async (req, res): Promise<void> => {
       }
     }
 
+    const parts: string[] = [`${created.length} sessão(ões) criada(s)`];
+    if (skipped.length > 0) parts.push(`${skipped.length} ignorada(s) por conflito de horário`);
+    if (skippedHolidays.length > 0) parts.push(`${skippedHolidays.length} pulada(s) por feriado`);
+
     res.status(201).json({
       created: created.length, skipped: skipped.length, groupId,
-      message: `${created.length} sessão(ões) criada(s)${skipped.length > 0 ? `, ${skipped.length} ignorada(s) por conflito de horário` : ""}`,
+      message: parts.join(", "),
     });
   } catch (e: any) {
     console.error("Recurring error:", e);
@@ -324,7 +373,7 @@ router.post("/appointments/recurring", async (req, res): Promise<void> => {
 
 // ─── GET BY ID ────────────────────────────────────────────────────────────────
 
-router.get("/appointments/:id", async (req, res): Promise<void> => {
+router.get("/appointments/:id", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
@@ -335,7 +384,7 @@ router.get("/appointments/:id", async (req, res): Promise<void> => {
 
 // ─── UPDATE ───────────────────────────────────────────────────────────────────
 
-router.patch("/appointments/:id", async (req, res): Promise<void> => {
+router.patch("/appointments/:id", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
@@ -382,7 +431,7 @@ router.patch("/appointments/:id", async (req, res): Promise<void> => {
 
 // ─── DELETE ───────────────────────────────────────────────────────────────────
 
-router.delete("/appointments/:id", async (req, res): Promise<void> => {
+router.delete("/appointments/:id", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
 
@@ -393,7 +442,7 @@ router.delete("/appointments/:id", async (req, res): Promise<void> => {
 
 // ─── CONTACT HISTORY ─────────────────────────────────────────────────────────
 
-router.get("/appointments/:id/contacts", async (req, res): Promise<void> => {
+router.get("/appointments/:id/contacts", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
   const contacts = await db.select().from(appointmentContactsTable)
@@ -402,7 +451,7 @@ router.get("/appointments/:id/contacts", async (req, res): Promise<void> => {
   res.json(contacts);
 });
 
-router.post("/appointments/:id/contacts", async (req, res): Promise<void> => {
+router.post("/appointments/:id/contacts", requireAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
@@ -422,7 +471,7 @@ router.post("/appointments/:id/contacts", async (req, res): Promise<void> => {
 
 // ─── UPDATE STATUS ────────────────────────────────────────────────────────────
 
-router.patch("/appointments/:id/status", async (req, res): Promise<void> => {
+router.patch("/appointments/:id/status", requireAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
@@ -482,7 +531,7 @@ router.patch("/appointments/:id/status", async (req, res): Promise<void> => {
 
 // ─── GENERATE WHATSAPP CONFIRMATION TOKEN + SEND VIA Z-API ──────────────────
 
-router.post("/appointments/:id/whatsapp-token", async (req, res): Promise<void> => {
+router.post("/appointments/:id/whatsapp-token", requireAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
@@ -542,7 +591,7 @@ router.post("/appointments/:id/whatsapp-token", async (req, res): Promise<void> 
 
 // ─── RESCHEDULE ───────────────────────────────────────────────────────────────
 
-router.post("/appointments/:id/reschedule", async (req, res): Promise<void> => {
+router.post("/appointments/:id/reschedule", requireAuth, async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
