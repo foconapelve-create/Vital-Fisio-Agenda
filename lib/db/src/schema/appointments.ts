@@ -3,11 +3,13 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { patientsTable } from "./patients";
 import { therapistsTable } from "./therapists";
+import { resourcesTable } from "./resources";
 
 export const appointmentsTable = pgTable("appointments", {
   id: serial("id").primaryKey(),
   patientId: integer("patient_id").notNull().references(() => patientsTable.id),
   therapistId: integer("therapist_id").notNull().references(() => therapistsTable.id),
+  resourceId: integer("resource_id").references(() => resourcesTable.id),
   date: text("date").notNull(),
   time: text("time").notNull(),
   status: text("status").notNull().default("agendado"),

@@ -1,0 +1,120 @@
+Quero modificar meu sistema de agendamento de fisioterapia.
+
+OBJETIVO:
+Implementar um sistema de controle de vagas por local/equipamento de atendimento semelhante a uma planilha de ocupação.
+
+Cada horário deve possuir vagas limitadas por recurso e o sistema deve impedir agendamentos quando o recurso estiver ocupado.
+
+RECURSOS DISPONÍVEIS:
+
+1 - Eletroterapia
+2 - Eletroterapia
+3 - Eletroterapia
+4 - Eletroterapia
+5 - Mão/Punho
+6 - Mão/Punho
+7 - Maca
+8 - Maca
+9 - Maca
+10 - Maca
+11 - Espaldar
+12 - Barra
+13 - Cadeira de Exercícios
+14 - Cadeira de Exercícios
+15 - Tablado
+16 - Tablado
+17 - Espaldar
+18 - Espaldar
+19 - Cadeira Eletro
+20 - Cadeira Eletro
+
+FUNCIONALIDADES:
+
+1. Ao criar um agendamento, o usuário deverá selecionar:
+   - Paciente
+   - Data
+   - Horário
+   - Recurso de atendimento
+   - Profissional
+
+2. O sistema deverá exibir apenas os recursos disponíveis naquele horário.
+
+3. Se um recurso já estiver ocupado:
+   - Exibir mensagem:
+     "Este local já está ocupado neste horário."
+   - Impedir o salvamento.
+
+4. Quando todos os recursos disponíveis para aquele horário estiverem ocupados:
+   - Exibir:
+     "Horário lotado."
+   - Bloquear novos agendamentos.
+
+5. Não permitir:
+   - Dois pacientes no mesmo recurso, data e horário.
+   - O mesmo paciente agendado duas vezes no mesmo horário.
+
+AGENDA VISUAL:
+
+Criar uma visualização em grade semelhante a uma planilha:
+
+Horário | Recurso | Paciente
+13:00 | Maca 1 | João
+13:00 | Maca 2 | Maria
+13:00 | Espaldar 1 | Livre
+13:00 | Tablado 1 | Ana
+
+Ou uma grade com horários nas colunas e recursos nas linhas.
+
+CORES:
+
+Verde = Livre
+Vermelho = Ocupado
+Amarelo = Parcialmente ocupado
+Cinza = Bloqueado
+
+FUNCIONALIDADES ADICIONAIS:
+
+- Arrastar e soltar paciente para outro recurso disponível.
+- Editar agendamento.
+- Cancelar agendamento.
+- Atualização automática sem precisar recarregar a página.
+- Filtro por profissional.
+- Filtro por data.
+- Pesquisa por paciente.
+
+BANCO DE DADOS:
+
+Tabela Recursos:
+- id
+- nome
+- tipo
+- ativo
+
+Tabela Agendamentos:
+- id
+- paciente_id
+- profissional_id
+- recurso_id
+- data
+- horario
+- status
+- observacoes
+- criado_em
+
+VALIDAÇÕES:
+
+Criar validação no backend para impedir:
+- Mesmo recurso + mesma data + mesmo horário.
+- Mesmo paciente + mesma data + mesmo horário.
+
+DASHBOARD:
+
+Criar indicadores:
+- Total de vagas do dia
+- Total de vagas ocupadas
+- Total de vagas livres
+- Taxa de ocupação (%)
+
+RESULTADO FINAL:
+
+Transformar a agenda atual em um sistema de controle de ocupação por recurso (Maca, Espaldar, Tablado, Eletroterapia, Barra, Cadeira de Exercícios e Cadeira Eletro), semelhante à planilha enviada, bloqueando automaticamente os horários quando a capacidade máxima for atingida.

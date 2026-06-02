@@ -28,6 +28,7 @@ import UsersPage from "@/pages/users";
 import ResetPassword from "@/pages/reset-password";
 import Confirmar from "@/pages/confirmar";
 import Estoque from "@/pages/estoque";
+import AgendaRecursos from "@/pages/agenda-recursos";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -125,6 +126,9 @@ function Router() {
       </Route>
       <Route path="/estoque">
         <ProtectedRoute component={Estoque} roles={["admin", "fisioterapeuta", "financeiro"]} />
+      </Route>
+      <Route path="/agenda-recursos">
+        <ProtectedRoute component={AgendaRecursos} roles={["admin", "fisioterapeuta", "recepcao"]} />
       </Route>
       <Route path="/users">
         <ProtectedRoute component={UsersPage} roles={["admin"]} />

@@ -7,3 +7,4 @@ export * from "./evolutions";
 export * from "./financial";
 export * from "./attestations";
 export * from "./inventory";
+export * from "./resources";

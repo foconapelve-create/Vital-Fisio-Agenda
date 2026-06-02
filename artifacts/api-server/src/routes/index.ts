@@ -18,6 +18,7 @@ import confirmRouter from "./confirm";
 import estoqueRouter from "./estoque";
 import agendaEspecializadaRouter from "./agenda-especializada";
 import whatsappRouter from "./whatsapp";
+import resourcesRouter from "./resources";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(settingsRouter);
 router.use(estoqueRouter);
 router.use(agendaEspecializadaRouter);
 router.use(whatsappRouter);
+router.use(resourcesRouter);
 
 export default router;

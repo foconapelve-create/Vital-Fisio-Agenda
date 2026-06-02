@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, sql, ne, desc } from "drizzle-orm";
-import { db, appointmentsTable, patientsTable, therapistsTable, appointmentContactsTable } from "@workspace/db";
+import { db, appointmentsTable, patientsTable, therapistsTable, appointmentContactsTable, resourcesTable } from "@workspace/db";
 import {
   CreateAppointmentBody, UpdateAppointmentBody,
   RescheduleAppointmentBody,
@@ -20,13 +20,15 @@ const router: IRouter = Router();
 function buildSelect() {
   return {
     id: appointmentsTable.id, patientId: appointmentsTable.patientId,
-    therapistId: appointmentsTable.therapistId, date: appointmentsTable.date,
+    therapistId: appointmentsTable.therapistId, resourceId: appointmentsTable.resourceId,
+    date: appointmentsTable.date,
     time: appointmentsTable.time, status: appointmentsTable.status,
     notes: appointmentsTable.notes, originalAppointmentId: appointmentsTable.originalAppointmentId,
     recurringGroupId: appointmentsTable.recurringGroupId,
     createdAt: appointmentsTable.createdAt, updatedAt: appointmentsTable.updatedAt,
     patientName: patientsTable.name, patientPhone: patientsTable.phone,
     therapistName: therapistsTable.name, therapistSpecialty: therapistsTable.specialty,
+    resourceName: resourcesTable.name, resourceType: resourcesTable.type,
   };
 }
 
@@ -34,6 +36,7 @@ async function getWithDetails(id: number) {
   const [apt] = await db.select(buildSelect()).from(appointmentsTable)
     .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
     .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+    .leftJoin(resourcesTable, eq(appointmentsTable.resourceId, resourcesTable.id))
     .where(eq(appointmentsTable.id, id));
   return apt;
 }
@@ -58,7 +61,8 @@ router.get("/appointments", async (req, res): Promise<void> => {
 
   const base = db.select(buildSelect()).from(appointmentsTable)
     .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
-    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id));
+    .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+    .leftJoin(resourcesTable, eq(appointmentsTable.resourceId, resourcesTable.id));
 
   const apts = conditions.length > 0
     ? await base.where(and(...conditions)).orderBy(appointmentsTable.date, appointmentsTable.time)
@@ -79,6 +83,7 @@ router.get("/appointments/upcoming", async (req, res): Promise<void> => {
   const apts = await db.select(buildSelect()).from(appointmentsTable)
     .innerJoin(patientsTable, eq(appointmentsTable.patientId, patientsTable.id))
     .innerJoin(therapistsTable, eq(appointmentsTable.therapistId, therapistsTable.id))
+    .leftJoin(resourcesTable, eq(appointmentsTable.resourceId, resourcesTable.id))
     .where(and(
       gte(appointmentsTable.date, today),
       lte(appointmentsTable.date, futureStr),
@@ -151,8 +156,9 @@ router.post("/appointments", async (req, res): Promise<void> => {
     }
 
     const { patientId, therapistId, date, time, status, notes } = parsed.data;
+    const resourceId = (req.body.resourceId != null && req.body.resourceId !== "") ? Number(req.body.resourceId) : null;
 
-    // Conflict check
+    // Conflict check: same patient same slot
     const conflict = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
       .where(and(
         eq(appointmentsTable.patientId, patientId),
@@ -166,10 +172,26 @@ router.post("/appointments", async (req, res): Promise<void> => {
       return;
     }
 
+    // Conflict check: same resource same slot
+    if (resourceId) {
+      const resourceConflict = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
+        .where(and(
+          eq(appointmentsTable.resourceId, resourceId),
+          eq(appointmentsTable.date, date),
+          eq(appointmentsTable.time, time),
+          sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`,
+        ));
+      if (resourceConflict.length > 0) {
+        res.status(409).json({ error: "Este local já está ocupado neste horário." });
+        return;
+      }
+    }
+
     const [apt] = await db.insert(appointmentsTable).values({
       patientId, therapistId, date, time,
       status: status ?? "agendado",
       notes: notes ?? null,
+      resourceId: resourceId ?? null,
     }).returning();
 
     const withDetails = await getWithDetails(apt.id);
@@ -292,6 +314,29 @@ router.patch("/appointments/:id", async (req, res): Promise<void> => {
   if (d.time !== undefined) update.time = d.time;
   if (d.status !== undefined) update.status = d.status;
   if (d.notes !== undefined) update.notes = d.notes;
+  if (req.body.resourceId !== undefined) {
+    update.resourceId = (req.body.resourceId !== null && req.body.resourceId !== "") ? Number(req.body.resourceId) : null;
+  }
+
+  // Resource conflict check on update
+  if (update.resourceId) {
+    const targetDate = (update.date as string | undefined) ?? d.date;
+    const targetTime = (update.time as string | undefined) ?? d.time;
+    if (targetDate && targetTime) {
+      const resourceConflict = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
+        .where(and(
+          eq(appointmentsTable.resourceId, update.resourceId as number),
+          eq(appointmentsTable.date, targetDate),
+          eq(appointmentsTable.time, targetTime),
+          ne(appointmentsTable.id, id),
+          sql`${appointmentsTable.status} NOT IN ('cancelado', 'remarcado')`,
+        ));
+      if (resourceConflict.length > 0) {
+        res.status(409).json({ error: "Este local já está ocupado neste horário." });
+        return;
+      }
+    }
+  }
 
   await db.update(appointmentsTable).set(update).where(eq(appointmentsTable.id, id));
   const apt = await getWithDetails(id);
