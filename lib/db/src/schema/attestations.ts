@@ -31,6 +31,9 @@ export const clinicSettingsTable = pgTable("clinic_settings", {
   enderecoClinica: text("endereco_clinica").notNull().default(""),
   telefone: text("telefone"),
   email: text("email"),
+  holidayMode: text("holiday_mode").notNull().default("block"),
+  allowSaturday: boolean("allow_saturday").notNull().default(true),
+  blockSunday: boolean("block_sunday").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

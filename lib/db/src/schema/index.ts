@@ -8,3 +8,4 @@ export * from "./financial";
 export * from "./attestations";
 export * from "./inventory";
 export * from "./resources";
+export * from "./holidays";

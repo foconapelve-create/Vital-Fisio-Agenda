@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, sql, ne, desc } from "drizzle-orm";
-import { db, appointmentsTable, patientsTable, therapistsTable, appointmentContactsTable, resourcesTable } from "@workspace/db";
+import { db, appointmentsTable, patientsTable, therapistsTable, appointmentContactsTable, resourcesTable, holidaysTable } from "@workspace/db";
 import {
   CreateAppointmentBody, UpdateAppointmentBody,
   RescheduleAppointmentBody,
@@ -157,6 +157,42 @@ router.post("/appointments", async (req, res): Promise<void> => {
 
     const { patientId, therapistId, date, time, status, notes } = parsed.data;
     const resourceId = (req.body.resourceId != null && req.body.resourceId !== "") ? Number(req.body.resourceId) : null;
+
+    // Holiday check
+    const [holiday] = await db.select().from(holidaysTable)
+      .where(and(eq(holidaysTable.date, date), eq(holidaysTable.active, true)));
+    if (holiday) {
+      // Get holiday mode from settings
+      const settingsRows = await db.execute(
+        sql`SELECT holiday_mode FROM clinic_settings LIMIT 1`
+      );
+      const holidayMode = (settingsRows.rows[0] as any)?.holiday_mode ?? "block";
+      if (holidayMode === "block") {
+        res.status(409).json({ error: `Não é possível agendar neste dia, pois é feriado: ${holiday.description}` });
+        return;
+      }
+    }
+
+    // Sunday check
+    const dayOfWeek = new Date(date + "T12:00:00").getDay();
+    if (dayOfWeek === 0) {
+      const settingsRows = await db.execute(sql`SELECT block_sunday FROM clinic_settings LIMIT 1`);
+      const blockSunday = (settingsRows.rows[0] as any)?.block_sunday ?? true;
+      if (blockSunday) {
+        res.status(409).json({ error: "Não é possível agendar aos domingos." });
+        return;
+      }
+    }
+
+    // Saturday check
+    if (dayOfWeek === 6) {
+      const settingsRows = await db.execute(sql`SELECT allow_saturday FROM clinic_settings LIMIT 1`);
+      const allowSaturday = (settingsRows.rows[0] as any)?.allow_saturday ?? true;
+      if (!allowSaturday) {
+        res.status(409).json({ error: "Agendamentos aos sábados estão desabilitados." });
+        return;
+      }
+    }
 
     // Conflict check: same patient same slot
     const conflict = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)

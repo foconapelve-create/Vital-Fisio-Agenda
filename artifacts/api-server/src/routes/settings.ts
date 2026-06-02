@@ -71,4 +71,53 @@ router.put("/settings/system", requireAdmin, async (req, res): Promise<void> => 
   }
 });
 
+// ── Holiday settings ──────────────────────────────────────────────────────────
+
+router.get("/settings/holiday", async (_req, res): Promise<void> => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT holiday_mode, allow_saturday, block_sunday FROM clinic_settings LIMIT 1`
+    );
+    if (!rows.length) {
+      res.json({ holidayMode: "block", allowSaturday: true, blockSunday: true });
+      return;
+    }
+    const r = rows[0];
+    res.json({
+      holidayMode: r.holiday_mode ?? "block",
+      allowSaturday: r.allow_saturday ?? true,
+      blockSunday: r.block_sunday ?? true,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put("/settings/holiday", requireAdmin, async (req, res): Promise<void> => {
+  const { holidayMode, allowSaturday, blockSunday } = req.body || {};
+  try {
+    const { rows } = await pool.query(`SELECT id FROM clinic_settings LIMIT 1`);
+    const updates: string[] = [];
+    const vals: any[] = [];
+    let idx = 1;
+    if (holidayMode !== undefined) { updates.push(`holiday_mode = $${idx++}`); vals.push(holidayMode); }
+    if (allowSaturday !== undefined) { updates.push(`allow_saturday = $${idx++}`); vals.push(allowSaturday); }
+    if (blockSunday !== undefined) { updates.push(`block_sunday = $${idx++}`); vals.push(blockSunday); }
+    if (!updates.length) { res.json({ ok: true }); return; }
+    updates.push(`updated_at = NOW()`);
+    if (rows.length) {
+      vals.push(rows[0].id);
+      await pool.query(`UPDATE clinic_settings SET ${updates.join(", ")} WHERE id = $${idx}`, vals);
+    } else {
+      await pool.query(
+        `INSERT INTO clinic_settings (holiday_mode, allow_saturday, block_sunday) VALUES ($1, $2, $3)`,
+        [holidayMode ?? "block", allowSaturday ?? true, blockSunday ?? true]
+      );
+    }
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 export default router;

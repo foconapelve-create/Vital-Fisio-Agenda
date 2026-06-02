@@ -29,6 +29,7 @@ import ResetPassword from "@/pages/reset-password";
 import Confirmar from "@/pages/confirmar";
 import Estoque from "@/pages/estoque";
 import AgendaRecursos from "@/pages/agenda-recursos";
+import Feriados from "@/pages/feriados";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -129,6 +130,9 @@ function Router() {
       </Route>
       <Route path="/agenda-recursos">
         <ProtectedRoute component={AgendaRecursos} roles={["admin", "fisioterapeuta", "recepcao"]} />
+      </Route>
+      <Route path="/feriados">
+        <ProtectedRoute component={Feriados} roles={["admin"]} />
       </Route>
       <Route path="/users">
         <ProtectedRoute component={UsersPage} roles={["admin"]} />

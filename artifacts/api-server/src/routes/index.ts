@@ -19,6 +19,7 @@ import estoqueRouter from "./estoque";
 import agendaEspecializadaRouter from "./agenda-especializada";
 import whatsappRouter from "./whatsapp";
 import resourcesRouter from "./resources";
+import holidaysRouter from "./holidays";
 
 const router: IRouter = Router();
 
@@ -42,5 +43,6 @@ router.use(estoqueRouter);
 router.use(agendaEspecializadaRouter);
 router.use(whatsappRouter);
 router.use(resourcesRouter);
+router.use(holidaysRouter);
 
 export default router;
