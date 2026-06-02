@@ -65,7 +65,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       res.status(500).json({ error: "Erro ao salvar sessão" });
       return;
     }
-    res.json(mapUser(user));
+    res.json({ ...mapUser(user), sessionId: req.sessionID });
   });
 });
 

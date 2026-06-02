@@ -1,0 +1,1 @@
+- [Bearer token auth fallback](bearer-token-auth.md) — cookies blocked in Replit iframe; login returns sessionId stored in localStorage, sent as Bearer token.

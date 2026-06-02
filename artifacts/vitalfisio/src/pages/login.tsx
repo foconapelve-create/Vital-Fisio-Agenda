@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useLogin } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Activity, Eye, EyeOff, Mail, ArrowLeft, UserPlus, KeyRound, CheckCircle2, Loader2, Copy, ExternalLink } from "lucide-react";
-import { apiFetch } from "@/lib/apiFetch";
+import { apiFetch, setStoredSessionId } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 
@@ -28,7 +27,6 @@ type Modal = "none" | "forgot" | "register";
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const login = useLogin();
   const { systemName, logoUrl } = useAppSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
@@ -55,15 +53,19 @@ export default function Login() {
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
-    login.mutate({ data }, {
-      onSuccess: () => {
-        setLocation("/");
-      },
-      onError: (err) => {
-        toast({ title: "Erro no login", description: (err as any).error?.error || "Credenciais inválidas", variant: "destructive" });
-        setIsLoading(false);
+    try {
+      const result = await apiFetch<{ sessionId?: string }>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ username: data.username, password: data.password }),
+      });
+      if (result.sessionId) {
+        setStoredSessionId(result.sessionId);
       }
-    });
+      setLocation("/");
+    } catch (err: any) {
+      toast({ title: "Erro no login", description: err?.message || "Credenciais inválidas", variant: "destructive" });
+      setIsLoading(false);
+    }
   };
 
   const onForgot = async () => {

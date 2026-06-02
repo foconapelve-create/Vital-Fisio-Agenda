@@ -2,9 +2,10 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useGetMe } from "@workspace/api-client-react";
+import { useGetMe, setAuthTokenGetter } from "@workspace/api-client-react";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { getStoredSessionId } from "@/lib/apiFetch";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
@@ -31,6 +32,8 @@ import Estoque from "@/pages/estoque";
 import AgendaRecursos from "@/pages/agenda-recursos";
 import Feriados from "@/pages/feriados";
 import NotFound from "@/pages/not-found";
+
+setAuthTokenGetter(getStoredSessionId);
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -9,6 +9,7 @@ import {
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
+import { setStoredSessionId } from "@/lib/apiFetch";
 
 const adminItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -92,7 +93,12 @@ export function Sidebar({ isMobileOpen, setMobileOpen }: { isMobileOpen: boolean
   const initial = systemName.charAt(0).toUpperCase();
 
   const handleLogout = () => {
-    logout.mutate(undefined, { onSuccess: () => setLoc("/login") });
+    logout.mutate(undefined, {
+      onSuccess: () => {
+        setStoredSessionId(null);
+        setLoc("/login");
+      },
+    });
   };
 
   const SidebarContent = (

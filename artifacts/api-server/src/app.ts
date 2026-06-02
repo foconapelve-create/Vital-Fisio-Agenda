@@ -52,6 +52,25 @@ app.use(
   }),
 );
 
+// Fallback: support Bearer token (session ID) for environments where cookies are blocked (e.g. iframe previews)
+app.use(async (req, _res, next) => {
+  if (!(req.session as any).userId) {
+    const auth = req.headers["authorization"];
+    const sessionId = auth?.startsWith("Bearer ") ? auth.slice(7) : undefined;
+    if (sessionId) {
+      await new Promise<void>((resolve) => {
+        sessionStore.get(sessionId, (err: any, sessionData: any) => {
+          if (!err && sessionData && (sessionData as any).userId) {
+            Object.assign(req.session, sessionData);
+          }
+          resolve();
+        });
+      });
+    }
+  }
+  next();
+});
+
 app.use("/api", router);
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
